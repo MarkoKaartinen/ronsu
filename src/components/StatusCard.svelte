@@ -1,0 +1,260 @@
+<script lang="ts">
+  import type { Status } from '../lib/api/types';
+  import { mediaAspect } from '../lib/media';
+  import Repeat2 from '@lucide/svelte/icons/repeat-2';
+  import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
+  import { profileHref, router } from '../lib/router.svelte';
+  import ActionBar from './ActionBar.svelte';
+  import { sanitizeContent, sanitizeText } from '../lib/html';
+  import { formatDateTime, formatNumber, formatRelativeTime } from '../lib/i18n';
+  import { i18n, t, tCounter } from '../lib/stores/i18n.svelte';
+  import { lightbox } from '../lib/stores/lightbox.svelte';
+
+  /**
+   * focused: the thread's selected post (large layout). rail: a reading rail below the avatar down to the
+   * next message (it ends at the selected post's background band). reply: smaller avatar.
+   * compact: a light row without action buttons (thread ancestors and replies; a tap opens the post).
+   */
+  let {
+    status,
+    focused = false,
+    rail = false,
+    reply = false,
+    compact = false,
+  }: { status: Status; focused?: boolean; rail?: boolean; reply?: boolean; compact?: boolean } = $props();
+
+  // A boost shows the original; the wrapper's id is still the reading-position key (data-id)
+  const s = $derived(status.reblog ?? status);
+  const booster = $derived(status.reblog ? status.account : null);
+
+  let cwOpen = $state(false);
+  let mediaOpen = $state(false);
+
+  const hasCw = $derived(s.spoiler_text.trim() !== '');
+  const showBody = $derived(!hasCw || cwOpen);
+  const hideMedia = $derived(s.sensitive && !mediaOpen);
+  const single = $derived(s.media_attachments.length === 1);
+
+  function openProfile(e: Event) {
+    e.preventDefault();
+    router.openProfile(s.account);
+  }
+
+  /**
+   * A plain click on a picture opens the in-app viewer, with all the post's pictures to swipe through. The
+   * link stays a real link, so ctrl/cmd/middle-click still opens the picture in a new tab.
+   */
+  function openImage(e: MouseEvent, id: string) {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    const images = s.media_attachments.filter((m) => m.type === 'image');
+    lightbox.show(images, images.findIndex((m) => m.id === id));
+  }
+
+  /**
+   * Tapping the card opens the thread, but not on interactive elements (links, buttons, media)
+   * or while selecting text. An @mention opens the profile inside the app.
+   */
+  function onCardClick(e: MouseEvent) {
+    const target = e.target as HTMLElement;
+    const link = target.closest<HTMLAnchorElement>('a.mention');
+    if (link) {
+      const mention = s.mentions?.find((m) => m.url === link.href);
+      if (mention) {
+        e.preventDefault();
+        router.openProfile(mention);
+      }
+      return;
+    }
+    if (target.closest('a, button, video, audio, input, select, textarea')) return;
+    if (getSelection()?.toString()) return;
+    if (!focused) router.openThread(s.id);
+  }
+</script>
+
+<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
+<article data-id={status.id} class:tappable={!focused} class:focused class:reply class:compact class:railed={rail} onclick={onCardClick}>
+  {#if booster}
+    <p class="booster">
+      <Repeat2 size={14} aria-hidden="true" />
+      {@html sanitizeText(t('status.boostedBy', { name: booster.display_name || booster.username }), booster.emojis)}
+    </p>
+  {/if}
+
+  <div class="layout">
+    {#if !focused}
+      <div class="side">
+        <a class="avatar-link" href={profileHref(s.account.acct)} onclick={openProfile} tabindex="-1" aria-hidden="true">
+          <img class="avatar" src={s.account.avatar} alt="" width={reply ? 36 : 44} height={reply ? 36 : 44} loading="lazy" />
+        </a>
+        {#if rail}<span class="rail"></span>{/if}
+      </div>
+    {/if}
+
+    <div class="body">
+      {#if focused}
+        <a class="fhead" href={profileHref(s.account.acct)} onclick={openProfile}>
+          <img class="avatar" src={s.account.avatar} alt="" width="52" height="52" />
+          <span class="who">
+            <strong>{@html sanitizeText(s.account.display_name || s.account.username, s.account.emojis)}</strong>
+            <small>@{s.account.acct}</small>
+          </span>
+        </a>
+      {:else}
+        <header>
+          <a class="profile" href={profileHref(s.account.acct)} onclick={openProfile}>
+            <strong>{@html sanitizeText(s.account.display_name || s.account.username, s.account.emojis)}</strong>
+            <small>@{s.account.acct}</small>
+          </a>
+          <!-- The timestamp links to the original post on its own server; the thread opens by tapping the card -->
+          <a class="time" href={s.url ?? s.uri} target="_blank" rel="noopener noreferrer" title="{t('status.openOriginal')} · {formatDateTime(s.created_at, i18n.locale)}">
+            {formatRelativeTime(s.created_at, i18n.locale)}
+          </a>
+        </header>
+      {/if}
+
+      {#if hasCw}
+        <div class="cw">
+          <TriangleAlert size={18} aria-hidden="true" />
+          <span class="cw-text">{@html sanitizeText(s.spoiler_text, s.emojis)}</span>
+          <button onclick={() => (cwOpen = !cwOpen)} aria-expanded={cwOpen}>{cwOpen ? t('status.hidePost') : t('status.showPost')}</button>
+        </div>
+      {/if}
+
+      {#if showBody}
+        <div class="content">{@html sanitizeContent(s.content, s.emojis)}</div>
+
+        {#if s.media_attachments.length}
+          <div
+            class="media"
+            class:single
+            class:multi={!single && !hideMedia}
+            data-count={s.media_attachments.length}
+            style:--aspect={single ? mediaAspect(s.media_attachments[0], true) : undefined}
+          >
+            {#if hideMedia}
+              <button class="reveal" onclick={() => (mediaOpen = true)} title={t('status.showMedia')}>{t('status.sensitive')}</button>
+            {:else}
+              {#each s.media_attachments as m (m.id)}
+                {#if m.type === 'image'}
+                  <a href={m.url} target="_blank" rel="noopener noreferrer" onclick={(e) => openImage(e, m.id)} >
+                    <img src={m.preview_url} alt={m.description ?? ''} loading="lazy" />
+                  </a>
+                {:else if m.type === 'video'}
+                  <!-- svelte-ignore a11y_media_has_caption -->
+                  <video src={m.url} poster={m.preview_url} controls preload="none" playsinline aria-label={m.description ?? ''} ></video>
+                {:else if m.type === 'gifv'}
+                  <!-- svelte-ignore a11y_media_has_caption -->
+                  <video src={m.url} poster={m.preview_url} autoplay loop muted playsinline aria-label={m.description ?? ''} ></video>
+                {:else if m.type === 'audio'}
+                  <audio src={m.url} controls preload="none"></audio>
+                {:else}
+                  <a href={m.url} target="_blank" rel="noopener noreferrer">{t('status.attachment')}</a>
+                {/if}
+              {/each}
+            {/if}
+          </div>
+        {/if}
+      {/if}
+
+      {#if focused}
+        <p class="meta">
+          <a class="time" href={s.url ?? s.uri} target="_blank" rel="noopener noreferrer" title={t('status.openOriginal')}>
+            {formatDateTime(s.created_at, i18n.locale)}
+          </a>
+        </p>
+        <p class="stats">
+          {#each [['status.replies', s.replies_count], ['status.boosts', s.reblogs_count], ['status.favorites', s.favourites_count]] as const as [key, count] (key)}
+            {@const [before, after] = tCounter(key, count)}
+            <span>{before}<strong>{formatNumber(count, i18n.locale)}</strong>{after}</span>
+          {/each}
+        </p>
+      {/if}
+
+      {#if !compact}
+        <ActionBar status={s} large={focused} />
+      {/if}
+    </div>
+  </div>
+</article>
+
+<style>
+  article { position: relative; padding: 1rem 1rem 0.15rem; border-bottom: 1px solid var(--border); }
+  .layout { display: flex; gap: 0.75rem; }
+  .side { display: flex; flex-direction: column; align-items: center; flex: none; }
+  .avatar { border-radius: var(--radius-avatar); border: var(--avatar-border); display: block; background: var(--surface); }
+  .rail { flex: 1; width: 2px; margin: 0.25rem 0 -0.5rem; background: var(--border); }
+  .body { flex: 1; min-width: 0; }
+  .booster { display: flex; gap: 0.35rem; align-items: center; margin: 0 0 0.3rem; padding-left: 3.5rem; color: var(--muted); font-size: 0.85rem; }
+  header { display: flex; gap: 0.4rem; align-items: baseline; }
+  .profile { display: flex; gap: 0.4rem; align-items: baseline; min-width: 0; flex: 1; color: inherit; text-decoration: none; }
+  .profile strong { font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; }
+  .profile small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .profile:hover strong { text-decoration: underline; }
+  .time { color: var(--muted); font-size: 0.82rem; text-decoration: none; flex: none; }
+  .time:hover { text-decoration: underline; }
+  article.tappable { cursor: pointer; }
+  /* A content warning stands out in the warning colour (the same as the CW field when writing), and is tinted
+     with it instead of a plain surface colour, so it is also visible on the selected post's band */
+  .cw { display: flex; gap: 0.6rem; align-items: center; border: 1px solid color-mix(in srgb, var(--marker) 55%, transparent); background: color-mix(in srgb, var(--marker) 13%, transparent); border-radius: 0.6rem; padding: 0.5rem 0.6rem 0.5rem 0.7rem; margin: 0.3rem 0 0.5rem; }
+  .cw > :global(svg) { flex: none; color: var(--marker); }
+  .cw-text { flex: 1; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+  .cw button { flex: none; min-height: 2.25rem; border: 1px solid color-mix(in srgb, var(--marker) 55%, transparent); background: var(--bg); color: var(--text); border-radius: 0.4rem; padding: 0 0.7rem; }
+  .reveal { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 0.4rem; padding: 0.3rem 0.7rem; }
+  .content { margin-top: 0.15rem; font-size: 1.06rem; line-height: 1.55; overflow-wrap: anywhere; }
+  .content :global(p) { margin: 0 0 0.6rem; }
+  .content :global(p:last-child) { margin-bottom: 0; }
+  .content :global(.invisible) { display: none; }
+  .content :global(.ellipsis)::after { content: '…'; }
+  .content :global(img.emoji), header :global(img.emoji), .booster :global(img.emoji), .fhead :global(img.emoji) { height: 1.2em; width: 1.2em; object-fit: contain; vertical-align: middle; }
+  .media { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin-top: 0.6rem; border-radius: 0.9rem; overflow: hidden; }
+  .media a { display: block; overflow: hidden; background: var(--surface); }
+  .media a img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .media video { width: 100%; object-fit: cover; display: block; background: var(--surface); }
+  .media audio { grid-column: 1 / -1; width: 100%; }
+  /* One picture: the block is exactly as wide as the picture (at most 28rem tall), and the height comes from
+     the aspect ratio (--aspect, from the post's metadata), not from the image loading. Sizing the block itself,
+     instead of capping the picture inside it, keeps the rounded corners on the picture's own corners. */
+  .media.single { display: block; width: min(100%, calc(28rem * var(--aspect, 1.78))); }
+  .media.single a, .media.single video { width: 100%; aspect-ratio: var(--aspect, 1.78); }
+  .media.single video { object-fit: contain; }
+
+  /* A gallery of several pictures, laid out like Mastodon's so that no cell is left empty and the whole block
+     is one rounded rectangle: 2 side by side, 3 = one tall and two stacked, 4 = a 2x2 grid */
+  .media.multi { aspect-ratio: 4 / 3; grid-template-rows: 1fr; }
+  .media.multi[data-count='3'], .media.multi[data-count='4'] { grid-template-rows: 1fr 1fr; }
+  .media.multi[data-count='3'] > :first-child { grid-row: 1 / span 2; }
+  .media.multi a, .media.multi video { width: 100%; height: 100%; max-height: none; min-height: 0; }
+  /* More than four (some servers allow it): rows of two, an odd last picture takes the full width */
+  .media.multi:not([data-count='2'], [data-count='3'], [data-count='4']) { aspect-ratio: auto; grid-template-rows: none; grid-auto-rows: 9rem; }
+  .media.multi:not([data-count='2'], [data-count='3'], [data-count='4']) > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .reveal { grid-column: 1 / -1; padding: 2rem 1rem; background: var(--surface); }
+
+  /* Light thread rows: no action buttons, smaller text */
+  .compact { padding-bottom: 1rem; }
+  .compact .content { font-size: 1rem; line-height: 1.5; }
+  .compact .profile strong { font-size: 0.95rem; }
+  .compact:not(.reply) .content { color: color-mix(in srgb, var(--text) 80%, var(--muted)); }
+  /* Ancestor: the rail continues to the next message's avatar, no divider line */
+  .railed { border-bottom: 0; padding-top: 0.25rem; padding-bottom: 1.1rem; }
+  .railed .rail { margin-bottom: -1.1rem; }
+  /* Rail centre = avatar centre: 1rem padding + 22 px (half of the 44 px avatar) - 1 px (half the line width) */
+  .railed::before { content: ''; position: absolute; left: calc(1rem + 21px); top: 0; height: 0.25rem; width: 2px; background: var(--border); }
+  /* Reply: the divider starts after the avatar, the timestamp follows the handle */
+  .reply { padding: 0.9rem 1rem 0; border-bottom: 0; }
+  .reply .body { padding-bottom: 0.9rem; border-bottom: 1px solid var(--border); }
+  .compact .profile { flex: 0 1 auto; }
+  .compact header { justify-content: flex-start; }
+  .compact .time::before { content: '· '; }
+
+  /* The thread's selected post: large layout, background band */
+  .focused { background: var(--surface); padding-top: 1.1rem; border-top: 1px solid var(--border); }
+  .fhead { display: flex; gap: 0.75rem; align-items: center; color: inherit; text-decoration: none; margin-bottom: 0.7rem; }
+  .fhead .who { display: grid; min-width: 0; }
+  .fhead strong { font-size: 1.1rem; }
+  .fhead small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .focused .content { font-size: 1.25rem; line-height: 1.55; }
+  .meta { margin: 0.9rem 0 0; font-size: 0.9rem; }
+  .stats { display: flex; gap: 1.2rem; margin: 0.7rem 0 0; padding: 0.7rem 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); color: var(--muted); font-size: 0.9rem; }
+  .stats strong { color: var(--text); }
+</style>

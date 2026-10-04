@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b4252"/>
+      <stop offset="1" stop-color="#2a303b"/>
+    </linearGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#93c8d6"/>
+      <stop offset="1" stop-color="#7fb6c6"/>
+    </linearGradient>
+    <clipPath id="sq"><rect width="512" height="512" rx="112"/></clipPath>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <g clip-path="url(#sq)">
+    <!-- bookmark -->
+    <path d="M58 0H120V96L89 72L58 96Z" fill="#ebcb8b"/>
+    <g transform="translate(262 282) scale(0.95) translate(-288 -278)">
+      <!-- shadow -->
+      <ellipse cx="250" cy="446" rx="196" ry="14" fill="#1f242d" opacity="0.45"/>
+      <!-- tail -->
+      <path d="M96 300C70 318 68 350 80 372" fill="none" stroke="#7fb6c6" stroke-width="12" stroke-linecap="round"/>
+      <!-- hind legs -->
+      <rect x="118" y="330" width="56" height="112" rx="26" fill="#6aa3b4"/>
+      <rect x="290" y="340" width="56" height="102" rx="26" fill="#6aa3b4"/>
+      <!-- body -->
+      <ellipse cx="240" cy="300" rx="150" ry="108" fill="url(#skin)"/>
+      <!-- front legs -->
+      <rect x="186" y="340" width="58" height="102" rx="26" fill="url(#skin)"/>
+      <rect x="352" y="330" width="58" height="112" rx="26" fill="url(#skin)"/>
+      <!-- toenails -->
+      <g fill="#e5e9f0">
+        <rect x="128" y="426" width="14" height="12" rx="5"/><rect x="150" y="426" width="14" height="12" rx="5"/>
+        <rect x="362" y="426" width="14" height="12" rx="5"/><rect x="384" y="426" width="14" height="12" rx="5"/>
+      </g>
+      <!-- head -->
+      <circle cx="352" cy="240" r="88" fill="url(#skin)"/>
+      <!-- trunk raised -->
+      <circle cx="424" cy="258" r="30" fill="url(#skin)"/>
+      <path d="M418 262C476 252 490 188 452 138" fill="none" stroke="url(#skin)" stroke-width="48" stroke-linecap="round"/>
+      <path d="M448 214C458 212 466 206 470 198M454 184C462 180 468 174 470 166" fill="none" stroke="#6aa3b4" stroke-width="6" stroke-linecap="round"/>
+      <!-- ear: a large flap at the back of the head -->
+      <path d="M336 168C298 140 226 166 206 236C188 300 224 350 272 352C314 354 336 320 336 282C336 246 322 204 336 168Z" fill="#5e81ac"/>
+      <path d="M326 196C294 178 238 204 228 254C220 294 246 324 280 322C306 320 318 298 318 268C318 240 310 218 326 196Z" fill="#81a1c1"/>
+      <path d="M314 212C284 206 254 228 248 262" fill="none" stroke="#9ab5d2" stroke-width="7" stroke-linecap="round" opacity="0.8"/>
+      <!-- tusk -->
+      <path d="M398 296C448 322 482 286 470 232" fill="none" stroke="#f0e3b4" stroke-width="20" stroke-linecap="round"/>
+      <path d="M404 292C446 312 470 288 466 250" fill="none" stroke="#ebcb8b" stroke-width="8" stroke-linecap="round"/>
+      <!-- eye -->
+      <circle cx="384" cy="224" r="11" fill="#2e3440"/>
+      <circle cx="388" cy="220" r="3.5" fill="#eceff4"/>
+    </g>
+  </g>
+</svg>
