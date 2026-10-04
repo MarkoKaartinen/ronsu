@@ -16,6 +16,8 @@ let imageCount = 1;
 let imageAspect = 4 / 3;
 /** Whether posts divisible by 4 (with remainder 2) carry a content warning (set from Server.cw) */
 let withCw = false;
+/** Whether posts with i % 5 === 3 carry a quote, code and a list (set from Server.formatted) */
+let formatted = false;
 
 function status(i: number) {
   return {
@@ -24,7 +26,7 @@ function status(i: number) {
     url: `${HOST}/s/${i}`,
     created_at: '2026-10-04T05:00:00.000Z',
     account: { id: '2', username: 'u', acct: 'u', display_name: 'U', avatar: '', url: '', emojis: [] },
-    content: `<p>Post ${i}. ${i % 7 === 1 ? '<a class="u-url mention" href="https://mock.test/@maija" rel="nofollow" target="_blank">@<span>maija</span></a> ' : ''}${'Lorem ipsum dolor sit amet. '.repeat(6 + (i % 5))}</p>`,
+    content: `<p>Post ${i}. ${i % 7 === 1 ? '<a class="u-url mention" href="https://mock.test/@maija" rel="nofollow" target="_blank">@<span>maija</span></a> ' : ''}${'Lorem ipsum dolor sit amet. '.repeat(6 + (i % 5))}</p>${formatted && i % 5 === 3 ? '<blockquote><p>A quoted line of text that is long enough to wrap onto a second line when the column is narrow.</p></blockquote><pre><code>const x = 1;</code></pre><p>Inline <code>code</code>.</p><ul><li>one</li><li>two</li></ul>' : ''}`,
     spoiler_text: withCw && i % 4 === 2 ? 'food talk' : '',
     sensitive: false,
     visibility: 'public',
@@ -48,6 +50,8 @@ function status(i: number) {
 export interface Server {
   following?: boolean;
   requested?: boolean;
+  boosted?: boolean; // the newest post on each page is a boost by "Daniel"
+  formatted?: boolean; // some posts have a quote, a code block and a list
   cw?: boolean; // some posts have a content warning
   aspect?: number; // aspect ratio of the pictures (default 4/3)
   images?: number; // pictures per post that has any (default 1)
@@ -69,6 +73,7 @@ export async function mockMastodon(page: Page, server: Server) {
   imageCount = server.images ?? 1;
   imageAspect = server.aspect ?? 4 / 3;
   withCw = !!server.cw;
+  formatted = !!server.formatted;
   await page.route(`${HOST}/**`, async (route) => {
     const req = route.request();
     const cors = {
@@ -112,7 +117,12 @@ export async function mockMastodon(page: Page, server: Server) {
       } else {
         list = range(Math.max(0, COUNT - limit), COUNT);
       }
-      return json(list.reverse().map(status)); // newest first, like the real API
+      const page = list.reverse().map(status); // newest first, like the real API
+      // boosted: the newest post of the page is wrapped in a boost by another account (the wrapper keeps its id)
+      if (server.boosted && page.length) {
+        page[0] = { ...page[0], reblog: page[0], account: { ...page[0].account, id: '9', acct: 'daniel', username: 'daniel', display_name: 'Daniel' } };
+      }
+      return json(page);
     }
     const rel = () => ({
       id: '2', following: !!server.following, requested: !!server.requested, followed_by: true, blocking: false, muting: false,

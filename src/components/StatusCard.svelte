@@ -185,7 +185,9 @@
   .avatar { border-radius: var(--radius-avatar); border: var(--avatar-border); display: block; background: var(--surface); }
   .rail { flex: 1; width: 2px; margin: 0.25rem 0 -0.5rem; background: var(--border); }
   .body { flex: 1; min-width: 0; }
-  .booster { display: flex; gap: 0.35rem; align-items: center; margin: 0 0 0.3rem; padding-left: 3.5rem; color: var(--muted); font-size: 0.85rem; }
+  /* "X boosted": a small label in the boost colour (the same green as a boosted post's counter), set in a
+     heavier weight so it reads as a label of its own and not as part of the post */
+  .booster { display: flex; gap: 0.35rem; align-items: center; margin: 0 0 0.3rem; padding-left: 3.5rem; color: var(--boost); font-size: 0.8rem; font-weight: 600; letter-spacing: 0.01em; }
   header { display: flex; gap: 0.4rem; align-items: baseline; }
   .profile { display: flex; gap: 0.4rem; align-items: baseline; min-width: 0; flex: 1; color: inherit; text-decoration: none; }
   .profile strong { font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; }
@@ -204,6 +206,16 @@
   .content { margin-top: 0.15rem; font-size: 1.06rem; line-height: 1.55; overflow-wrap: anywhere; }
   .content :global(p) { margin: 0 0 0.6rem; }
   .content :global(p:last-child) { margin-bottom: 0; }
+  /* Quotes, code and lists in a post: the browser's defaults (a wide indent without any mark, unstyled code)
+     are replaced. The tints are translucent so they work on the page and on the selected post's band alike. */
+  .content :global(blockquote) { margin: 0.5rem 0 0.7rem; padding: 0.1rem 0 0.1rem 0.9rem; border-left: 3px solid color-mix(in srgb, var(--accent) 55%, transparent); color: color-mix(in srgb, var(--text) 82%, var(--muted)); }
+  .content :global(blockquote p) { margin: 0 0 0.5rem; }
+  .content :global(blockquote > :last-child) { margin-bottom: 0; }
+  .content :global(pre) { margin: 0.5rem 0 0.7rem; padding: 0.6rem 0.8rem; overflow-x: auto; border-radius: 0.6rem; background: color-mix(in srgb, var(--text) 8%, transparent); font-size: 0.9rem; line-height: 1.45; }
+  .content :global(code) { padding: 0.05em 0.35em; border-radius: 0.3rem; background: color-mix(in srgb, var(--text) 8%, transparent); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; }
+  .content :global(pre code) { padding: 0; background: none; font-size: inherit; }
+  .content :global(ul), .content :global(ol) { margin: 0.3rem 0 0.7rem; padding-left: 1.4rem; }
+  .content :global(li) { margin: 0.1rem 0; }
   .content :global(.invisible) { display: none; }
   .content :global(.ellipsis)::after { content: '…'; }
   .content :global(img.emoji), header :global(img.emoji), .booster :global(img.emoji), .fhead :global(img.emoji) { height: 1.2em; width: 1.2em; object-fit: contain; vertical-align: middle; }
