@@ -36,24 +36,44 @@
     const topEdge = barEl?.getBoundingClientRect().bottom ?? 0;
     const id = pickTopId(boxes, topEdge);
     if (id) feed.reportRead(id);
+    if (feed.order === 'newest-first') {
+      feed.reportScreen(boxes.filter((b) => b.bottom > topEdge + 40 && b.top < innerHeight - 40).map((b) => b.id));
+    }
     const lowest = pickLastVisibleId(boxes, topEdge, innerHeight);
     if (lowest) feed.reportViewed(lowest);
   }
 
   /**
-   * Load older posts to the top of the list and keep the current content at exactly the same place on
-   * screen (Safari has no scroll anchoring). The position of the first post is measured, not the whole
-   * page height, so the button disappearing or similar does not matter.
+   * Keeps the content that is on screen at exactly the same place while `change` adds posts above it (Safari has
+   * no scroll anchoring, and it is turned off here anyway). The position of the first post is measured, not the
+   * whole page height, so the button disappearing or similar does not matter. Things above the screen keep
+   * changing size for a moment after the posts are in (fonts, link previews, images), so the place is held for
+   * a short while, until the reader touches the screen: otherwise the page drifts on a phone.
    */
-  async function loadOlder() {
+  async function keepPlace(change: () => Promise<void>) {
     const anchor = listEl?.querySelector<HTMLElement>('article[data-id]');
     const before = anchor?.getBoundingClientRect().top;
-    await feed.loadOlder();
+    await change();
     await tick();
-    if (anchor?.isConnected && before !== undefined) {
-      window.scrollBy(0, anchor.getBoundingClientRect().top - before);
-    }
+    if (!anchor || before === undefined || !listEl) return;
+    const restore = () => {
+      if (anchor.isConnected) window.scrollBy(0, anchor.getBoundingClientRect().top - before);
+    };
+    restore();
+    const resize = new ResizeObserver(restore);
+    resize.observe(listEl);
+    const stop = () => {
+      resize.disconnect();
+      clearTimeout(timer);
+      for (const name of HOLD_ENDS) window.removeEventListener(name, stop);
+    };
+    const timer = setTimeout(stop, 1500);
+    for (const name of HOLD_ENDS) window.addEventListener(name, stop, { passive: true, once: true });
   }
+  const HOLD_ENDS = ['touchstart', 'wheel', 'keydown', 'pointerdown'] as const;
+
+  const loadOlder = () => keepPlace(() => feed.loadOlder());
+  const loadNewer = () => keepPlace(() => feed.loadNewer());
 
   function scheduleScan() {
     if (!raf) raf = requestAnimationFrame(scanRead);
@@ -94,7 +114,7 @@
   // Infinite scrolling: when the sentinel at the bottom becomes visible, fetch the next page. The observer is
   // set up again after every change of the list: an IntersectionObserver only reports when the sentinel
   // *changes* between visible and hidden, so if it stays in view after a short page (e.g. one new post after
-  // "Check for new") nothing would be reported, the next page would never be asked for and the bottom would
+  // "Load new") nothing would be reported, the next page would never be asked for and the bottom would
   // stay empty. A new observer reports the current state at once. After an error nothing is retried by itself
   // (there is a "Try again" button), otherwise a failing request would repeat in a loop.
   $effect(() => {
@@ -111,6 +131,22 @@
     );
     observer.observe(sentinel);
     return () => observer?.disconnect();
+  });
+
+  // Newest first is read upwards from where you left off: show the divider (near the bottom of the screen, so the
+  // newer posts are above it) once per load
+  let scrolledTo: string | null = null;
+  $effect(() => {
+    const id = feed.restoredId;
+    if (!id) scrolledTo = null;
+    if (!id || feed.order !== 'newest-first' || scrolledTo === id || !active) return;
+    scrolledTo = id;
+    tick().then(() => {
+      const el = listEl?.querySelector<HTMLElement>('[data-restored]');
+      if (!el) return;
+      const bar = barEl?.getBoundingClientRect().bottom ?? 0;
+      window.scrollBy(0, el.getBoundingClientRect().top - Math.max(bar + 80, innerHeight - 200));
+    });
   });
 
   // New posts were rendered: check which ones have been seen
@@ -133,20 +169,21 @@
 
   /** Newest-first mode: the first already-read post (the divider) */
   const dividerId = $derived.by(() => {
-    if (feed.order !== 'newest-first' || !feed.marker) return null;
-    const m = feed.marker;
+    if (feed.order !== 'newest-first' || !feed.dividerMarker) return null;
+    const m = feed.dividerMarker;
     return feed.items.find((s) => compareIds(s.id, m) <= 0)?.id ?? null;
   });
 
   /**
    * How far behind the reader is: the time between the newest post the reader has seen (the lowest one on screen,
    * or the reading position before anything has been measured) and the newest post of the home timeline
-   * (oldest-first mode only). Null when it cannot be told (the post is not loaded).
+   * Newest first, the reading position itself is that post: it follows the reader upwards. Null when it cannot be
+   * told (the post is not loaded).
    * It is not a count of unread posts, because the total cannot be known without loading everything.
    */
   const behind = $derived.by(() => {
-    if (feed.order !== 'oldest-first' || !feed.marker || feed.latestAt === null) return null;
-    const seen = feed.viewedId ?? feed.marker;
+    if (!feed.marker || feed.latestAt === null) return null;
+    const seen = feed.order === 'oldest-first' ? (feed.viewedId ?? feed.marker) : feed.marker;
     const post = feed.items.find((s) => s.id === seen);
     if (!post) return null;
     return Math.max(0, feed.latestAt - Date.parse(post.created_at));
@@ -188,6 +225,15 @@
   </div>
 {/if}
 
+{#if feed.order === 'newest-first' && feed.items.length}
+  <div class="older">
+    <button onclick={loadNewer} disabled={feed.newerLoading}>
+      {feed.newerLoading ? t('common.loading') : t('feed.loadNew')}
+    </button>
+    {#if feed.newerNone}<span class="none" role="status">{t('feed.noNew')}</span>{/if}
+  </div>
+{/if}
+
 {#if feed.order === 'oldest-first' && feed.items.length && !feed.olderEnd}
   <div class="older">
     <button onclick={loadOlder} disabled={feed.olderLoading}>
@@ -202,11 +248,11 @@
 
 <div bind:this={listEl} class="list">
   {#each feed.items as status (status.id)}
-    {#if status.id === dividerId}
+    {#if status.id === dividerId && status.id !== feed.restoredId}
       <div class="divider"><span class="line"></span><Bookmark size={14} fill="currentColor" aria-hidden="true" />{t('feed.readUpTo')}<span class="line"></span></div>
     {/if}
     {#if status.id === feed.restoredId}
-      <div class="divider"><span class="line"></span><Bookmark size={14} fill="currentColor" aria-hidden="true" />{t('feed.leftOffHere')}<span class="line"></span></div>
+      <div class="divider" data-restored><span class="line"></span><Bookmark size={14} fill="currentColor" aria-hidden="true" />{t('feed.leftOffHere')}<span class="line"></span></div>
     {/if}
     <StatusCard {status} />
   {/each}
@@ -225,7 +271,7 @@
   <p class="msg">
     {feed.items.length ? t('feed.caughtUp') : t('feed.empty')}
     {#if feed.order === 'oldest-first'}
-      <button onclick={() => feed.checkForNew()}>{t('feed.checkNew')}</button>
+      <button onclick={() => feed.checkForNew()}>{t('feed.loadNew')}</button>
     {/if}
   </p>
 {/if}
@@ -251,5 +297,6 @@
   .sentinel { height: 1px; }
   .list { overflow-anchor: none; }
   .older { text-align: center; padding: 0.6rem; border-bottom: 1px solid var(--border); }
+  .none { margin-left: 0.6rem; color: var(--muted); font-size: 0.9rem; }
   .older button { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 0.5rem; padding: 0.5rem 1.2rem; }
 </style>

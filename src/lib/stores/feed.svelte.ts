@@ -1,9 +1,9 @@
 import type { MastodonClient } from '../api/client';
 import { tNow } from '../i18n/runtime';
-import { getHomeMarker, saveHomeMarker } from '../api/markers';
+import { compareIds, getHomeMarker, saveHomeMarker } from '../api/markers';
 import { clockOffset, isForeignUpdate, parsePos, pickStart, type Pos } from '../markerSync';
 import type { Marker, Status } from '../api/types';
-import { normalizePage, pageParams, PAGE_SIZE, type Order } from '../feedLogic';
+import { advanceMarker, normalizePage, pageParams, PAGE_SIZE, type Order } from '../feedLogic';
 
 const ORDER_KEY = 'reading-order';
 /** Where this device's clock is relative to the server's (ms), learned from our own saves */
@@ -62,9 +62,21 @@ export class FeedStore {
   /** Loading older posts (the button above the list) */
   olderLoading = $state(false);
   olderEnd = $state(false);
+  /** Loading newer posts (the button above the list in newest-first mode) */
+  newerLoading = $state(false);
+  /** The last "Load new" found nothing: shown briefly instead of a silent no-op */
+  newerNone = $state(false);
+  private newerNoneTimer: ReturnType<typeof setTimeout> | undefined;
   /** The current reading position: it follows the reader, also backwards */
   marker = $state<string | null>(null);
   private markerAt = 0;
+  /**
+   * Newest-first mode: where the reading position was when the list was loaded. The divider stays there while
+   * the position moves on, otherwise it would shift the posts around under the reader's thumb.
+   */
+  dividerMarker = $state<string | null>(null);
+  /** Newest-first mode: the posts that have been on screen since the list was loaded */
+  private seen = new Set<string>();
   /** The server state we know about (fetched or written by us) */
   private remote: Pos | null = null;
   /** The post the feed was restored from ("You left off here") */
@@ -83,6 +95,11 @@ export class FeedStore {
   remoteAhead = $state<string | null>(null);
 
   private timer: ReturnType<typeof setTimeout> | undefined;
+  /**
+   * The reading position has moved and the server has not confirmed it yet. Unlike `timer` this survives a send
+   * that never arrived (a phone freezes the page, the keepalive request is dropped), so it is retried on resume.
+   */
+  private dirty = false;
   private generation = 0;
   /** Device clock -> server clock (ms): our own time stamps are on the server's timeline, see clockOffset() */
   private clockOffset = readClockOffset();
@@ -105,7 +122,10 @@ export class FeedStore {
     this.marker = start?.id ?? null;
     this.markerAt = start?.at ?? 0;
     // Local is ahead (e.g. the page closed before syncing): send it to the server
-    if (this.marker && this.marker !== this.remote?.id) this.scheduleSync();
+    if (this.marker && this.marker !== this.remote?.id) {
+      this.dirty = true;
+      this.scheduleSync();
+    }
     await this.load();
   }
 
@@ -118,21 +138,37 @@ export class FeedStore {
     this.endReached = false;
     this.olderEnd = false;
     this.error = '';
-    this.loading = false;
+    // While the remembered post is being fetched the list is empty but not idle: without this the infinite scroll
+    // (the end of the empty list is in view) would ask for a page of its own that lands in the list twice
+    this.loading = !!this.marker;
     this.restoredId = null;
     this.viewedId = null;
+    this.dividerMarker = this.marker;
+    this.seen = new Set();
 
-    if (this.order === 'oldest-first' && this.marker) {
+    if (this.marker) {
       try {
-        // `min_id` is exclusive: fetch the remembered post separately so it is the first item
+        // `min_id` is exclusive: fetch the remembered post separately so it is part of the list
         const status = await this.client.get<Status>(`/api/v1/statuses/${this.marker}`);
         if (gen !== this.generation) return;
-        this.items = [status];
+        if (this.order === 'oldest-first') {
+          this.items = [status];
+        } else {
+          // Newest first starts from the same place and is read upwards: the posts right after the remembered one
+          // go above it (more of them come from the button above the list), older ones follow below
+          const page = await this.client.getPage<Status>('/api/v1/timelines/home', { limit: PAGE_SIZE, min_id: this.marker });
+          if (gen !== this.generation) return;
+          const newer = normalizePage('newest-first', page.items);
+          for (const s of newer) this.noteLatest(s.created_at);
+          this.items = [...newer, status];
+        }
         this.restoredId = status.id;
       } catch {
         /* post deleted or unavailable: continue from the ones after it */
       }
     }
+    if (gen !== this.generation) return;
+    this.loading = false;
     await this.loadMore();
   }
 
@@ -150,6 +186,7 @@ export class FeedStore {
 
   async loadMore() {
     if (this.loading || this.endReached) return;
+    this.syncPending();
     const gen = this.generation;
     this.loading = true;
     this.error = '';
@@ -157,7 +194,7 @@ export class FeedStore {
       const params = pageParams(this.order, this.items, this.marker);
       const page = await this.client.getPage<Status>('/api/v1/timelines/home', params);
       if (gen !== this.generation) return; // the situation changed during the fetch
-      const fresh = normalizePage(this.order, page.items);
+      const fresh = notIn(this.items, normalizePage(this.order, page.items));
       for (const s of fresh) this.noteLatest(s.created_at);
       if (fresh.length === 0) this.endReached = true;
       else this.items.push(...fresh);
@@ -171,6 +208,7 @@ export class FeedStore {
   /** Loads older posts to the top of the list (oldest-first mode only). Never happens automatically. */
   async loadOlder() {
     if (this.order !== 'oldest-first' || this.olderLoading || this.olderEnd || !this.items.length) return;
+    this.syncPending();
     const gen = this.generation;
     this.olderLoading = true;
     this.error = '';
@@ -180,7 +218,7 @@ export class FeedStore {
         max_id: this.items[0].id,
       });
       if (gen !== this.generation) return;
-      const fresh = normalizePage('oldest-first', page.items);
+      const fresh = notIn(this.items, normalizePage('oldest-first', page.items));
       if (fresh.length === 0) this.olderEnd = true;
       else this.items.unshift(...fresh);
     } catch (e) {
@@ -190,9 +228,42 @@ export class FeedStore {
     }
   }
 
+  /**
+   * Newest-first mode: loads the posts newer than the first one to the top of the list. `min_id` returns the
+   * posts directly after it, so the list stays gapless; if there are more than a page the button stays.
+   */
+  async loadNewer() {
+    if (this.order !== 'newest-first' || this.newerLoading || !this.items.length) return;
+    const gen = this.generation;
+    this.newerLoading = true;
+    this.newerNone = false;
+    clearTimeout(this.newerNoneTimer);
+    this.error = '';
+    try {
+      const page = await this.client.getPage<Status>('/api/v1/timelines/home', {
+        limit: PAGE_SIZE,
+        min_id: this.items[0].id,
+      });
+      if (gen !== this.generation) return;
+      const fresh = notIn(this.items, normalizePage('newest-first', page.items));
+      for (const s of fresh) this.noteLatest(s.created_at);
+      if (fresh.length === 0) {
+        this.newerNone = true;
+        this.newerNoneTimer = setTimeout(() => (this.newerNone = false), 3000);
+      } else {
+        this.items.unshift(...fresh);
+      }
+    } catch (e) {
+      if (gen === this.generation) this.error = errorMessage(e);
+    } finally {
+      if (gen === this.generation) this.newerLoading = false;
+    }
+  }
+
   /** Oldest-first mode: check for new posts once we reach the end. */
   async checkForNew() {
     if (this.order !== 'oldest-first') return;
+    this.syncPending();
     this.endReached = false;
     this.refreshLatest();
     await this.loadMore();
@@ -218,7 +289,33 @@ export class FeedStore {
     if (this.order !== 'oldest-first') return;
     if (id === this.marker) return;
     this.setMarker(id, this.serverNow());
+    this.dirty = true;
     this.scheduleSync();
+  }
+
+  /**
+   * Newest-first mode: the posts on screen right now (any order). The reading position follows the reader in
+   * either direction, see advanceMarker(), and never moves back. Without a position yet, the lowest post on
+   * screen becomes it.
+   */
+  reportScreen(ids: string[]) {
+    if (this.order !== 'newest-first' || !ids.length) return;
+    for (const id of ids) this.seen.add(id);
+    let next: string | null;
+    if (!this.marker) next = [...ids].sort(compareIds)[0];
+    else next = advanceMarker(this.items, this.marker, this.seen);
+    if (!next || next === this.marker || (this.marker && compareIds(next, this.marker) < 0)) return;
+    this.setMarker(next, this.serverNow());
+    this.dirty = true;
+    this.scheduleSync();
+  }
+
+  /**
+   * Fetching more posts is a good moment to send the reading position as well: the connection is clearly up and
+   * the reader has just been moving. Does not wait for the throttle timer and is not awaited.
+   */
+  private syncPending() {
+    if (this.dirty) void this.flush();
   }
 
   /** The current time on the server's clock (an estimate; exact once we have made a save). */
@@ -261,7 +358,11 @@ export class FeedStore {
     if (!id) return Promise.resolve();
     return saveHomeMarker(this.client, id, this.remote?.id ?? null, keepalive)
       .then((saved) => {
-        if (!saved) return;
+        if (!saved) {
+          if (this.marker === id) this.dirty = false; // the server already had it
+          return;
+        }
+        if (this.marker === id) this.dirty = false;
         // Remember the server's timestamp so our own save does not look like another device's update
         this.remote = toPos(saved);
         this.learnClock(saved.updated_at);
@@ -278,7 +379,7 @@ export class FeedStore {
    * other devices can see it, and look whether another device has moved the position.
    */
   async resume() {
-    if (this.timer) await this.flush();
+    if (this.dirty) await this.flush();
     await Promise.all([this.checkRemote(), this.refreshLatest()]);
   }
 
@@ -298,6 +399,7 @@ export class FeedStore {
     const id = this.remoteAhead;
     if (!id) return;
     this.remoteAhead = null;
+    this.dirty = false;
     this.setMarker(id, this.remote?.at ?? this.serverNow());
     await this.load();
   }
@@ -310,6 +412,12 @@ export class FeedStore {
     this.flush(true);
     this.generation++;
   }
+}
+
+/** Posts that are not in the list yet: a post must never be in it twice (it is the key of the rendered item) */
+function notIn(items: Status[], page: Status[]): Status[] {
+  const have = new Set(items.map((s) => s.id));
+  return page.filter((s) => !have.has(s.id));
 }
 
 function errorMessage(e: unknown): string {

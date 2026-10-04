@@ -69,3 +69,18 @@ export function pickLastVisibleId(rects: ItemBox[], topEdge: number, bottomEdge:
   }
   return last;
 }
+
+/**
+ * Newest-first mode: how far the reading position can move forwards. `items` are newest first, `seen` the ids that
+ * have been on screen. The position moves to the newest post of the unbroken run of seen posts that starts right
+ * above the current position, so it makes no difference whether the reader goes up from the divider or has
+ * scrolled down from the top to reach it: a post that was never on screen is never marked as read. Null when
+ * there is nothing to advance to (the position is not among the loaded posts, or the next post is unseen).
+ */
+export function advanceMarker<T extends HasId>(items: T[], marker: string, seen: ReadonlySet<string>): string | null {
+  const at = items.findIndex((s) => compareIds(s.id, marker) <= 0);
+  if (at <= 0) return null;
+  let j = at - 1;
+  while (j >= 0 && seen.has(items[j].id)) j--;
+  return j === at - 1 ? null : items[j + 1].id;
+}

@@ -70,12 +70,12 @@ test('Load older does not move the screen', async ({ page }) => {
   expect(await page.getByRole('button', { name: 'Load older' }).count()).toBe(0);
 });
 
-test('"Check for new" at the end: new posts arrive and the caught-up message with its button comes back every time', async ({ page }) => {
+test('"Load new" at the end: new posts arrive and the caught-up message with its button comes back every time', async ({ page }) => {
   // The reading position is near the end, so the feed has only a short last page
   const server: Server = { marker: { last_read_id: '109000000000000195', version: 1, updated_at: '2026-10-04T05:00:00.000Z' }, posts: [], total: 200 };
   await open(page, server);
   const caughtUp = page.getByText('You are all caught up.');
-  const check = page.getByRole('button', { name: 'Check for new' });
+  const check = page.getByRole('button', { name: 'Load new' });
   const toBottom = () => page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await toBottom();
   await expect(caughtUp).toBeVisible();
@@ -109,11 +109,11 @@ test('a single new post that fits within the look-ahead needs no scrolling: the 
   await expect(page.getByText('You are all caught up.')).toBeVisible();
 
   server.total = 201;
-  await page.getByRole('button', { name: 'Check for new' }).click();
+  await page.getByRole('button', { name: 'Load new' }).click();
   await expect(page.locator(`article[data-id="${idOf(200)}"]`)).toHaveCount(1);
   // No scrolling here: an observer that is not set up again stays silent and the bottom stays empty
   await expect(page.getByText('You are all caught up.')).toBeVisible({ timeout: 5000 });
-  await expect(page.getByRole('button', { name: 'Check for new' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Load new' })).toBeVisible();
 });
 
 test('the strip tells how far behind the reading position is: it falls steadily while reading, never jumps when the next page loads, and ends at "up to date"', async ({ page }) => {
@@ -154,11 +154,11 @@ test('the strip tells how far behind the reading position is: it falls steadily 
 
   // A hint that a few new posts have arrived: the position is behind again, by the time of the new posts
   server.total = 215;
-  await page.getByRole('button', { name: 'Check for new' }).click();
+  await page.getByRole('button', { name: 'Load new' }).click();
   await expect.poll(minutes).toBeGreaterThan(0);
 });
 
-test('"Check for new" does not move the view: the new posts appear below, and nothing is skipped or marked read', async ({ page }) => {
+test('"Load new" does not move the view: the new posts appear below, and nothing is skipped or marked read', async ({ page }) => {
   const server: Server = { marker: { last_read_id: '109000000000000190', version: 1, updated_at: '2026-10-04T05:00:00.000Z' }, posts: [], total: 200 };
   await page.setViewportSize({ width: 420, height: 800 });
   await open(page, server);
@@ -169,7 +169,7 @@ test('"Check for new" does not move the view: the new posts appear below, and no
   const topBefore = await topArticle(page);
 
   server.total = 215; // fifteen new posts, far more than fit on a screen
-  await page.getByRole('button', { name: 'Check for new' }).evaluate((el: HTMLElement) => el.click()); // no automatic scrolling by Playwright
+  await page.getByRole('button', { name: 'Load new' }).evaluate((el: HTMLElement) => el.click()); // no automatic scrolling by Playwright
   await expect(page.locator(`article[data-id="${idOf(214)}"]`)).toHaveCount(1);
   await page.waitForTimeout(500);
 

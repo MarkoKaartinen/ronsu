@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizePage, pageParams, pickLastVisibleId, pickTopId } from './feedLogic';
+import { advanceMarker, normalizePage, pageParams, pickLastVisibleId, pickTopId } from './feedLogic';
 
 const ids = (xs: { id: string }[]) => xs.map((x) => x.id);
 const s = (...list: string[]) => list.map((id) => ({ id }));
@@ -74,5 +74,23 @@ describe('pickLastVisibleId', () => {
   it('returns null when nothing is on screen', () => {
     expect(pickLastVisibleId([], 50, 800)).toBeNull();
     expect(pickLastVisibleId([{ id: '1', top: -500, bottom: -20 }], 50, 800)).toBeNull();
+  });
+});
+
+describe('advanceMarker (newest first)', () => {
+  const items = ['105', '104', '103', '102', '101', '100'].map((id) => ({ id }));
+  const seen = (...ids: string[]) => new Set(ids);
+
+  it('moves up from the divider over the unbroken run of seen posts', () => {
+    expect(advanceMarker(items, '101', seen('102', '103'))).toBe('103');
+    expect(advanceMarker(items, '101', seen('102', '103', '105'))).toBe('103'); // 104 was skipped: stop there
+  });
+  it('goes all the way to the newest when the reader came down from the top', () => {
+    expect(advanceMarker(items, '102', seen('105', '104', '103'))).toBe('105');
+  });
+  it('does not move when the next post has not been seen, or the position is not in the list', () => {
+    expect(advanceMarker(items, '101', seen('104', '105'))).toBeNull();
+    expect(advanceMarker(items, '90', seen('105', '104', '103', '102', '101', '100'))).toBeNull();
+    expect(advanceMarker(items, '105', seen('105'))).toBeNull();
   });
 });
