@@ -9,6 +9,11 @@
   --avatar-border: 1px solid color-mix(in srgb, var(--text) 16%, transparent);
 }
 
+/* No browser scroll anchoring: with it, content added above the end of the page (the new posts after "Check for
+   new") makes the browser scroll on to keep the end in place, which jumps over the new posts and marks them read.
+   The app keeps its own position where it matters (see loadOlder in Feed.svelte). */
+html { overflow-anchor: none; }
+
 * { box-sizing: border-box; }
 
 html, body {

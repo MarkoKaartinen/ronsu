@@ -50,6 +50,7 @@ function status(i: number) {
 export interface Server {
   following?: boolean;
   requested?: boolean;
+  total?: number; // number of posts on the timeline (default COUNT); raise it to let new posts arrive
   boosted?: boolean; // the newest post on each page is a boost by "Daniel"
   formatted?: boolean; // some posts have a quote, a code block and a list
   cw?: boolean; // some posts have a content warning
@@ -104,18 +105,19 @@ export async function mockMastodon(page: Page, server: Server) {
       const limit = Number(url.searchParams.get('limit') ?? 20);
       const idx = (id: string) => Number(BigInt(id) - BASE_ID);
       let from = 0;
-      let to = COUNT; // [from, to)
+      const total = server.total ?? COUNT; // posts 0..total-1 exist on the server
+      let to = total; // [from, to)
       const minId = url.searchParams.get('min_id');
       const maxId = url.searchParams.get('max_id');
       let list: number[];
       if (minId) {
         from = idx(minId) + 1;
-        list = range(from, Math.min(from + limit, COUNT));
+        list = range(from, Math.min(from + limit, total));
       } else if (maxId) {
         to = idx(maxId);
         list = range(Math.max(0, to - limit), to);
       } else {
-        list = range(Math.max(0, COUNT - limit), COUNT);
+        list = range(Math.max(0, total - limit), total);
       }
       const page = list.reverse().map(status); // newest first, like the real API
       // boosted: the newest post of the page is wrapped in a boost by another account (the wrapper keeps its id)

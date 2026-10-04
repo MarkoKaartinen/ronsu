@@ -87,13 +87,21 @@
     poll = setInterval(onWake, 60_000);
   });
 
-  // Infinite scrolling: when the sentinel at the bottom becomes visible, fetch the next page
+  // Infinite scrolling: when the sentinel at the bottom becomes visible, fetch the next page. The observer is
+  // set up again after every change of the list: an IntersectionObserver only reports when the sentinel
+  // *changes* between visible and hidden, so if it stays in view after a short page (e.g. one new post after
+  // "Check for new") nothing would be reported, the next page would never be asked for and the bottom would
+  // stay empty. A new observer reports the current state at once. After an error nothing is retried by itself
+  // (there is a "Try again" button), otherwise a failing request would repeat in a loop.
   $effect(() => {
+    feed.items.length;
+    feed.loading;
+    feed.endReached;
     observer?.disconnect();
     if (!sentinel) return;
     observer = new IntersectionObserver(
       (entries) => {
-        if (entries.some((e) => e.isIntersecting)) feed.loadMore();
+        if (entries.some((e) => e.isIntersecting) && !feed.error) feed.loadMore();
       },
       { rootMargin: '600px' },
     );

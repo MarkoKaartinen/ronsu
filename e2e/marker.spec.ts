@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { mockMastodon, seedAccount, type Server } from './mock';
+import { idOf, mockMastodon, seedAccount, type Server } from './mock';
 
 const topArticle = (page: Page) =>
   page.evaluate(() => {
@@ -68,4 +68,70 @@ test('Load older does not move the screen', async ({ page }) => {
     expect(Math.abs(after - before)).toBeLessThan(2);
   }
   expect(await page.getByRole('button', { name: 'Load older' }).count()).toBe(0);
+});
+
+test('"Check for new" at the end: new posts arrive and the caught-up message with its button comes back every time', async ({ page }) => {
+  // The reading position is near the end, so the feed has only a short last page
+  const server: Server = { marker: { last_read_id: '109000000000000195', version: 1, updated_at: '2026-10-04T05:00:00.000Z' }, posts: [], total: 200 };
+  await open(page, server);
+  const caughtUp = page.getByText('You are all caught up.');
+  const check = page.getByRole('button', { name: 'Check for new' });
+  const toBottom = () => page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await toBottom();
+  await expect(caughtUp).toBeVisible();
+  await expect(check).toBeVisible();
+
+  // Each round: new posts arrive on the server, the reader (at the bottom, where the button is) presses the
+  // button. Nothing may be left empty at the bottom: the message and the button are back, so the next round works.
+  let total = 200;
+  for (const arrived of [1, 2, 3, 1]) {
+    total += arrived;
+    server.total = total;
+    await toBottom();
+    await check.click();
+    await expect(page.locator(`article[data-id="${idOf(total - 1)}"]`)).toHaveCount(1);
+    await toBottom(); // the new posts are read: the reader scrolls on to the end
+    await expect(caughtUp).toBeVisible({ timeout: 5000 });
+    await expect(check).toBeVisible();
+  }
+
+  // And when nothing new has arrived, pressing the button leaves the message and the button as they were
+  await toBottom();
+  await check.click();
+  await expect(caughtUp).toBeVisible();
+  await expect(check).toBeVisible();
+});
+
+test('a single new post that fits within the look-ahead needs no scrolling: the message is back by itself', async ({ page }) => {
+  const server: Server = { marker: { last_read_id: '109000000000000195', version: 1, updated_at: '2026-10-04T05:00:00.000Z' }, posts: [], total: 200 };
+  await open(page, server);
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await expect(page.getByText('You are all caught up.')).toBeVisible();
+
+  server.total = 201;
+  await page.getByRole('button', { name: 'Check for new' }).click();
+  await expect(page.locator(`article[data-id="${idOf(200)}"]`)).toHaveCount(1);
+  // No scrolling here: an observer that is not set up again stays silent and the bottom stays empty
+  await expect(page.getByText('You are all caught up.')).toBeVisible({ timeout: 5000 });
+  await expect(page.getByRole('button', { name: 'Check for new' })).toBeVisible();
+});
+
+test('"Check for new" does not move the view: the new posts appear below, and nothing is skipped or marked read', async ({ page }) => {
+  const server: Server = { marker: { last_read_id: '109000000000000190', version: 1, updated_at: '2026-10-04T05:00:00.000Z' }, posts: [], total: 200 };
+  await page.setViewportSize({ width: 420, height: 800 });
+  await open(page, server);
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await expect(page.getByText('You are all caught up.')).toBeVisible();
+  await page.waitForTimeout(500);
+  const before = await page.evaluate(() => Math.round(scrollY));
+  const topBefore = await topArticle(page);
+
+  server.total = 215; // fifteen new posts, far more than fit on a screen
+  await page.getByRole('button', { name: 'Check for new' }).evaluate((el: HTMLElement) => el.click()); // no automatic scrolling by Playwright
+  await expect(page.locator(`article[data-id="${idOf(214)}"]`)).toHaveCount(1);
+  await page.waitForTimeout(500);
+
+  // The browser's scroll anchoring would have followed the bottom of the page and jumped to the end of the new posts
+  expect(Math.abs((await page.evaluate(() => Math.round(scrollY))) - before)).toBeLessThan(3);
+  expect((await topArticle(page))!.id).toBe(topBefore!.id);
 });
