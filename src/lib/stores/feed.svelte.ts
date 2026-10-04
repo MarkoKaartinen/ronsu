@@ -71,6 +71,14 @@ export class FeedStore {
   restoredId = $state<string | null>(null);
   /** Fetching/saving the reading position failed: shown to the user, not swallowed silently */
   markerError = $state('');
+  /** The lowest post on screen = the newest one the reader has seen (oldest-first mode) */
+  viewedId = $state<string | null>(null);
+  /**
+   * When the newest post of the home timeline was made (ms), as far as we know. The reading position is
+   * compared to it ("you are 3h behind"): a measure that does not depend on how much of the list has been
+   * loaded, so it falls steadily as you read and does not jump when the next page arrives.
+   */
+  latestAt = $state<number | null>(null);
   /** Another device has moved the reading position: one can jump to this id */
   remoteAhead = $state<string | null>(null);
 
@@ -105,12 +113,14 @@ export class FeedStore {
   private async load() {
     this.generation++;
     const gen = this.generation;
+    this.refreshLatest();
     this.items = [];
     this.endReached = false;
     this.olderEnd = false;
     this.error = '';
     this.loading = false;
     this.restoredId = null;
+    this.viewedId = null;
 
     if (this.order === 'oldest-first' && this.marker) {
       try {
@@ -148,6 +158,7 @@ export class FeedStore {
       const page = await this.client.getPage<Status>('/api/v1/timelines/home', params);
       if (gen !== this.generation) return; // the situation changed during the fetch
       const fresh = normalizePage(this.order, page.items);
+      for (const s of fresh) this.noteLatest(s.created_at);
       if (fresh.length === 0) this.endReached = true;
       else this.items.push(...fresh);
     } catch (e) {
@@ -183,7 +194,23 @@ export class FeedStore {
   async checkForNew() {
     if (this.order !== 'oldest-first') return;
     this.endReached = false;
+    this.refreshLatest();
     await this.loadMore();
+  }
+
+  /** Asks for the newest post of the home timeline (one small request). */
+  async refreshLatest() {
+    try {
+      const [newest] = await this.client.get<Status[]>('/api/v1/timelines/home', { limit: 1 });
+      if (newest) this.noteLatest(newest.created_at);
+    } catch {
+      /* offline or a hiccup: the loaded posts still tell the newest we have seen */
+    }
+  }
+
+  private noteLatest(createdAt: string) {
+    const at = Date.parse(createdAt);
+    if (Number.isFinite(at) && (this.latestAt === null || at > this.latestAt)) this.latestAt = at;
   }
 
   /** Records the reading position: locally right away, throttled towards Mastodon. Oldest-first mode only. */
@@ -206,6 +233,10 @@ export class FeedStore {
     } catch {
       /* storage blocked: the offset is learned again on the next save */
     }
+  }
+
+  reportViewed(id: string) {
+    if (this.order === 'oldest-first') this.viewedId = id;
   }
 
   private setMarker(id: string, at: number) {
@@ -248,7 +279,7 @@ export class FeedStore {
    */
   async resume() {
     if (this.timer) await this.flush();
-    await this.checkRemote();
+    await Promise.all([this.checkRemote(), this.refreshLatest()]);
   }
 
   /** Has another device moved the reading position more recently? */

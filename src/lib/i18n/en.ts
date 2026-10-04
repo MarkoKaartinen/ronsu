@@ -34,7 +34,8 @@ export const en = {
   'profile.linkVerified': 'Ownership of this link was checked on {date}', // mastodon: account.link_verified_on
   'profile.viewOn': 'View on {domain}', // mastodon: account.menu.open_original_page
 
-  'feed.unread': '{count} unread',
+  'feed.behind': 'You are {age} behind',
+  'feed.upToDate': 'You are up to date',
   'feed.hintNewest': 'Newest posts first',
   'feed.hintSaved': 'Your reading position is saved automatically',
   'feed.order': 'Reading order',

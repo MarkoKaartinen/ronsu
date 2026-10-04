@@ -32,7 +32,8 @@ export const fi: Record<keyof typeof en, string> = {
   'profile.linkVerified': 'Linkin omistus tarkistettiin {date}',
   'profile.viewOn': 'Näytä palvelimella {domain}',
 
-  'feed.unread': '{count} lukematta',
+  'feed.behind': 'Olet {age} jäljessä',
+  'feed.upToDate': 'Olet ajan tasalla',
   'feed.hintNewest': 'Uusimmat julkaisut ensin',
   'feed.hintSaved': 'Lukukohta tallentuu automaattisesti',
   'feed.order': 'Lukujärjestys',

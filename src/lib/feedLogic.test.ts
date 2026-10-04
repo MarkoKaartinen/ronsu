@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizePage, pageParams, pickTopId } from './feedLogic';
+import { normalizePage, pageParams, pickLastVisibleId, pickTopId } from './feedLogic';
 
 const ids = (xs: { id: string }[]) => xs.map((x) => x.id);
 const s = (...list: string[]) => list.map((id) => ({ id }));
@@ -50,5 +50,29 @@ describe('pickTopId', () => {
   it('returns null when nothing is visible', () => {
     expect(pickTopId([], 50)).toBeNull();
     expect(pickTopId([{ id: '1', bottom: -10 }], 50)).toBeNull();
+  });
+});
+
+describe('pickLastVisibleId', () => {
+  const boxes = [
+    { id: '100', top: -400, bottom: -100 },
+    { id: '101', top: -100, bottom: 250 },
+    { id: '102', top: 250, bottom: 600 },
+    { id: '103', top: 600, bottom: 950 },
+    { id: '104', top: 950, bottom: 1300 },
+  ];
+  it('picks the lowest post that is on screen', () => {
+    expect(pickLastVisibleId(boxes, 50, 800)).toBe('103');
+  });
+  it('ignores a post that only just peeks in at the bottom edge', () => {
+    expect(pickLastVisibleId(boxes, 50, 620)).toBe('102'); // 103 shows 20px, less than the 40px needed
+    expect(pickLastVisibleId(boxes, 50, 700)).toBe('103'); // 100px of it shows
+  });
+  it('at the end of the feed it is the last post', () => {
+    expect(pickLastVisibleId(boxes.slice(-2), 50, 1000)).toBe('104');
+  });
+  it('returns null when nothing is on screen', () => {
+    expect(pickLastVisibleId([], 50, 800)).toBeNull();
+    expect(pickLastVisibleId([{ id: '1', top: -500, bottom: -20 }], 50, 800)).toBeNull();
   });
 });

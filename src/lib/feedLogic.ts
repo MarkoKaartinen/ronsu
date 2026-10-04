@@ -51,3 +51,21 @@ export function pickTopId(rects: ItemRect[], topEdge: number, minVisible = 48): 
   }
   return null;
 }
+
+export interface ItemBox extends ItemRect {
+  top: number;
+}
+
+/**
+ * The lowest post that is (partly) on screen: the newest one the reader has seen. `rects` are in DOM order. At
+ * least `minVisible` px of a post must be above the bottom edge, so a sliver at the bottom does not count. The
+ * reading position is the topmost post, but the posts below it that are on screen at the same time have been
+ * seen too, which is why "how far behind" is measured from this one (at the very end it is the last post).
+ */
+export function pickLastVisibleId(rects: ItemBox[], topEdge: number, bottomEdge: number, minVisible = 40): string | null {
+  let last: string | null = null;
+  for (const r of rects) {
+    if (r.bottom > topEdge && r.top < bottomEdge - minVisible) last = r.id;
+  }
+  return last;
+}

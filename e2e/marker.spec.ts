@@ -116,6 +116,48 @@ test('a single new post that fits within the look-ahead needs no scrolling: the 
   await expect(page.getByRole('button', { name: 'Check for new' })).toBeVisible();
 });
 
+test('the strip tells how far behind the reading position is: it falls steadily while reading, never jumps when the next page loads, and ends at "up to date"', async ({ page }) => {
+  // The reading position is post 10 of 200; the posts are a minute apart, so the newest is 189 minutes (3h) ahead
+  const server: Server = { marker: { last_read_id: '109000000000000010', version: 1, updated_at: '2026-10-04T05:00:00.000Z' }, posts: [], total: 200 };
+  await page.setViewportSize({ width: 420, height: 800 });
+  await open(page, server);
+  const status = page.locator('.bar .status');
+  await expect(status).toHaveText('You are 3h behind');
+
+  const minutes = async () => {
+    const text = (await status.innerText()).trim();
+    if (/up to date/.test(text)) return 0;
+    const [, n, unit] = /(\d+)([mhd])/.exec(text)!;
+    return Number(n) * { m: 1, h: 60, d: 1440 }[unit as 'm' | 'h' | 'd'];
+  };
+
+  // Scroll on through several pages (each page load used to make the old unread count jump back up)
+  let previous = await minutes();
+  const seen = new Set<number>([previous]);
+  for (let y = 700; y <= 30000; y += 700) {
+    await page.evaluate((v) => window.scrollTo(0, v), y);
+    await page.waitForTimeout(150);
+    const now = await minutes();
+    expect(now, `at ${y}px`).toBeLessThanOrEqual(previous);
+    previous = now;
+    seen.add(now);
+  }
+  expect(seen.size).toBeGreaterThanOrEqual(3); // it really changes as the reading moves on (3h, 2h, 1h, ...)
+
+  // At the very end there is nothing behind (the reader goes on to the bottom of each page until the feed ends)
+  for (let i = 0; i < 30 && !(await page.getByText('You are all caught up.').isVisible()); i++) {
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(300);
+  }
+  await expect(page.getByText('You are all caught up.')).toBeVisible();
+  await expect(status).toHaveText('You are up to date');
+
+  // A hint that a few new posts have arrived: the position is behind again, by the time of the new posts
+  server.total = 215;
+  await page.getByRole('button', { name: 'Check for new' }).click();
+  await expect.poll(minutes).toBeGreaterThan(0);
+});
+
 test('"Check for new" does not move the view: the new posts appear below, and nothing is skipped or marked read', async ({ page }) => {
   const server: Server = { marker: { last_read_id: '109000000000000190', version: 1, updated_at: '2026-10-04T05:00:00.000Z' }, posts: [], total: 200 };
   await page.setViewportSize({ width: 420, height: 800 });
@@ -134,4 +176,6 @@ test('"Check for new" does not move the view: the new posts appear below, and no
   // The browser's scroll anchoring would have followed the bottom of the page and jumped to the end of the new posts
   expect(Math.abs((await page.evaluate(() => Math.round(scrollY))) - before)).toBeLessThan(3);
   expect((await topArticle(page))!.id).toBe(topBefore!.id);
+  // The strip says how far behind the reader now is (the new posts are ahead), not "up to date"
+  await expect(page.locator('.bar .status')).toContainText('behind');
 });

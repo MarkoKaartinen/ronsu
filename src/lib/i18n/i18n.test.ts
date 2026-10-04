@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { en } from './en';
 import { fi } from './fi';
-import { detectLocale, formatDate, formatDateTime, formatRelativeTime, languageName, translate, translateCounter } from './index';
+import { detectLocale, formatAge, formatDate, formatDateTime, formatRelativeTime, languageName, translate, translateCounter } from './index';
 
 const placeholders = (text: string) => [...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 
@@ -107,6 +107,23 @@ describe('formatRelativeTime', () => {
   it('shows a date from a week on, with the year only for other years', () => {
     expect(formatRelativeTime(ago(10 * 86_400_000), 'en', now)).toBe('Sep 24');
     expect(formatRelativeTime('2025-01-15T10:00:00Z', 'en', now)).toBe('Jan 15, 2025');
+  });
+});
+
+describe('formatAge', () => {
+  const MIN = 60_000;
+  it('shows minutes, hours and days in the short forms, and never turns into a date', () => {
+    expect(formatAge(5 * MIN, 'en')).toBe('5m');
+    expect(formatAge(3 * 60 * MIN, 'en')).toBe('3h');
+    expect(formatAge(2 * 24 * 60 * MIN, 'en')).toBe('2d');
+    expect(formatAge(9 * 24 * 60 * MIN, 'en')).toBe('9d'); // formatRelativeTime would give a date from a week on
+    expect(formatAge(5 * MIN, 'fi')).toBe('5 min');
+    expect(formatAge(3 * 60 * MIN, 'fi')).toBe('3 t');
+    expect(formatAge(2 * 24 * 60 * MIN, 'fi')).toBe('2 pv');
+  });
+  it('is null for less than a minute (and for a negative span)', () => {
+    expect(formatAge(59_000, 'en')).toBeNull();
+    expect(formatAge(-5 * MIN, 'en')).toBeNull();
   });
 });
 

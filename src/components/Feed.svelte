@@ -2,11 +2,12 @@
   import { onDestroy, onMount, setContext, tick } from 'svelte';
   import type { MastodonClient } from '../lib/api/client';
   import { compareIds } from '../lib/api/markers';
-  import { pickTopId } from '../lib/feedLogic';
+  import { pickLastVisibleId, pickTopId } from '../lib/feedLogic';
   import { FeedStore } from '../lib/stores/feed.svelte';
   import Bookmark from '@lucide/svelte/icons/bookmark';
   import ChevronDown from '@lucide/svelte/icons/chevron-down';
-  import { t } from '../lib/stores/i18n.svelte';
+  import { formatAge } from '../lib/i18n';
+  import { i18n, t } from '../lib/stores/i18n.svelte';
   import StatusCard from './StatusCard.svelte';
 
   // active=false: the Feed stays mounted, hidden (while a thread is open), but does not record the reading position
@@ -28,12 +29,15 @@
   function scanRead() {
     raf = 0;
     if (!active || !listEl || document.visibilityState !== 'visible') return;
-    const rects = [...listEl.querySelectorAll<HTMLElement>('article[data-id]')].map((el) => ({
-      id: el.dataset.id!,
-      bottom: el.getBoundingClientRect().bottom,
-    }));
-    const id = pickTopId(rects, barEl?.getBoundingClientRect().bottom ?? 0);
+    const boxes = [...listEl.querySelectorAll<HTMLElement>('article[data-id]')].map((el) => {
+      const r = el.getBoundingClientRect();
+      return { id: el.dataset.id!, top: r.top, bottom: r.bottom };
+    });
+    const topEdge = barEl?.getBoundingClientRect().bottom ?? 0;
+    const id = pickTopId(boxes, topEdge);
     if (id) feed.reportRead(id);
+    const lowest = pickLastVisibleId(boxes, topEdge, innerHeight);
+    if (lowest) feed.reportViewed(lowest);
   }
 
   /**
@@ -135,23 +139,30 @@
   });
 
   /**
-   * Reading progress of the loaded list (oldest first): posts after the reading position are unread.
-   * When not everything is loaded the count is a lower bound ("+").
+   * How far behind the reader is: the time between the newest post the reader has seen (the lowest one on screen,
+   * or the reading position before anything has been measured) and the newest post of the home timeline
+   * (oldest-first mode only). Null when it cannot be told (the post is not loaded).
+   * It is not a count of unread posts, because the total cannot be known without loading everything.
    */
-  const progress = $derived.by(() => {
-    if (feed.order !== 'oldest-first' || !feed.marker || !feed.items.length) return null;
-    const m = feed.marker;
-    const idx = feed.items.findIndex((s) => compareIds(s.id, m) > 0);
-    const unread = idx === -1 ? 0 : feed.items.length - idx;
-    return { unread, more: !feed.endReached, share: (feed.items.length - unread) / feed.items.length };
+  const behind = $derived.by(() => {
+    if (feed.order !== 'oldest-first' || !feed.marker || feed.latestAt === null) return null;
+    const seen = feed.viewedId ?? feed.marker;
+    const post = feed.items.find((s) => s.id === seen);
+    if (!post) return null;
+    return Math.max(0, feed.latestAt - Date.parse(post.created_at));
+  });
+  const behindText = $derived.by(() => {
+    if (behind === null) return null;
+    const age = formatAge(behind, i18n.locale);
+    return age === null ? t('feed.upToDate') : t('feed.behind', { age });
   });
 </script>
 
 <div class="bar" bind:this={barEl}>
   <div class="row">
     <span class="status">
-      {#if progress}
-        <strong>{t('feed.unread', { count: `${progress.unread}${progress.more ? '+' : ''}` })}</strong>
+      {#if behindText}
+        <strong>{behindText}</strong>
       {:else if feed.order === 'newest-first'}
         {t('feed.hintNewest')}
       {:else}
@@ -167,9 +178,6 @@
       <ChevronDown size={16} aria-hidden="true" />
     </label>
   </div>
-  {#if progress}
-    <div class="track" role="presentation"><div class="fill" style:width="{Math.round(progress.share * 100)}%"></div></div>
-  {/if}
 </div>
 
 {#if feed.remoteAhead && feed.order === 'oldest-first'}
@@ -225,15 +233,13 @@
 <div bind:this={sentinel} class="sentinel" aria-hidden="true"></div>
 
 <style>
-  .bar { position: sticky; top: 0; z-index: 2; background: var(--bg); border-bottom: 1px solid var(--border); padding: 0.4rem 1rem 0.8rem; }
+  .bar { position: sticky; top: 0; z-index: 2; background: var(--bg); border-bottom: 1px solid var(--border); padding: 0.4rem 1rem 0.2rem; }
   .row { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; font-size: 0.9rem; color: var(--muted); min-height: 2.75rem; }
   .status strong { color: var(--text); }
   .order { position: relative; display: inline-flex; align-items: center; color: var(--accent); margin-right: -0.5rem; }
   .order select { appearance: none; min-height: 2.75rem; padding: 0 1.6rem 0 0.5rem; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
   .order :global(svg) { position: absolute; right: 0.3rem; pointer-events: none; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  .track { height: 4px; border-radius: 2px; background: var(--surface); }
-  .fill { height: 100%; border-radius: 2px; background: var(--accent); }
   .banner { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; padding: 0.6rem 1rem; background: var(--surface); border-bottom: 1px solid var(--border); }
   .banner span { flex: 1; min-width: 12rem; }
   .banner button, .msg button { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 0.4rem; padding: 0.3rem 0.8rem; }

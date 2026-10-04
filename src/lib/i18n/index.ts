@@ -76,6 +76,19 @@ export function formatRelativeTime(iso: string, locale: Locale, now = Date.now()
   return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) }).format(then);
 }
 
+/**
+ * A length of time in the same short forms: "5m", "3h", "2d" (fi: "5 min", "3 t", "2 pv"). Unlike
+ * formatRelativeTime it never turns into a date, so "9 days" stays "9d". Null for under a minute.
+ */
+export function formatAge(ms: number, locale: Locale): string | null {
+  const minutes = Math.floor(Math.max(0, ms) / 60_000);
+  if (minutes < 1) return null;
+  if (minutes < 60) return translate(locale, 'time.minutes', { number: minutes });
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return translate(locale, 'time.hours', { number: hours });
+  return translate(locale, 'time.days', { number: Math.floor(hours / 24) });
+}
+
 /** Full timestamp, e.g. fi "4.10.2026 klo 8.00", en "Oct 4, 2026, 08:00". */
 export function formatDateTime(iso: string, locale: Locale): string {
   return new Date(iso).toLocaleString(locale, {
