@@ -89,7 +89,7 @@ export async function mockMastodon(page: Page, server: Server) {
     if (url.pathname === '/api/v1/markers') {
       if (req.method() === 'POST') {
         const body = JSON.parse(req.postData() ?? '{}');
-        server.marker = { last_read_id: body.home.last_read_id, version: 1, updated_at: new Date().toISOString() };
+        server.marker = { last_read_id: body.home.last_read_id, version: (server.marker?.version ?? 0) + 1, updated_at: new Date().toISOString() };
         server.posts.push(body.home.last_read_id);
         return json({ home: server.marker });
       }

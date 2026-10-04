@@ -1,13 +1,19 @@
 import type { MastodonClient } from '../api/client';
 import { tNow } from '../i18n/runtime';
 import { getHomeMarker, saveHomeMarker } from '../api/markers';
-import { isForeignUpdate, parsePos, pickStart, type Pos } from '../markerSync';
+import { clockOffset, isForeignUpdate, parsePos, pickStart, type Pos } from '../markerSync';
 import type { Marker, Status } from '../api/types';
 import { normalizePage, pageParams, PAGE_SIZE, type Order } from '../feedLogic';
 
 const ORDER_KEY = 'reading-order';
-/** Mastodon is written to at most this often (throttle): ~15 requests / 5 min, the limit is ~300 */
-const SYNC_INTERVAL_MS = 20_000;
+/** Where this device's clock is relative to the server's (ms), learned from our own saves */
+const CLOCK_KEY = 'marker-clock-offset';
+/**
+ * The position goes to Mastodon at most this often (throttle): at most ~60 requests / 5 min while scrolling
+ * continuously, where the limit is ~300. A short interval matters: another device only sees the position once it
+ * has been sent, and a phone is often put away within seconds.
+ */
+const SYNC_INTERVAL_MS = 5_000;
 
 function readLocal(key: string): Pos | null {
   try {
@@ -26,7 +32,15 @@ function writeLocal(key: string, pos: Pos) {
 }
 
 function toPos(m: Marker | null | undefined): Pos | null {
-  return m ? { id: m.last_read_id, at: Date.parse(m.updated_at) || 0 } : null;
+  return m ? { id: m.last_read_id, at: Date.parse(m.updated_at) || 0, version: m.version } : null;
+}
+
+function readClockOffset(): number {
+  try {
+    return Number(localStorage.getItem(CLOCK_KEY)) || 0;
+  } catch {
+    return 0;
+  }
 }
 
 function loadOrder(): Order {
@@ -62,6 +76,8 @@ export class FeedStore {
 
   private timer: ReturnType<typeof setTimeout> | undefined;
   private generation = 0;
+  /** Device clock -> server clock (ms): our own time stamps are on the server's timeline, see clockOffset() */
+  private clockOffset = readClockOffset();
 
   /** storageKey: per-account key for the local reading position */
   constructor(
@@ -174,8 +190,22 @@ export class FeedStore {
   reportRead(id: string) {
     if (this.order !== 'oldest-first') return;
     if (id === this.marker) return;
-    this.setMarker(id, Date.now());
+    this.setMarker(id, this.serverNow());
     this.scheduleSync();
+  }
+
+  /** The current time on the server's clock (an estimate; exact once we have made a save). */
+  private serverNow(): number {
+    return Date.now() + this.clockOffset;
+  }
+
+  private learnClock(updatedAt: string) {
+    this.clockOffset = clockOffset(updatedAt, Date.now());
+    try {
+      localStorage.setItem(CLOCK_KEY, String(this.clockOffset));
+    } catch {
+      /* storage blocked: the offset is learned again on the next save */
+    }
   }
 
   private setMarker(id: string, at: number) {
@@ -193,16 +223,17 @@ export class FeedStore {
   }
 
   /** Sends the reading position to Mastodon right away. keepalive = while the page is closing. */
-  flush(keepalive = false) {
+  flush(keepalive = false): Promise<void> {
     clearTimeout(this.timer);
     this.timer = undefined;
     const id = this.marker;
-    if (!id) return;
-    saveHomeMarker(this.client, id, this.remote?.id ?? null, keepalive)
+    if (!id) return Promise.resolve();
+    return saveHomeMarker(this.client, id, this.remote?.id ?? null, keepalive)
       .then((saved) => {
         if (!saved) return;
         // Remember the server's timestamp so our own save does not look like another device's update
         this.remote = toPos(saved);
+        this.learnClock(saved.updated_at);
         this.markerError = '';
       })
       .catch((e) => {
@@ -211,13 +242,22 @@ export class FeedStore {
       });
   }
 
-  /** The page is visible again: has another device moved the reading position more recently? */
+  /**
+   * The app is back in front (or online again, or a minute has passed): send what we have not sent yet, so the
+   * other devices can see it, and look whether another device has moved the position.
+   */
+  async resume() {
+    if (this.timer) await this.flush();
+    await this.checkRemote();
+  }
+
+  /** Has another device moved the reading position more recently? */
   async checkRemote() {
     try {
       const remote = toPos(await getHomeMarker(this.client));
       const current = this.marker ? { id: this.marker, at: this.markerAt } : null;
       if (remote && isForeignUpdate(remote, this.remote, current)) this.remoteAhead = remote.id;
-      if (remote && (!this.remote || remote.at > this.remote.at)) this.remote = remote;
+      if (remote && (!this.remote || remote.at > this.remote.at || (remote.version ?? 0) > (this.remote.version ?? 0))) this.remote = remote;
     } catch {
       /* offline: skip */
     }
@@ -227,7 +267,7 @@ export class FeedStore {
     const id = this.remoteAhead;
     if (!id) return;
     this.remoteAhead = null;
-    this.setMarker(id, this.remote?.at ?? Date.now());
+    this.setMarker(id, this.remote?.at ?? this.serverNow());
     await this.load();
   }
 

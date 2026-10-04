@@ -61,8 +61,19 @@
 
   function onVisibility() {
     if (document.visibilityState === 'hidden') feed.flush(true);
-    else feed.checkRemote();
+    else feed.resume();
   }
+
+  /**
+   * An installed app on a phone is often resumed from the background without being reloaded, and not every
+   * browser sends `visibilitychange` for that. So the position is also checked when the page is shown again
+   * (`pageshow`), gets focus, or the connection is back, and every minute while the app is in front.
+   */
+  function onWake() {
+    if (active && document.visibilityState === 'visible') feed.resume();
+  }
+  const WAKE_EVENTS = ['pageshow', 'focus', 'online'] as const;
+  let poll: ReturnType<typeof setInterval> | undefined;
 
   let observer: IntersectionObserver | undefined;
 
@@ -72,6 +83,8 @@
     window.addEventListener('resize', scheduleScan);
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('pagehide', onPageHide);
+    for (const name of WAKE_EVENTS) window.addEventListener(name, onWake);
+    poll = setInterval(onWake, 60_000);
   });
 
   // Infinite scrolling: when the sentinel at the bottom becomes visible, fetch the next page
@@ -99,6 +112,8 @@
     window.removeEventListener('resize', scheduleScan);
     document.removeEventListener('visibilitychange', onVisibility);
     window.removeEventListener('pagehide', onPageHide);
+    for (const name of WAKE_EVENTS) window.removeEventListener(name, onWake);
+    clearInterval(poll);
     if (raf) cancelAnimationFrame(raf);
     observer?.disconnect();
     feed.destroy();
