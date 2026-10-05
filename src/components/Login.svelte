@@ -1,5 +1,6 @@
 <script lang="ts">
   import { startLogin } from '../lib/api/oauth';
+  import { REPO_URL } from '../lib/app';
   import { t } from '../lib/stores/i18n.svelte';
 
   let { error = '', onCancel }: { error?: string; onCancel?: () => void } = $props();
@@ -51,6 +52,7 @@
       <button type="button" class="secondary" onclick={onCancel}>{t('common.cancel')}</button>
     {/if}
     <p class="muted">{t('login.help')}</p>
+    <p class="about">Ronsu {__APP_VERSION__} · <a href={REPO_URL} target="_blank" rel="noopener noreferrer">GitHub</a></p>
   </form>
 </div>
 
@@ -71,5 +73,7 @@
   .secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
   button:disabled { opacity: 0.6; cursor: default; }
   .muted { margin: 0.3rem 0 0; font-size: 0.9rem; line-height: 1.5; color: var(--muted); }
+  .about { margin: 0.6rem 0 0; text-align: center; font-size: 0.85rem; color: var(--muted); }
+  .about a { color: inherit; }
   .error { color: var(--danger); margin: 0; }
 </style>

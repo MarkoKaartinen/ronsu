@@ -1,5 +1,6 @@
 <script lang="ts">
   import ArrowLeft from '@lucide/svelte/icons/arrow-left';
+  import { REPO_URL } from '../lib/app';
   import { accountStore } from '../lib/stores/accounts.svelte';
   import { t } from '../lib/stores/i18n.svelte';
   import AccountSwitcher from './AccountSwitcher.svelte';
@@ -29,7 +30,7 @@
         </button>
       {/if}
       <p class="about"><img src="/icon-192.png" alt="" width="20" height="20" />Ronsu {__APP_VERSION__} ·
-        <a href="https://github.com/MarkoKaartinen/ronsu" target="_blank" rel="noopener noreferrer">GitHub</a></p>
+        <a href={REPO_URL} target="_blank" rel="noopener noreferrer">GitHub</a></p>
     </div>
   </div>
 </div>

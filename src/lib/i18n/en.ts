@@ -61,6 +61,7 @@ export const en = {
   'feed.remoteAhead': 'You have read further on another device.',
   'feed.jump': 'Jump',
   'feed.notNow': 'Not now',
+  'feed.more': 'Load more',
   'feed.loadOlder': 'Load older',
   'feed.loadNew': 'Load new',
   'feed.noNew': 'No new posts.',

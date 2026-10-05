@@ -22,7 +22,6 @@
 
   let listEl: HTMLElement | undefined = $state();
   let barEl: HTMLElement | undefined = $state();
-  let sentinel: HTMLElement | undefined = $state();
   let raf = 0;
 
   /** The topmost post on screen is the reading position (oldest-first mode only). */
@@ -111,8 +110,6 @@
   const WAKE_EVENTS = ['pageshow', 'focus', 'online'] as const;
   let poll: ReturnType<typeof setInterval> | undefined;
 
-  let observer: IntersectionObserver | undefined;
-
   onMount(() => {
     feed.start();
     window.addEventListener('scroll', scheduleScan, { passive: true });
@@ -121,28 +118,6 @@
     window.addEventListener('pagehide', onPageHide);
     for (const name of WAKE_EVENTS) window.addEventListener(name, onWake);
     poll = setInterval(onWake, 60_000);
-  });
-
-  // Infinite scrolling: when the sentinel at the bottom becomes visible, fetch the next page. The observer is
-  // set up again after every change of the list: an IntersectionObserver only reports when the sentinel
-  // *changes* between visible and hidden, so if it stays in view after a short page (e.g. one new post after
-  // "Load new") nothing would be reported, the next page would never be asked for and the bottom would
-  // stay empty. A new observer reports the current state at once. After an error nothing is retried by itself
-  // (there is a "Try again" button), otherwise a failing request would repeat in a loop.
-  $effect(() => {
-    feed.items.length;
-    feed.loading;
-    feed.endReached;
-    observer?.disconnect();
-    if (!sentinel) return;
-    observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting) && !feed.error) feed.loadMore();
-      },
-      { rootMargin: '600px' },
-    );
-    observer.observe(sentinel);
-    return () => observer?.disconnect();
   });
 
   // Newest first is read upwards from where you left off: show the divider (near the bottom of the screen, so the
@@ -175,7 +150,6 @@
     for (const name of WAKE_EVENTS) window.removeEventListener(name, onWake);
     clearInterval(poll);
     if (raf) cancelAnimationFrame(raf);
-    observer?.disconnect();
     feed.destroy();
   });
 
@@ -282,8 +256,13 @@
   </p>
 {/if}
 
+<!-- Nothing is fetched by scrolling: the next page comes with this button (the first page loads by itself) -->
 {#if feed.loading}
   <p class="msg">{t('common.loading')}</p>
+{:else if feed.items.length && !feed.endReached && !feed.error}
+  <div class="older">
+    <button onclick={() => feed.loadMore()}>{t('feed.more')}</button>
+  </div>
 {:else if feed.endReached}
   <p class="msg">
     {feed.items.length ? t('feed.caughtUp') : t('feed.empty')}
@@ -293,7 +272,6 @@
   </p>
 {/if}
 
-<div bind:this={sentinel} class="sentinel" aria-hidden="true"></div>
 
 <style>
   .bar { position: sticky; top: var(--sticky-top, 0); z-index: 2; background: var(--bg); border-bottom: 1px solid var(--border); padding: 0.4rem 1rem 0.2rem; }
@@ -311,7 +289,6 @@
   .divider .line { flex: 1; height: 1px; background: color-mix(in srgb, var(--marker) 40%, transparent); }
   .msg { text-align: center; color: var(--muted); padding: 1rem; margin: 0; }
   .msg.error { color: var(--danger); }
-  .sentinel { height: 1px; }
   .list { overflow-anchor: none; }
   .older { text-align: center; padding: 0.6rem; border-bottom: 1px solid var(--border); }
   .none { margin-left: 0.6rem; color: var(--muted); font-size: 0.9rem; }

@@ -234,3 +234,18 @@ export async function seedAccount(page: Page) {
     db.close();
   });
 }
+
+/**
+ * Reads to the end of the feed the way a reader does now that nothing loads by scrolling: down to the bottom, press
+ * "Load more" if it is there, and again until the "all caught up" message shows.
+ */
+export async function toEnd(page: Page, rounds = 40) {
+  const caughtUp = page.getByText('You are all caught up.');
+  for (let i = 0; i < rounds; i++) {
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    if (await caughtUp.isVisible()) return;
+    const more = page.getByRole('button', { name: 'Load more' });
+    if (await more.isVisible()) await more.evaluate((el: HTMLElement) => el.click());
+    else await page.waitForTimeout(150);
+  }
+}

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { idOf, mockMastodon, seedAccount, type Server } from './mock';
+import { idOf, mockMastodon, seedAccount, toEnd, type Server } from './mock';
 
 const topArticle = (page: Page) =>
   page.evaluate(() => {
@@ -77,7 +77,7 @@ test('"Load new" at the end: new posts arrive and the caught-up message with its
   const caughtUp = page.getByText('You are all caught up.');
   const check = page.getByRole('button', { name: 'Load new' });
   const toBottom = () => page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-  await toBottom();
+  await toEnd(page);
   await expect(caughtUp).toBeVisible();
   await expect(check).toBeVisible();
 
@@ -90,7 +90,7 @@ test('"Load new" at the end: new posts arrive and the caught-up message with its
     await toBottom();
     await check.click();
     await expect(page.locator(`article[data-id="${idOf(total - 1)}"]`)).toHaveCount(1);
-    await toBottom(); // the new posts are read: the reader scrolls on to the end
+    await toEnd(page); // the new posts are read: the reader goes on to the end (and presses "Load more" if it is there)
     await expect(caughtUp).toBeVisible({ timeout: 5000 });
     await expect(check).toBeVisible();
   }
@@ -102,16 +102,17 @@ test('"Load new" at the end: new posts arrive and the caught-up message with its
   await expect(check).toBeVisible();
 });
 
-test('a single new post that fits within the look-ahead needs no scrolling: the message is back by itself', async ({ page }) => {
+test('a single new post: once it is read the message and the button are back', async ({ page }) => {
   const server: Server = { marker: { last_read_id: '109000000000000195', version: 1, updated_at: '2026-10-04T05:00:00.000Z' }, posts: [], total: 200 };
   await open(page, server);
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await toEnd(page);
   await expect(page.getByText('You are all caught up.')).toBeVisible();
 
   server.total = 201;
   await page.getByRole('button', { name: 'Load new' }).click();
   await expect(page.locator(`article[data-id="${idOf(200)}"]`)).toHaveCount(1);
-  // No scrolling here: an observer that is not set up again stays silent and the bottom stays empty
+  // Nothing is fetched by scrolling: the reader goes to the end, and the next page (empty) is asked for with the button
+  await toEnd(page);
   await expect(page.getByText('You are all caught up.')).toBeVisible({ timeout: 5000 });
   await expect(page.getByRole('button', { name: 'Load new' })).toBeVisible();
 });
@@ -136,6 +137,9 @@ test('the strip tells how far behind the reading position is: it falls steadily 
   const seen = new Set<number>([previous]);
   for (let y = 700; y <= 30000; y += 700) {
     await page.evaluate((v) => window.scrollTo(0, v), y);
+    // The next page comes with the button, when the reader has reached the end of what is loaded
+    const more = page.getByRole('button', { name: 'Load more' });
+    if (await more.isVisible()) await more.evaluate((el: HTMLElement) => el.click());
     await page.waitForTimeout(150);
     const now = await minutes();
     expect(now, `at ${y}px`).toBeLessThanOrEqual(previous);
@@ -145,10 +149,7 @@ test('the strip tells how far behind the reading position is: it falls steadily 
   expect(seen.size).toBeGreaterThanOrEqual(3); // it really changes as the reading moves on (3h, 2h, 1h, ...)
 
   // At the very end there is nothing behind (the reader goes on to the bottom of each page until the feed ends)
-  for (let i = 0; i < 30 && !(await page.getByText('You are all caught up.').isVisible()); i++) {
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(300);
-  }
+  await toEnd(page);
   await expect(page.getByText('You are all caught up.')).toBeVisible();
   await expect(status).toHaveText('You are up to date');
 
@@ -162,7 +163,7 @@ test('"Load new" does not move the view: the new posts appear below, and nothing
   const server: Server = { marker: { last_read_id: '109000000000000190', version: 1, updated_at: '2026-10-04T05:00:00.000Z' }, posts: [], total: 200 };
   await page.setViewportSize({ width: 420, height: 800 });
   await open(page, server);
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await toEnd(page);
   await expect(page.getByText('You are all caught up.')).toBeVisible();
   await page.waitForTimeout(500);
   const before = await page.evaluate(() => Math.round(scrollY));

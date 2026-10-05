@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { idOf, mockMastodon, seedAccount, type Server } from './mock';
+import { idOf, mockMastodon, seedAccount, toEnd, type Server } from './mock';
 
 const server0 = (): Server => ({ marker: { last_read_id: idOf(100), version: 1, updated_at: '2026-10-04T05:00:00.000Z' }, posts: [], total: 200 });
 
@@ -47,7 +47,8 @@ test('oldest first: loading more also sends the reading position, without waitin
   await page.evaluate(() => window.scrollTo(0, 1200));
   await page.waitForTimeout(300); // the position moved; the throttle (5 s) has not fired
   expect(server.posts).toHaveLength(0);
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); // the next page is asked for
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await page.getByRole('button', { name: 'Load more' }).evaluate((el: HTMLElement) => el.click()); // the next page is asked for
   await expect.poll(() => server.posts.length, { timeout: 3000 }).toBeGreaterThan(0);
 });
 
@@ -150,12 +151,8 @@ async function unread(page: Page) {
 /** Reading forwards the button is at the very end (once everything is loaded): scroll there and wait for it */
 async function reachEnd(page: Page, order: 'oldest-first' | 'newest-first') {
   if (order === 'newest-first') return;
-  await expect
-    .poll(async () => {
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-      return page.getByText('You are all caught up.').count();
-    }, { timeout: 8000 })
-    .toBe(1);
+  await toEnd(page);
+  await expect(page.getByText('You are all caught up.')).toHaveCount(1);
 }
 
 for (const start of ['oldest-first', 'newest-first'] as const) {
