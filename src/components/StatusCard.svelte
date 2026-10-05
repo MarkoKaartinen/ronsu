@@ -1,13 +1,14 @@
 <script lang="ts">
   import type { Status } from '../lib/api/types';
   import { mediaAspect } from '../lib/media';
+  import Check from '@lucide/svelte/icons/check';
   import Repeat2 from '@lucide/svelte/icons/repeat-2';
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
   import { profileHref, router } from '../lib/router.svelte';
   import ActionBar from './ActionBar.svelte';
   import StatusCard from './StatusCard.svelte';
   import { sanitizeContent, sanitizeText } from '../lib/html';
-  import { formatDateTime, formatNumber, formatRelativeTime } from '../lib/i18n';
+  import { formatAge, formatDateTime, formatNumber, formatRelativeTime } from '../lib/i18n';
   import { i18n, t, tCounter } from '../lib/stores/i18n.svelte';
   import { lightbox } from '../lib/stores/lightbox.svelte';
 
@@ -80,6 +81,14 @@
     measure();
     return () => ro.disconnect();
   });
+
+  /** The end of a poll: "Closed", "Ends in 3h" or, within the last minute, "Ends soon" */
+  function pollEnd(poll: NonNullable<Status['poll']>): string {
+    if (poll.expired) return t('poll.closed');
+    if (!poll.expires_at) return '';
+    const age = formatAge(Date.parse(poll.expires_at) - Date.now(), i18n.locale);
+    return age === null ? t('poll.endingSoon') : t('poll.endsIn', { age });
+  }
 
   function openBooster(e: Event) {
     e.preventDefault();
@@ -195,6 +204,26 @@
           <button class="more" onclick={() => (expanded = true)}>{t('status.readMore')}</button>
         {/if}
 
+        {#if s.poll}
+          {@const poll = s.poll}
+          <!-- A multiple-choice poll's percentages are of the people who voted, a single-choice poll's of the votes -->
+          {@const total = poll.multiple ? (poll.voters_count ?? 0) : poll.votes_count}
+          <ul class="poll">
+            {#each poll.options as o, i}
+              {@const pct = o.votes_count === null || !total ? null : Math.round((o.votes_count * 100) / total)}
+              {@const mine = !!poll.own_votes?.includes(i)}
+              <li class:mine style:--pct="{pct ?? 0}%">
+                <span class="ptitle">
+                  {#if mine}<Check size={16} aria-label={t('poll.yourVote')} />{/if}
+                  {@html sanitizeText(o.title, poll.emojis)}
+                </span>
+                {#if pct !== null}<span class="ppct">{pct}%</span>{/if}
+              </li>
+            {/each}
+          </ul>
+          <p class="pmeta">{[t('poll.votes', { count: poll.voters_count ?? poll.votes_count }), pollEnd(poll)].filter(Boolean).join(' · ')}</p>
+        {/if}
+
         {#if s.media_attachments.length}
           <div
             class="media"
@@ -280,6 +309,15 @@
   .cw button { flex: none; min-height: 2.25rem; border: 1px solid color-mix(in srgb, var(--marker) 55%, transparent); background: var(--bg); color: var(--text); border-radius: 0.4rem; padding: 0 0.7rem; }
   .reveal { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 0.4rem; padding: 0.3rem 0.7rem; }
   .content { margin-top: 0.15rem; font-size: 1.06rem; line-height: 1.55; overflow-wrap: anywhere; }
+  .poll { list-style: none; margin: 0.6rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+  .poll li { position: relative; display: flex; gap: 0.6rem; align-items: center; justify-content: space-between; padding: 0.5rem 0.7rem; border: 1px solid var(--border); border-radius: 0.6rem; overflow: hidden; }
+  .poll li::before { content: ''; position: absolute; inset: 0 auto 0 0; width: var(--pct); background: color-mix(in srgb, var(--accent) 22%, transparent); }
+  .poll li.mine { border-color: color-mix(in srgb, var(--accent) 60%, var(--border)); }
+  .poll .ptitle, .poll .ppct { position: relative; }
+  .poll .ptitle { display: flex; gap: 0.35rem; align-items: center; min-width: 0; overflow-wrap: anywhere; }
+  .poll .ptitle :global(svg) { flex: none; color: var(--accent); }
+  .poll .ppct { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .pmeta { margin: 0.4rem 0 0; color: var(--muted); font-size: 0.85rem; }
   .content.clamp { max-height: calc(15 * 1.55em); overflow: hidden; }
   .content.faded { mask-image: linear-gradient(#000 calc(100% - 4.5rem), transparent); }
   .more { margin-top: 0.3rem; padding: 0.35rem 0; border: 0; background: none; color: var(--accent); font-weight: 600; }

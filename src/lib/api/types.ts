@@ -66,6 +66,21 @@ export interface Mention {
 
 export type Visibility = 'public' | 'unlisted' | 'private' | 'direct';
 
+export interface Poll {
+  id: string;
+  expires_at: string | null;
+  expired: boolean;
+  multiple: boolean;
+  votes_count: number;
+  voters_count: number | null;
+  /** votes_count is null while the totals are hidden (until the poll has ended) */
+  options: { title: string; votes_count: number | null }[];
+  emojis: CustomEmoji[];
+  voted?: boolean;
+  /** Indexes of the options this account voted for */
+  own_votes?: number[];
+}
+
 export interface Status {
   id: string;
   uri: string;
@@ -83,6 +98,7 @@ export interface Status {
   media_attachments: MediaAttachment[];
   emojis: CustomEmoji[];
   mentions?: Mention[];
+  poll?: Poll | null;
   replies_count: number;
   reblogs_count: number;
   favourites_count: number;

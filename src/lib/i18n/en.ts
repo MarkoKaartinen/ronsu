@@ -57,6 +57,12 @@ export const en = {
   'status.boost': 'Boost',
   'status.boostedBy': '{name} boosted', // mastodon: status.reblogged_by
   'status.replyingTo': 'Replying to',
+  'poll.votes.one': '{count} vote',
+  'poll.votes.other': '{count} votes',
+  'poll.closed': 'Closed',
+  'poll.endsIn': 'Ends in {age}',
+  'poll.endingSoon': 'Ends soon',
+  'poll.yourVote': 'Your vote',
   'status.readMore': 'Read more',
   'status.showPost': 'Show post', // mastodon: content_warning.show_post
   'status.hidePost': 'Hide post', // mastodon: content_warning.hide_post
