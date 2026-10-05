@@ -52,6 +52,7 @@ export const fi: Record<keyof typeof en, string> = {
   'feed.error.markerFetch': 'Lukukohdan haku epäonnistui: {message}',
   'feed.error.markerSave': 'Lukukohdan tallennus Mastodoniin epäonnistui: {message}',
 
+  'status.boost': 'Tehostus',
   'status.boostedBy': '{name} tehosti',
   'status.replyingTo': 'Vastauksena käyttäjälle',
   'status.showPost': 'Näytä julkaisu',

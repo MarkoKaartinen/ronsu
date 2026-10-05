@@ -54,6 +54,7 @@ export const en = {
   'feed.error.markerFetch': 'Could not fetch your reading position: {message}',
   'feed.error.markerSave': 'Could not save your reading position to Mastodon: {message}',
 
+  'status.boost': 'Boost',
   'status.boostedBy': '{name} boosted', // mastodon: status.reblogged_by
   'status.replyingTo': 'Replying to',
   'status.showPost': 'Show post', // mastodon: content_warning.show_post

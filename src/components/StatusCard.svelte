@@ -18,7 +18,8 @@
    * context: the post a feed reply answers, shown above it with a rail down to it. It is not a reading position
    * (no data-id). joined: the reply under such a post (the rail reaches its avatar). replyTo: the handle of the
    * author it answers, shown as "Replying to". quoted: the post inside a quote post (a framed, light card; it is
-   * not a reading position either, and a tap opens the quoted post, not the one that quotes it).
+   * not a reading position either, and a tap opens the quoted post, not the one that quotes it). actions: such a
+   * card keeps its buttons (the original post inside a boost).
    */
   let {
     status,
@@ -30,6 +31,7 @@
     joined = false,
     replyTo,
     quoted = false,
+    actions = false,
   }: {
     status: Status;
     focused?: boolean;
@@ -40,11 +42,13 @@
     joined?: boolean;
     replyTo?: string;
     quoted?: boolean;
+    actions?: boolean;
   } = $props();
 
   // A boost shows the original; the wrapper's id is still the reading-position key (data-id)
   const s = $derived(status.reblog ?? status);
   const booster = $derived(status.reblog ? status.account : null);
+  const boostFrame = $derived(!!status.reblog && !focused && !compact && !context && !quoted && !reply);
 
   let cwOpen = $state(false);
   let mediaOpen = $state(false);
@@ -54,7 +58,12 @@
   const hideMedia = $derived(s.sensitive && !mediaOpen);
   const single = $derived(s.media_attachments.length === 1);
   // The quoted post is shown one level deep; the "RE: link" line that servers put in the text is then redundant
-  const quotedStatus = $derived(!quoted && s.quote?.state === 'accepted' ? s.quote.quoted_status : null);
+  const quotedStatus = $derived((!quoted || actions) && s.quote?.state === 'accepted' ? s.quote.quoted_status : null);
+
+  function openBooster(e: Event) {
+    e.preventDefault();
+    router.openProfile(status.account);
+  }
 
   function openProfile(e: Event) {
     e.preventDefault();
@@ -95,14 +104,26 @@
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-<article data-id={context || quoted ? undefined : status.id} class:tappable={!focused} class:focused class:reply class:compact={compact || context || quoted} class:quoted class:railed={rail || context} class:context class:joined onclick={onCardClick}>
-  {#if booster}
-    <p class="booster">
-      <Repeat2 size={14} aria-hidden="true" />
-      {@html sanitizeText(t('status.boostedBy', { name: booster.display_name || booster.username }), booster.emojis)}
-    </p>
-  {/if}
-
+<article data-id={context || quoted ? undefined : status.id} class:tappable={!focused} class:focused class:reply class:compact={compact || context || quoted} class:quoted class:framed={quoted && actions} class:railed={rail || context} class:context class:joined onclick={onCardClick}>
+  {#if boostFrame && booster}
+    <!-- A boost, like a quote: who boosted on top, the original post in a frame below it (with its own buttons) -->
+    <div class="boosthead" title={t('status.boostedBy', { name: booster.display_name || booster.username })}>
+      <a class="avatar-link" href={profileHref(booster.acct)} onclick={openBooster} tabindex="-1" aria-hidden="true">
+        <img class="avatar" src={booster.avatar} alt="" width="44" height="44" loading="lazy" decoding="async" />
+      </a>
+      <div class="who">
+        <header>
+          <a class="profile" href={profileHref(booster.acct)} onclick={openBooster}>
+            <strong>{@html sanitizeText(booster.display_name || booster.username, booster.emojis)}</strong>
+            <small>@{booster.acct}</small>
+          </a>
+          <span class="time">{formatRelativeTime(status.created_at, i18n.locale)}</span>
+        </header>
+        <p class="boostlabel"><Repeat2 size={14} aria-hidden="true" />{t('status.boost')}</p>
+      </div>
+    </div>
+    <StatusCard status={status.reblog!} quoted actions />
+  {:else}
   <div class="layout">
     {#if !focused}
       <div class="side">
@@ -201,11 +222,12 @@
         </p>
       {/if}
 
-      {#if !compact}
+      {#if !compact && (!quoted || actions)}
         <ActionBar status={s} large={focused} />
       {/if}
     </div>
   </div>
+  {/if}
 </article>
 
 <style>
@@ -215,9 +237,9 @@
   .avatar { border-radius: var(--radius-avatar); border: var(--avatar-border); display: block; background: var(--surface); }
   .rail { flex: 1; width: 2px; margin: 0.25rem 0 -0.5rem; background: var(--border); }
   .body { flex: 1; min-width: 0; }
-  /* "X boosted": a small label in the boost colour (the same green as a boosted post's counter), set in a
-     heavier weight so it reads as a label of its own and not as part of the post */
-  .booster { display: flex; gap: 0.35rem; align-items: center; margin: 0 0 0.3rem; padding-left: 3.5rem; color: var(--boost); font-size: 0.8rem; font-weight: 600; letter-spacing: 0.01em; }
+  .boosthead { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.2rem; }
+  .boosthead .who { flex: 1; min-width: 0; }
+  .boostlabel { display: flex; gap: 0.3rem; align-items: center; margin: 0; color: var(--boost); font-size: 0.85rem; font-weight: 600; }
   header { display: flex; gap: 0.4rem; align-items: baseline; }
   .profile { display: flex; gap: 0.4rem; align-items: baseline; min-width: 0; flex: 1; color: inherit; text-decoration: none; }
   .profile strong { font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; }
@@ -248,7 +270,7 @@
   .content :global(li) { margin: 0.1rem 0; }
   .content :global(.invisible) { display: none; }
   .content :global(.ellipsis)::after { content: '…'; }
-  .content :global(img.emoji), header :global(img.emoji), .booster :global(img.emoji), .fhead :global(img.emoji) { height: 1.2em; width: 1.2em; object-fit: contain; vertical-align: middle; }
+  .content :global(img.emoji), header :global(img.emoji), .fhead :global(img.emoji) { height: 1.2em; width: 1.2em; object-fit: contain; vertical-align: middle; }
   .media { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin-top: 0.6rem; border-radius: 0.9rem; overflow: hidden; }
   .media a { display: block; overflow: hidden; background: var(--surface); }
   .media a img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -291,6 +313,7 @@
   /* A quote: the quoted post in a frame, and the server's "RE: link" line is hidden because the post is there */
   .content.hasquote :global(.quote-inline) { display: none; }
   .quoted { margin-top: 0.6rem; padding: 0.75rem 0.8rem 0.2rem; border: 1px solid var(--border); border-radius: 0.9rem; background: var(--surface); }
+  .framed { margin-bottom: 0.85rem; }
   .quoted .content { font-size: 0.95rem; }
   /* Reply: the divider starts after the avatar, the timestamp follows the handle */
   .reply { padding: 0.9rem 1rem 0; border-bottom: 0; }
