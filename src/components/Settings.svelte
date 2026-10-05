@@ -28,7 +28,8 @@
           {t('settings.logout')} @{accountStore.active.acct}
         </button>
       {/if}
-      <p class="about"><img src="/icon-192.png" alt="" width="20" height="20" />Ronsu {__APP_VERSION__}</p>
+      <p class="about"><img src="/icon-192.png" alt="" width="20" height="20" />Ronsu {__APP_VERSION__} ·
+        <a href="https://github.com/MarkoKaartinen/ronsu" target="_blank" rel="noopener noreferrer">GitHub</a></p>
     </div>
   </div>
 </div>
@@ -42,5 +43,6 @@
   .foot { margin-top: auto; }
   .logout { width: 100%; min-height: 3rem; border: 1px solid var(--border); border-radius: 0.9rem; background: none; color: var(--danger); font-weight: 700; }
   .about { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin: 1.3rem 0 0; color: var(--muted); font-size: 0.85rem; }
+  .about a { color: inherit; }
   .about img { border-radius: 6px; }
 </style>

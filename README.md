@@ -1,16 +1,23 @@
 # Ronsu
 
-A Mastodon reader that remembers where you left off. Ronsu is a PWA that runs entirely in the browser,
+An opinionated Mastodon client built for reading. Ronsu is a PWA that runs entirely in the browser,
 with no server of its own: you log in with OAuth2 (PKCE) straight to your own Mastodon server, and your
 reading position is stored in the server's markers API (and locally, so it works immediately and offline).
 Read the timeline from the oldest unread post forward, close the app, and continue from the same post on
 any device.
+
+Ronsu is opinionated: it does fewer things than other clients, and it does them its own way. The timeline is
+something you read through and finish, not something you scroll forever, so it shows how far behind you are
+instead of an unread count, and it keeps your place for you. It is also a work in progress: the first priority is
+a good reading experience, and features that do not serve it may never come.
 
 "Ronsu" is a Finnish children's word for "elephant"; the logo is an elephant with a bookmark in the corner of the icon.
 
 > **Built with AI.** This app was written with the help of AI (Claude Code by Anthropic), under my direction
 > and review. Treat it like any other code: read it, test it, and check it before trusting it with your
 > account.
+
+Source code and issues: <https://github.com/MarkoKaartinen/ronsu>
 
 ## Features
 
