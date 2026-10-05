@@ -184,6 +184,8 @@ export class FeedStore {
         const status = await this.client.get<Status>(`/api/v1/statuses/${this.marker}`);
         if (gen !== this.generation) return;
         if (this.order === 'oldest-first') {
+          await this.loadParents([status]);
+          if (gen !== this.generation) return;
           this.items = [status];
         } else {
           // Newest first starts from the same place and is read upwards: the posts right after the remembered one
@@ -192,7 +194,7 @@ export class FeedStore {
           if (gen !== this.generation) return;
           const newer = normalizePage('newest-first', page.items);
           for (const s of newer) this.noteLatest(s.created_at);
-          await this.loadParents(newer);
+          await this.loadParents([...newer, status]);
           if (gen !== this.generation) return;
           this.items = [...newer, status];
         }
