@@ -5,7 +5,7 @@
   import Repeat2 from '@lucide/svelte/icons/repeat-2';
   import UserCheck from '@lucide/svelte/icons/user-check';
   import UserPlus from '@lucide/svelte/icons/user-plus';
-  import { setContext, untrack } from 'svelte';
+  import { setContext, tick, untrack } from 'svelte';
   import type { MastodonClient } from '../lib/api/client';
   import type { Account, Notification } from '../lib/api/types';
   import { sanitizeText } from '../lib/html';
@@ -22,8 +22,6 @@
   setContext('mastodon-client', client);
 
   const PAGE = 30;
-  /** Refresh when the view is opened again after this long */
-  const STALE_MS = 30_000;
   /**
    * The types that are shown. Mentions (and quotes, new posts of someone you follow) are posts of their own and
    * can be answered here; the others are a line saying what happened, with the post it was about.
@@ -37,7 +35,6 @@
   let loading = $state(false);
   let error = $state('');
   let end = $state(false);
-  let sentinel: HTMLElement | undefined = $state();
   let root: HTMLElement | undefined = $state();
   /** The id of the oldest notification received so far, whether it is shown or not (the next page starts there) */
   let cursor: string | undefined;
@@ -83,7 +80,8 @@
   }
 
   async function loadMore() {
-    if (loading || end || error || !cursor) return;
+    if (loading || end || !cursor) return;
+    error = '';
     const gen = generation;
     loading = true;
     try {
@@ -120,26 +118,26 @@
     refresh();
   }
 
-  // Opened (again): fetch the newest, unless that was done a moment ago
+  // Nothing is fetched by itself after the first time: the newest only with "Load new", older ones with "Load older"
   $effect(() => {
-    if (active && Date.now() - loadedAt > STALE_MS) untrack(refresh);
+    if (active && loadedAt === 0) untrack(refresh);
   });
 
-  // Infinite scrolling, set up again when the list changes (see the same in Feed.svelte)
-  $effect(() => {
-    items.length;
-    loading;
-    end;
-    if (!sentinel || !active) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) untrack(loadMore);
-      },
-      { rootMargin: '600px' },
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  });
+  /**
+   * "Load new": the new ones go to the top of the list. If the reader has scrolled down, what is on screen is kept
+   * at the same place (the first row is measured, as in the feed), so the list does not move under them.
+   */
+  async function reload() {
+    const column = root?.closest('.aside');
+    const scrolled = column ? column.scrollTop > 40 : window.scrollY > 40;
+    const anchor = root?.querySelector<HTMLElement>('.list')?.firstElementChild as HTMLElement | null | undefined;
+    const before = anchor?.getBoundingClientRect().top;
+    await refresh();
+    await tick();
+    if (!scrolled || !anchor?.isConnected || before === undefined) return;
+    const moved = anchor.getBoundingClientRect().top - before;
+    if (moved) (column ?? window).scrollBy(0, moved);
+  }
 
   /** Several people doing the same thing become one row: favorites and boosts of the same post, a run of follows */
   type Row = { key: string; n: Notification; accounts: Account[] };
@@ -210,7 +208,7 @@
     <button class:on={filter === 'all'} aria-pressed={filter === 'all'} onclick={() => setFilter('all')}>{t('notif.all')}</button>
     <button class:on={filter === 'mentions'} aria-pressed={filter === 'mentions'} onclick={() => setFilter('mentions')}>{t('notif.mentions')}</button>
   </div>
-  <button class="reload" onclick={refresh} disabled={loading}>{loading && !items.length ? t('common.loading') : t('feed.loadNew')}</button>
+  <button class="reload" onclick={reload} disabled={loading}>{loading && !items.length ? t('common.loading') : t('feed.loadNew')}</button>
 </div>
 
 <div class="list">
@@ -272,13 +270,13 @@
   </p>
 {/if}
 
-{#if loading && items.length}
-  <p class="msg">{t('common.loading')}</p>
-{:else if end && !items.length && !error}
+{#if end && !items.length && !error}
   <p class="msg">{t('notif.empty')}</p>
+{:else if items.length && !end}
+  <div class="older">
+    <button onclick={loadMore} disabled={loading}>{loading ? t('common.loading') : t('feed.loadOlder')}</button>
+  </div>
 {/if}
-
-<div bind:this={sentinel} class="sentinel" aria-hidden="true"></div>
 </div>
 
 <style>
@@ -302,6 +300,8 @@
   .avatars a { display: block; }
   .avatars img { display: block; border-radius: var(--radius-avatar); border: var(--avatar-border); background: var(--surface); }
   .gtext { display: flex; gap: 0.6rem; align-items: baseline; margin: 0.5rem 0 0.2rem; color: var(--text); }
+  /* A custom emoji in a name is a picture the size of the text (it is full size without this) */
+  .gtext :global(img.emoji), .note :global(img.emoji) { height: 1.2em; width: 1.2em; object-fit: contain; vertical-align: middle; }
   .gtext .grow { flex: 1; min-width: 0; overflow-wrap: anywhere; }
   /* At most two lines, in grey */
   .excerpt { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; color: var(--muted); text-decoration: none; overflow-wrap: anywhere; }
@@ -316,5 +316,6 @@
   .msg { text-align: center; color: var(--muted); padding: 1rem; margin: 0; }
   .msg.error { color: var(--danger); }
   .msg button { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 0.4rem; padding: 0.3rem 0.8rem; }
-  .sentinel { height: 1px; }
+  .older { text-align: center; padding: 0.8rem; }
+  .older button { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 0.5rem; padding: 0.5rem 1.2rem; }
 </style>

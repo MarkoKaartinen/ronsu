@@ -94,7 +94,7 @@
   .msg { text-align: center; color: var(--muted); padding: 1.5rem 1rem; margin: 0; }
   .msg.error { color: var(--danger); }
   .msg button { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 0.4rem; padding: 0.3rem 0.8rem; }
-  .row { scroll-margin-top: 3.5rem; }
+  .row { scroll-margin-top: calc(3.5rem + var(--sticky-top, 0px)); }
   .row:first-child :global(article.railed) { padding-top: 1rem; }
   .row:first-child :global(article.railed)::before { display: none; }
   .replybar { position: sticky; bottom: 0; z-index: 3; padding: 0.6rem 1rem calc(0.7rem + env(safe-area-inset-bottom)); background: var(--bg); border-top: 1px solid var(--border); }

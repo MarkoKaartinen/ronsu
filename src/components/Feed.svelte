@@ -296,7 +296,7 @@
 <div bind:this={sentinel} class="sentinel" aria-hidden="true"></div>
 
 <style>
-  .bar { position: sticky; top: 0; z-index: 2; background: var(--bg); border-bottom: 1px solid var(--border); padding: 0.4rem 1rem 0.2rem; }
+  .bar { position: sticky; top: var(--sticky-top, 0); z-index: 2; background: var(--bg); border-bottom: 1px solid var(--border); padding: 0.4rem 1rem 0.2rem; }
   .row { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; font-size: 0.9rem; color: var(--muted); min-height: 2.75rem; }
   .status strong { color: var(--text); }
   .order { position: relative; display: inline-flex; align-items: center; color: var(--accent); margin-right: -0.5rem; }

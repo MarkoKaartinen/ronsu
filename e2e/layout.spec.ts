@@ -72,3 +72,18 @@ test('the app is installable (manifest, icons, service worker)', async ({ page }
   expect(m.name).toBe('Ronsu');
   expect(m.icons.map((i: { purpose?: string }) => i.purpose ?? 'any').sort()).toEqual(['any', 'any', 'maskable']);
 });
+
+// A narrow screen: the column is exactly as wide as the screen, also while the timeline is still loading (it once shrank
+// to its content, and then grew wider than the screen)
+test('narrow screen (600px): the column is as wide as the screen while loading and when loaded', async ({ page }) => {
+  await page.setViewportSize({ width: 600, height: 800 });
+  await mockMastodon(page, { marker: null, posts: [] });
+  await seedAccount(page);
+  // The timeline never answers: the view stays in its loading state
+  await page.route('**/api/v1/timelines/home*', () => {});
+  await page.reload();
+  await page.waitForSelector('.shell');
+  await expect(page.getByText(/Loading|Ladataan/).first()).toBeVisible();
+  const width = () => page.evaluate(() => Math.round(document.querySelector('.shell')!.getBoundingClientRect().width));
+  expect(await width()).toBe(600);
+});

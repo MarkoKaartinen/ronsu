@@ -91,7 +91,7 @@
       </div>
       <div class="right">
         {#if wide}
-          <button class="icon" onclick={() => composer.show()} aria-label={t('nav.newPost')} title={t('nav.newPost')}>
+          <button class="icon compose" onclick={() => composer.show()} aria-label={t('nav.newPost')} title={t('nav.newPost')}>
             <SquarePen size={22} aria-hidden="true" />
           </button>
         {/if}
@@ -106,7 +106,7 @@
     </header>
 {/snippet}
 
-  <div class="page">
+  <div class="page" class:wide>
   <!-- On a wide screen the top bar spans both columns -->
   {#if wide}
     <div class="widehead">{@render brandBar()}</div>
@@ -180,17 +180,23 @@
   /* From 800 px up: the feed and a notifications column (46 % of the width, at most 30 rem) under one top bar; below that
      it is the narrow view with the bottom bar */
   .page { max-width: 64rem; margin: 0 auto; }
+  /* The top bar stays in place while scrolling; what else sticks (the feed's bar, a thread's back bar, the second
+     column) starts below it, by this height */
+  .page.wide { --sticky-top: 4.25rem; }
+  .widehead { position: sticky; top: 0; z-index: 6; }
+  .widehead :global(.top) { height: var(--sticky-top); box-sizing: border-box; padding-block: 0; }
   .widehead :global(.top) { border-inline: 1px solid var(--border); box-shadow: 0 0 2rem rgb(0 0 0 / 0.2); }
   .cols { display: flex; align-items: flex-start; }
+  /* A flex item is as wide as its content unless told otherwise: on a phone the column must be the width of the screen */
+  .cols .shell { width: 100%; min-width: 0; }
   .cols .shell.wide { margin: 0; max-width: none; flex: 1 1 0; min-width: 0; box-shadow: none; }
   /* The second column: as high as the screen and scrolling on its own, while the feed scrolls with the page */
-  .aside { flex: 0 0 clamp(19rem, 46%, 30rem); position: sticky; top: 0; height: 100dvh; overflow-y: auto; overscroll-behavior: contain; background: var(--bg); border-right: 1px solid var(--border); padding-bottom: 5rem; box-sizing: border-box; }
-  /* (the padding: the column starts below the top bar, so its lower end is off screen until the page has scrolled) */
+  .aside { flex: 0 0 clamp(19rem, 46%, 30rem); position: sticky; top: var(--sticky-top, 0); height: calc(100dvh - var(--sticky-top, 0px)); overflow-y: auto; overscroll-behavior: contain; background: var(--bg); border-right: 1px solid var(--border); padding-bottom: 1rem; box-sizing: border-box; }
   .shell.wide.home { padding-bottom: 2rem; }
   .shell.home { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom)); } /* room for the bottom bar below the last item */
   .shell { max-width: 40rem; margin: 0 auto; min-height: 100dvh; border-inline: 1px solid var(--border); background: var(--bg); box-shadow: 0 0 2rem rgb(0 0 0 / 0.2); padding-bottom: 0; }
   .top { display: flex; justify-content: space-between; align-items: center; padding: 0.7rem 1rem; background: var(--header); border-bottom: 1px solid var(--border); }
-  .top.sticky { justify-content: flex-start; gap: 0.5rem; padding: 0.6rem 0.5rem; position: sticky; top: 0; z-index: 3; background: var(--header); border-bottom: 1px solid var(--border); padding-bottom: 0.7rem; }
+  .top.sticky { justify-content: flex-start; gap: 0.5rem; padding: 0.6rem 0.5rem; position: sticky; top: var(--sticky-top, 0); z-index: 3; background: var(--header); border-bottom: 1px solid var(--border); padding-bottom: 0.7rem; }
   .brand { display: flex; align-items: center; gap: 0.65rem; }
   .brand img { border-radius: var(--radius-avatar); display: block; }
   .brand strong { font-size: 1.5rem; letter-spacing: -0.01em; }
@@ -198,6 +204,7 @@
   .top button { border: 0; background: var(--bg); color: var(--text); border-radius: 0.75rem; }
   .top button.icon { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; padding: 0; }
   .top.sticky button.icon { background: none; }
+  .top button.icon.compose { background: var(--accent); color: var(--on-accent); box-shadow: 0 2px 8px rgb(0 0 0 / 0.3); }
   .top button.avatar { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; padding: 0; border-radius: var(--radius-avatar); background: var(--accent); color: var(--on-accent); font-size: 1.05rem; font-weight: 700; overflow: hidden; }
   .top button.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; border: var(--avatar-border); border-radius: var(--radius-avatar); }
   .toast { position: fixed; left: 50%; bottom: calc(1.2rem + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 30; display: flex; gap: 0.8rem; align-items: center; max-width: min(32rem, calc(100vw - 2rem)); padding: 0.7rem 1rem; border-radius: 0.6rem; background: var(--danger-bg); color: var(--on-danger-bg); box-shadow: 0 4px 16px rgb(0 0 0 / 0.3); }
