@@ -25,5 +25,10 @@ html, body {
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
+/* Beside the reading column (a wide screen) the page is a shade darker, so the column stands out */
+@media (min-width: 41rem) {
+  html, body { background: var(--page); }
+}
+
 a { color: var(--accent); }
 button { font: inherit; cursor: pointer; }

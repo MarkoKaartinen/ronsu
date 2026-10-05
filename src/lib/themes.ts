@@ -15,6 +15,8 @@ export type Scheme = 'light' | 'dark';
 
 export interface ThemeColors {
   bg: string;
+  /** Background around the reading column on a wide screen: a shade darker than `bg`, so the column stands out */
+  page: string;
   surface: string;
   /** Background of the app header bar: set apart from the page background */
   header: string;
@@ -50,6 +52,7 @@ export const THEMES: Theme[] = [
     scheme: 'dark',
     colors: {
       bg: '#2e3440', // nord0
+      page: '#1f232b',
       surface: '#3b4252', // nord1
       header: '#252a34', // darker than nord0
       border: '#4c566a', // nord3
@@ -71,6 +74,7 @@ export const THEMES: Theme[] = [
     scheme: 'light',
     colors: {
       bg: '#eceff4', // nord6
+      page: '#dfe4ec',
       surface: '#e5e9f0', // nord5
       header: '#d8dee9', // nord4
       border: '#c4ccda', // nord4, darkened
@@ -92,6 +96,7 @@ export const THEMES: Theme[] = [
     scheme: 'dark',
     colors: {
       bg: '#282a36', // background
+      page: '#1b1c25',
       surface: '#343746', // floating elements
       header: '#21222c', // dark background
       border: '#44475a', // selection
@@ -113,6 +118,7 @@ export const THEMES: Theme[] = [
     scheme: 'light',
     colors: {
       bg: '#fffbeb', // Alucard background
+      page: '#e8e5d2',
       surface: '#efeddc', // floating elements
       header: '#dedccf', // light
       border: '#ceccc0', // dark
@@ -135,6 +141,7 @@ export const DEFAULT_LIGHT = 'nord-light';
 
 const VAR_NAMES: Record<keyof ThemeColors, string> = {
   bg: '--bg',
+  page: '--page',
   surface: '--surface',
   header: '--header',
   border: '--border',

@@ -50,6 +50,12 @@ describe('theme list integrity', () => {
   });
 });
 
+describe('page background', () => {
+  it('is set apart from the column background in every theme', () => {
+    for (const t of THEMES) expect(t.colors.page).not.toBe(t.colors.bg);
+  });
+});
+
 describe('themeCss', () => {
   it('contains every theme and the default in :root', () => {
     const css = themeCss();

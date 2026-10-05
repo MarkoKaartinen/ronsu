@@ -127,7 +127,7 @@
 
 <style>
   .shell.home { padding-bottom: 5rem; } /* room for the floating button below the last item */
-  .shell { max-width: 40rem; margin: 0 auto; min-height: 100dvh; border-inline: 1px solid var(--border); padding-bottom: 0; }
+  .shell { max-width: 40rem; margin: 0 auto; min-height: 100dvh; border-inline: 1px solid var(--border); background: var(--bg); box-shadow: 0 0 2rem rgb(0 0 0 / 0.2); padding-bottom: 0; }
   .top { display: flex; justify-content: space-between; align-items: center; padding: 0.7rem 1rem; background: var(--header); border-bottom: 1px solid var(--border); }
   .top.sticky { justify-content: flex-start; gap: 0.5rem; padding: 0.6rem 0.5rem; position: sticky; top: 0; z-index: 3; background: var(--header); border-bottom: 1px solid var(--border); padding-bottom: 0.7rem; }
   .brand { display: flex; align-items: center; gap: 0.65rem; }
