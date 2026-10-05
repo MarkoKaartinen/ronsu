@@ -1,5 +1,11 @@
 <script lang="ts">
+  import AtSign from '@lucide/svelte/icons/at-sign';
   import ChevronDown from '@lucide/svelte/icons/chevron-down';
+  import Globe from '@lucide/svelte/icons/globe';
+  import Languages from '@lucide/svelte/icons/languages';
+  import Lock from '@lucide/svelte/icons/lock';
+  import LockOpen from '@lucide/svelte/icons/lock-open';
+  import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
   import { untrack } from 'svelte';
   import { getMaxChars, postStatus } from '../lib/api/statuses';
   import type { Visibility } from '../lib/api/types';
@@ -184,34 +190,38 @@
     </div>
 
     <div class="tools">
-      <label class="pill">
-        <span class="cap">{t('compose.visibility')}</span>
-        <select bind:value={visibility} aria-label={t('compose.visibility')}>
+      <!-- Icon-only controls: the native <select> sits invisibly on top, so it keeps its accessible name and its picker -->
+      <label class="tool">
+        {#if visibility === 'public'}<Globe size={20} aria-hidden="true" />
+        {:else if visibility === 'unlisted'}<LockOpen size={20} aria-hidden="true" />
+        {:else if visibility === 'private'}<Lock size={20} aria-hidden="true" />
+        {:else}<AtSign size={20} aria-hidden="true" />{/if}
+        <ChevronDown size={14} aria-hidden="true" />
+        <select bind:value={visibility} aria-label={t('compose.visibility')} title={t('compose.visibility')}>
           {#each VISIBILITIES as v (v.value)}
             <option value={v.value}>{t(v.label)}</option>
           {/each}
         </select>
-        <ChevronDown size={16} aria-hidden="true" />
       </label>
-      <label class="pill">
-        <span class="cap">{t('compose.language')}</span>
-        <select bind:value={language} aria-label={t('compose.language')}>
+      <label class="tool">
+        <Languages size={20} aria-hidden="true" />
+        <span class="code" aria-hidden="true">{language || '–'}</span>
+        <select bind:value={language} aria-label={t('compose.language')} title={t('compose.language')}>
           <option value="">{t('compose.languageDefault')}</option>
           {#each LANGUAGES as code (code)}
             <option value={code}>{languageName(code, i18n.locale)}</option>
           {/each}
         </select>
-        <ChevronDown size={16} aria-hidden="true" />
       </label>
       <button
         type="button"
-        class="cwtoggle"
+        class="tool cwtoggle"
         class:on={cwOn}
         aria-pressed={cwOn}
         aria-label={t('compose.cw')}
         title={t('compose.cw')}
         onclick={() => (cwOn = !cwOn)}
-      >{t('compose.cwToggle')}</button>
+      ><TriangleAlert size={20} aria-hidden="true" /></button>
       <span class="count" class:over={left < 0} aria-live="polite">{maxChars - left} / {maxChars}</span>
     </div>
 
@@ -237,6 +247,11 @@
     color: var(--text);
   }
   dialog[open] { display: flex; flex-direction: column; }
+  /* On a phone the editor fills the screen; its height follows the visible area (see the viewport meta), so the
+     keyboard never covers the tools at the bottom */
+  @media (max-width: 40rem) {
+    dialog { width: 100vw; height: 100dvh; max-height: none; margin: 0; border: 0; border-radius: 0; }
+  }
   dialog::backdrop { background: rgb(0 0 0 / 0.55); }
   form { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0.6rem; padding: 0.6rem 1rem calc(1rem + env(safe-area-inset-bottom)); }
   header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
@@ -256,15 +271,12 @@
   }
   input.cw { min-height: 2.75rem; padding: 0 0.9rem; border-radius: 0.7rem; border: 1px dashed var(--marker); }
   textarea { flex: 1; width: 100%; box-sizing: border-box; min-height: 6rem; padding: 0.2rem 0; border: 0; background: none; font-size: 1.15rem; line-height: 1.5; resize: none; outline: none; }
-  .tools { display: flex; align-items: center; gap: 0.4rem; padding-top: 0.6rem; border-top: 1px solid var(--border); }
-  /* A select with a small caption inside the box, so no extra icons are needed to tell them apart */
-  .pill { position: relative; display: flex; flex-direction: column; justify-content: center; min-width: 0; flex: 0 1 auto; min-height: 3.1rem; padding: 0.3rem 1.8rem 0.3rem 0.75rem; border-radius: 0.75rem; background: var(--surface); }
-  /* The visibility label can be long ("Vaivihkaa julkinen"): it keeps its width, the language shrinks instead */
-  .tools > .pill:first-child { flex-shrink: 0; }
-  .pill .cap { font-size: 0.68rem; line-height: 1.1; color: var(--muted); }
-  .pill select { appearance: none; min-width: 0; max-width: 100%; padding: 0; border: 0; background: none; color: var(--text); font-weight: 600; font-size: 0.9rem; text-overflow: ellipsis; cursor: pointer; }
-  .pill :global(svg) { position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
-  .cwtoggle { flex: none; min-height: 3.1rem; padding: 0 0.7rem; border: 1px solid transparent; border-radius: 0.75rem; background: var(--surface); color: var(--text); font-weight: 700; font-size: 0.9rem; }
+  .tools { display: flex; align-items: center; gap: 0.25rem; padding-top: 0.4rem; border-top: 1px solid var(--border); }
+  .tool { position: relative; flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.2rem; min-width: 2.75rem; height: 2.75rem; padding: 0 0.5rem; box-sizing: border-box; border: 1px solid transparent; border-radius: 0.75rem; background: none; color: var(--muted); font: inherit; cursor: pointer; }
+  .tool:hover, .tool:focus-within { background: var(--surface); color: var(--text); }
+  .tool .code { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; }
+  /* The select covers the whole control but is invisible: tapping it opens the native picker */
+  .tool select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 1rem; }
   .cwtoggle.on { border-color: var(--marker); color: var(--marker); }
   .tools .count { flex: none; margin-left: auto; color: var(--muted); font-weight: 600; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
   .tools .count.over { color: var(--danger); font-weight: 700; }

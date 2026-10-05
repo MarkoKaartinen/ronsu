@@ -88,7 +88,6 @@ export const fi: Record<keyof typeof en, string> = {
   'compose.publishing': 'Julkaistaan…',
   'compose.placeholder': 'Mitä mietit?',
   'compose.cw': 'Sisältövaroitus',
-  'compose.cwToggle': 'CW',
   'compose.visibility': 'Näkyvyys',
   'compose.visibility.public': 'Julkinen',
   'compose.visibility.unlisted': 'Vaivihkaa julkinen',

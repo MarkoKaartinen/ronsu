@@ -90,7 +90,6 @@ export const en = {
   'compose.publishing': 'Posting…',
   'compose.placeholder': "What's on your mind?", // mastodon: compose_form.placeholder
   'compose.cw': 'Content warning', // mastodon: compose.sensitive.text
-  'compose.cwToggle': 'CW',
   'compose.visibility': 'Visibility', // mastodon: compose.visibility.title
   'compose.visibility.public': 'Public', // mastodon: privacy.public.short
   'compose.visibility.unlisted': 'Quiet public', // mastodon: privacy.unlisted.short

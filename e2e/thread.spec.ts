@@ -97,6 +97,7 @@ test('a new post without a reply target is public by default', async ({ page }) 
 
 test('the language is chosen and remembered, a backdrop click closes the form', async ({ page }) => {
   const server: Server = { marker: null, posts: [], created: [], attempts: [] };
+  await page.setViewportSize({ width: 900, height: 800 }); // the form is a sheet with a backdrop only on a wide screen
   await open(page, server);
   await page.evaluate(() => localStorage.removeItem('compose-language'));
 
@@ -165,4 +166,19 @@ test('a content warning is drawn in the warning colour and is visible on the sel
   await expect(page.locator('[data-focused] .content')).toHaveCount(0);
   await cw.getByRole('button', { name: 'Show post' }).click();
   await expect(page.locator('[data-focused] .content')).toBeVisible();
+});
+
+test('on a phone the form fills the screen and its tools are small, named controls', async ({ page }) => {
+  await open(page, { marker: null, posts: [] });
+  await page.getByRole('button', { name: 'New post' }).first().click();
+  const dialog = page.getByRole('dialog');
+  const box = await dialog.boundingBox();
+  const vp = page.viewportSize()!;
+  expect(box).toMatchObject({ x: 0, y: 0, width: vp.width, height: vp.height });
+  // The tools sit at the bottom edge and have no visible captions, only accessible names
+  for (const name of ['Visibility', 'Language']) await expect(dialog.getByRole('combobox', { name })).toBeAttached();
+  await expect(dialog.getByRole('button', { name: /content warning|CW/i })).toBeVisible();
+  const tools = await dialog.locator('.tools').boundingBox();
+  expect(tools!.y + tools!.height).toBeGreaterThan(vp.height - 40);
+  expect(tools!.height).toBeLessThan(70);
 });
