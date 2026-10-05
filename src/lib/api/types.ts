@@ -130,3 +130,12 @@ export interface StoredAccount {
   displayName: string;
   avatar: string;
 }
+
+/** A notification; `status` is the post it is about (not for follows) */
+export interface Notification {
+  id: string;
+  type: string;
+  created_at: string;
+  account: Account;
+  status?: Status | null;
+}

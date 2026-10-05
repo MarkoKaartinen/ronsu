@@ -42,12 +42,14 @@ test('a quote has a bar and a small indent instead of the browser default, code 
   expect(list.pad).toBeLessThan(40);
 });
 
-test('the "X boosted" line is a label of its own: the boost colour and a heavier weight', async ({ page }) => {
+test('a boost shows who boosted on top and the original in a frame, with a label in the boost colour', async ({ page }) => {
   await mockMastodon(page, { marker: null, posts: [], boosted: true });
   await seedAccount(page);
   await page.reload();
-  const label = page.locator('.booster').first();
-  await expect(label).toContainText('Daniel boosted');
+  await expect(page.locator('.boosthead').first()).toContainText('Daniel');
+  await expect(page.locator('article.quoted').first()).toBeVisible();
+  const label = page.locator('.boostlabel').first();
+  await expect(label).toHaveText('Boost');
   const style = await label.evaluate((el) => ({ color: getComputedStyle(el).color, weight: getComputedStyle(el).fontWeight, boost: getComputedStyle(document.documentElement).getPropertyValue('--boost').trim() }));
   expect(Number(style.weight)).toBeGreaterThanOrEqual(600);
   // The colour is the theme's boost colour, not the muted grey

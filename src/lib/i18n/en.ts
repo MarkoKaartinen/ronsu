@@ -26,6 +26,23 @@ export const en = {
   'time.hours': '{number}h', // mastodon: relative_time.hours
   'time.days': '{number}d', // mastodon: relative_time.days
 
+  'nav.main': 'Main navigation',
+  'nav.home': 'Home',
+  'nav.notifications': 'Notifications',
+  'notif.empty': 'No notifications yet',
+  'notif.more': 'Load more',
+  'notif.and': '{a} and {b}',
+  'notif.others.one': '{count} other',
+  'notif.others.other': '{count} others',
+  'notif.filter': 'Show',
+  'notif.all': 'All',
+  'notif.mentions': 'Mentions',
+  'notif.favourite': '{name} favorited your post',
+  'notif.reblog': '{name} boosted your post',
+  'notif.follow': '{name} followed you',
+  'notif.follow_request': '{name} requested to follow you',
+  'notif.poll': 'A poll you voted in has ended',
+  'notif.update': '{name} edited a post',
   'nav.newPost': 'New post', // mastodon: compose.post.title.new
   'nav.account': 'Account: @{acct}',
   'thread.title': 'Thread', // mastodon: status.replyAll ("Reply to thread")
