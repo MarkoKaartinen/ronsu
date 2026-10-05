@@ -57,6 +57,7 @@ export const en = {
   'status.boost': 'Boost',
   'status.boostedBy': '{name} boosted', // mastodon: status.reblogged_by
   'status.replyingTo': 'Replying to',
+  'status.readMore': 'Read more',
   'status.showPost': 'Show post', // mastodon: content_warning.show_post
   'status.hidePost': 'Hide post', // mastodon: content_warning.hide_post
   'status.sensitive': 'Sensitive content', // mastodon: status.sensitive_warning

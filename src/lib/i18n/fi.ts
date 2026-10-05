@@ -55,6 +55,7 @@ export const fi: Record<keyof typeof en, string> = {
   'status.boost': 'Tehostus',
   'status.boostedBy': '{name} tehosti',
   'status.replyingTo': 'Vastauksena käyttäjälle',
+  'status.readMore': 'Lue lisää',
   'status.showPost': 'Näytä julkaisu',
   'status.hidePost': 'Piilota julkaisu',
   'status.sensitive': 'Arkaluonteista sisältöä',

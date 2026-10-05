@@ -60,6 +60,27 @@
   // The quoted post is shown one level deep; the "RE: link" line that servers put in the text is then redundant
   const quotedStatus = $derived((!quoted || actions) && s.quote?.state === 'accepted' ? s.quote.quoted_status : null);
 
+  /**
+   * A long text is cut to about 15 lines with "Read more" (the selected post in a thread is always shown in full).
+   * The text is cut by CSS (max-height), so whether it is too long is measured: the content is taller than its
+   * box. It is measured again when the size changes (fonts load, the window is resized).
+   */
+  let contentEl: HTMLElement | undefined = $state();
+  let expanded = $state(false);
+  let overflowing = $state(false);
+  const clampable = $derived(!focused && !expanded);
+
+  // The element only exists while the post is shown (not behind a content warning), hence an effect
+  $effect(() => {
+    const el = contentEl;
+    if (!el) return;
+    const measure = () => (overflowing = el.scrollHeight > el.clientHeight + 4);
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    measure();
+    return () => ro.disconnect();
+  });
+
   function openBooster(e: Event) {
     e.preventDefault();
     router.openProfile(status.account);
@@ -169,7 +190,10 @@
       {/if}
 
       {#if showBody}
-        <div class="content" class:hasquote={!!quotedStatus}>{@html sanitizeContent(s.content, s.emojis)}</div>
+        <div class="content" class:hasquote={!!quotedStatus} class:clamp={clampable} class:faded={clampable && overflowing} bind:this={contentEl}>{@html sanitizeContent(s.content, s.emojis)}</div>
+        {#if clampable && overflowing}
+          <button class="more" onclick={() => (expanded = true)}>{t('status.readMore')}</button>
+        {/if}
 
         {#if s.media_attachments.length}
           <div
@@ -256,6 +280,10 @@
   .cw button { flex: none; min-height: 2.25rem; border: 1px solid color-mix(in srgb, var(--marker) 55%, transparent); background: var(--bg); color: var(--text); border-radius: 0.4rem; padding: 0 0.7rem; }
   .reveal { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 0.4rem; padding: 0.3rem 0.7rem; }
   .content { margin-top: 0.15rem; font-size: 1.06rem; line-height: 1.55; overflow-wrap: anywhere; }
+  .content.clamp { max-height: calc(15 * 1.55em); overflow: hidden; }
+  .content.faded { mask-image: linear-gradient(#000 calc(100% - 4.5rem), transparent); }
+  .more { margin-top: 0.3rem; padding: 0.35rem 0; border: 0; background: none; color: var(--accent); font-weight: 600; }
+  .more:hover { text-decoration: underline; }
   .content :global(p) { margin: 0 0 0.6rem; }
   .content :global(p:last-child) { margin-bottom: 0; }
   /* Quotes, code and lists in a post: the browser's defaults (a wide indent without any mark, unstyled code)
