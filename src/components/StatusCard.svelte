@@ -138,7 +138,7 @@
               {#each s.media_attachments as m (m.id)}
                 {#if m.type === 'image'}
                   <a href={m.url} target="_blank" rel="noopener noreferrer" onclick={(e) => openImage(e, m.id)} >
-                    <img src={m.preview_url} alt={m.description ?? ''} loading="lazy" />
+                    <img src={m.preview_url} alt={m.description ?? ''} loading="lazy" decoding="async" />
                   </a>
                 {:else if m.type === 'video'}
                   <!-- svelte-ignore a11y_media_has_caption -->

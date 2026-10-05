@@ -29,11 +29,23 @@
   function scanRead() {
     raf = 0;
     if (!active || !listEl || document.visibilityState !== 'visible') return;
-    const boxes = [...listEl.querySelectorAll<HTMLElement>('article[data-id]')].map((el) => {
-      const r = el.getBoundingClientRect();
-      return { id: el.dataset.id!, top: r.top, bottom: r.bottom };
-    });
     const topEdge = barEl?.getBoundingClientRect().bottom ?? 0;
+    // The posts are in one column in DOM order, so only the ones on screen are measured: a binary search finds the
+    // first one that ends below the top edge. Measuring every post on every scroll frame gets slower as the list grows.
+    const els = listEl.querySelectorAll<HTMLElement>('article[data-id]');
+    let lo = 0;
+    let hi = els.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (els[mid].getBoundingClientRect().bottom > topEdge) hi = mid;
+      else lo = mid + 1;
+    }
+    const boxes: { id: string; top: number; bottom: number }[] = [];
+    for (let i = lo; i < els.length; i++) {
+      const r = els[i].getBoundingClientRect();
+      if (r.top >= innerHeight) break;
+      boxes.push({ id: els[i].dataset.id!, top: r.top, bottom: r.bottom });
+    }
     const id = pickTopId(boxes, topEdge);
     if (id) feed.reportRead(id);
     if (feed.order === 'newest-first') {
