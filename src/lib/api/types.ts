@@ -78,6 +78,8 @@ export interface Status {
   visibility: Visibility;
   in_reply_to_id: string | null;
   reblog: Status | null;
+  /** A quote post (Mastodon 4.5+); the quoted post is only there when its author has accepted the quote */
+  quote?: { state: string; quoted_status: Status | null } | null;
   media_attachments: MediaAttachment[];
   emojis: CustomEmoji[];
   mentions?: Mention[];

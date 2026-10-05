@@ -5,6 +5,7 @@
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
   import { profileHref, router } from '../lib/router.svelte';
   import ActionBar from './ActionBar.svelte';
+  import StatusCard from './StatusCard.svelte';
   import { sanitizeContent, sanitizeText } from '../lib/html';
   import { formatDateTime, formatNumber, formatRelativeTime } from '../lib/i18n';
   import { i18n, t, tCounter } from '../lib/stores/i18n.svelte';
@@ -16,7 +17,8 @@
    * compact: a light row without action buttons (thread ancestors and replies; a tap opens the post).
    * context: the post a feed reply answers, shown above it with a rail down to it. It is not a reading position
    * (no data-id). joined: the reply under such a post (the rail reaches its avatar). replyTo: the handle of the
-   * author it answers, shown as "Replying to".
+   * author it answers, shown as "Replying to". quoted: the post inside a quote post (a framed, light card; it is
+   * not a reading position either, and a tap opens the quoted post, not the one that quotes it).
    */
   let {
     status,
@@ -27,6 +29,7 @@
     context = false,
     joined = false,
     replyTo,
+    quoted = false,
   }: {
     status: Status;
     focused?: boolean;
@@ -36,6 +39,7 @@
     context?: boolean;
     joined?: boolean;
     replyTo?: string;
+    quoted?: boolean;
   } = $props();
 
   // A boost shows the original; the wrapper's id is still the reading-position key (data-id)
@@ -49,6 +53,8 @@
   const showBody = $derived(!hasCw || cwOpen);
   const hideMedia = $derived(s.sensitive && !mediaOpen);
   const single = $derived(s.media_attachments.length === 1);
+  // The quoted post is shown one level deep; the "RE: link" line that servers put in the text is then redundant
+  const quotedStatus = $derived(!quoted && s.quote?.state === 'accepted' ? s.quote.quoted_status : null);
 
   function openProfile(e: Event) {
     e.preventDefault();
@@ -71,6 +77,7 @@
    * or while selecting text. An @mention opens the profile inside the app.
    */
   function onCardClick(e: MouseEvent) {
+    if (quoted) e.stopPropagation(); // the card around it would open its own thread otherwise
     const target = e.target as HTMLElement;
     const link = target.closest<HTMLAnchorElement>('a.mention');
     if (link) {
@@ -88,7 +95,7 @@
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-<article data-id={context ? undefined : status.id} class:tappable={!focused} class:focused class:reply class:compact={compact || context} class:railed={rail || context} class:context class:joined onclick={onCardClick}>
+<article data-id={context || quoted ? undefined : status.id} class:tappable={!focused} class:focused class:reply class:compact={compact || context || quoted} class:quoted class:railed={rail || context} class:context class:joined onclick={onCardClick}>
   {#if booster}
     <p class="booster">
       <Repeat2 size={14} aria-hidden="true" />
@@ -100,7 +107,7 @@
     {#if !focused}
       <div class="side">
         <a class="avatar-link" href={profileHref(s.account.acct)} onclick={openProfile} tabindex="-1" aria-hidden="true">
-          <img class="avatar" src={s.account.avatar} alt="" width={reply ? 36 : 44} height={reply ? 36 : 44} loading="lazy" />
+          <img class="avatar" src={s.account.avatar} alt="" width={reply || quoted ? 36 : 44} height={reply || quoted ? 36 : 44} loading="lazy" />
         </a>
         {#if rail || context}<span class="rail"></span>{/if}
       </div>
@@ -141,7 +148,7 @@
       {/if}
 
       {#if showBody}
-        <div class="content">{@html sanitizeContent(s.content, s.emojis)}</div>
+        <div class="content" class:hasquote={!!quotedStatus}>{@html sanitizeContent(s.content, s.emojis)}</div>
 
         {#if s.media_attachments.length}
           <div
@@ -173,6 +180,10 @@
               {/each}
             {/if}
           </div>
+        {/if}
+
+        {#if quotedStatus}
+          <StatusCard status={quotedStatus} quoted />
         {/if}
       {/if}
 
@@ -277,6 +288,10 @@
   .joined { padding-top: 0.25rem; }
   .replyto { margin: 0.1rem 0 0; color: var(--muted); font-size: 0.9rem; }
   .replyto span { color: var(--accent); }
+  /* A quote: the quoted post in a frame, and the server's "RE: link" line is hidden because the post is there */
+  .content.hasquote :global(.quote-inline) { display: none; }
+  .quoted { margin-top: 0.6rem; padding: 0.75rem 0.8rem 0.2rem; border: 1px solid var(--border); border-radius: 0.9rem; background: var(--surface); }
+  .quoted .content { font-size: 0.95rem; }
   /* Reply: the divider starts after the avatar, the timestamp follows the handle */
   .reply { padding: 0.9rem 1rem 0; border-bottom: 0; }
   .reply .body { padding-bottom: 0.9rem; border-bottom: 1px solid var(--border); }
