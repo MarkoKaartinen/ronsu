@@ -53,6 +53,7 @@ export const fi: Record<keyof typeof en, string> = {
   'feed.error.markerSave': 'Lukukohdan tallennus Mastodoniin epäonnistui: {message}',
 
   'status.boostedBy': '{name} tehosti',
+  'status.replyingTo': 'Vastauksena käyttäjälle',
   'status.showPost': 'Näytä julkaisu',
   'status.hidePost': 'Piilota julkaisu',
   'status.sensitive': 'Arkaluonteista sisältöä',

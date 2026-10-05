@@ -259,14 +259,19 @@
 {/if}
 
 <div bind:this={listEl} class="list">
-  {#each feed.items as status (status.id)}
+  {#each feed.items as status, i (status.id)}
     {#if status.id === dividerId && status.id !== feed.restoredId}
       <div class="divider"><span class="line"></span><Bookmark size={14} fill="currentColor" aria-hidden="true" />{t('feed.readUpTo')}<span class="line"></span></div>
     {/if}
     {#if status.id === feed.restoredId}
       <div class="divider" data-restored><span class="line"></span><Bookmark size={14} fill="currentColor" aria-hidden="true" />{t('feed.leftOffHere')}<span class="line"></span></div>
     {/if}
-    <StatusCard {status} />
+    {@const parent = feed.parentOf(status)}
+    <!-- The parent is left out when it is the post right above (oldest first), it is there already -->
+    {#if parent && feed.items[i - 1]?.id !== parent.id}
+      <StatusCard status={parent} context />
+    {/if}
+    <StatusCard {status} joined={!!parent && feed.items[i - 1]?.id !== parent.id} replyTo={parent?.account.acct} />
   {/each}
 </div>
 

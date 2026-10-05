@@ -14,6 +14,9 @@
    * focused: the thread's selected post (large layout). rail: a reading rail below the avatar down to the
    * next message (it ends at the selected post's background band). reply: smaller avatar.
    * compact: a light row without action buttons (thread ancestors and replies; a tap opens the post).
+   * context: the post a feed reply answers, shown above it with a rail down to it. It is not a reading position
+   * (no data-id). joined: the reply under such a post (the rail reaches its avatar). replyTo: the handle of the
+   * author it answers, shown as "Replying to".
    */
   let {
     status,
@@ -21,7 +24,19 @@
     rail = false,
     reply = false,
     compact = false,
-  }: { status: Status; focused?: boolean; rail?: boolean; reply?: boolean; compact?: boolean } = $props();
+    context = false,
+    joined = false,
+    replyTo,
+  }: {
+    status: Status;
+    focused?: boolean;
+    rail?: boolean;
+    reply?: boolean;
+    compact?: boolean;
+    context?: boolean;
+    joined?: boolean;
+    replyTo?: string;
+  } = $props();
 
   // A boost shows the original; the wrapper's id is still the reading-position key (data-id)
   const s = $derived(status.reblog ?? status);
@@ -73,7 +88,7 @@
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-<article data-id={status.id} class:tappable={!focused} class:focused class:reply class:compact class:railed={rail} onclick={onCardClick}>
+<article data-id={context ? undefined : status.id} class:tappable={!focused} class:focused class:reply class:compact={compact || context} class:railed={rail || context} class:context class:joined onclick={onCardClick}>
   {#if booster}
     <p class="booster">
       <Repeat2 size={14} aria-hidden="true" />
@@ -87,7 +102,7 @@
         <a class="avatar-link" href={profileHref(s.account.acct)} onclick={openProfile} tabindex="-1" aria-hidden="true">
           <img class="avatar" src={s.account.avatar} alt="" width={reply ? 36 : 44} height={reply ? 36 : 44} loading="lazy" />
         </a>
-        {#if rail}<span class="rail"></span>{/if}
+        {#if rail || context}<span class="rail"></span>{/if}
       </div>
     {/if}
 
@@ -111,6 +126,10 @@
             {formatRelativeTime(s.created_at, i18n.locale)}
           </a>
         </header>
+      {/if}
+
+      {#if replyTo}
+        <p class="replyto">{t('status.replyingTo')} <span>@{replyTo}</span></p>
       {/if}
 
       {#if hasCw}
@@ -251,7 +270,13 @@
   .railed { border-bottom: 0; padding-top: 0.25rem; padding-bottom: 1.1rem; }
   .railed .rail { margin-bottom: -1.1rem; }
   /* Rail centre = avatar centre: 1rem padding + 22 px (half of the 44 px avatar) - 1 px (half the line width) */
-  .railed::before { content: ''; position: absolute; left: calc(1rem + 21px); top: 0; height: 0.25rem; width: 2px; background: var(--border); }
+  .railed::before, .joined::before { content: ''; position: absolute; left: calc(1rem + 21px); top: 0; height: 0.25rem; width: 2px; background: var(--border); }
+  /* In the feed the parent comes first (no rail piece above its avatar) and the reply is joined to it */
+  .context { padding-top: 1rem; }
+  .context::before { display: none; }
+  .joined { padding-top: 0.25rem; }
+  .replyto { margin: 0.1rem 0 0; color: var(--muted); font-size: 0.9rem; }
+  .replyto span { color: var(--accent); }
   /* Reply: the divider starts after the avatar, the timestamp follows the handle */
   .reply { padding: 0.9rem 1rem 0; border-bottom: 0; }
   .reply .body { padding-bottom: 0.9rem; border-bottom: 1px solid var(--border); }

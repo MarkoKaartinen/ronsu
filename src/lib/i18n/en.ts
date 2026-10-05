@@ -55,6 +55,7 @@ export const en = {
   'feed.error.markerSave': 'Could not save your reading position to Mastodon: {message}',
 
   'status.boostedBy': '{name} boosted', // mastodon: status.reblogged_by
+  'status.replyingTo': 'Replying to',
   'status.showPost': 'Show post', // mastodon: content_warning.show_post
   'status.hidePost': 'Hide post', // mastodon: content_warning.hide_post
   'status.sensitive': 'Sensitive content', // mastodon: status.sensitive_warning

@@ -15,6 +15,32 @@ const CLOCK_KEY = 'marker-clock-offset';
  */
 const SYNC_INTERVAL_MS = 5_000;
 
+/**
+ * New posts are added above the screen and are painted for the first time when the reader scrolls up to them, so
+ * their pictures would be fetched and decoded in the first frames of that scroll (a visible hitch). Fetching and
+ * decoding them before the posts are added moves that work to the moment of the click. It waits at most a moment
+ * and ignores errors, so a slow connection never holds back the list.
+ */
+const WARM_TIMEOUT_MS = 1000;
+
+function warmImages(posts: Status[]): Promise<void> {
+  const urls = new Set<string>();
+  for (const p of posts) {
+    const s = p.reblog ?? p;
+    urls.add(s.account.avatar);
+    for (const m of s.media_attachments) if (m.preview_url) urls.add(m.preview_url);
+  }
+  const decoded = [...urls].map((url) => {
+    const img = new Image();
+    img.src = url;
+    return img.decode().catch(() => {});
+  });
+  return Promise.race([Promise.all(decoded).then(() => {}), new Promise<void>((r) => setTimeout(r, WARM_TIMEOUT_MS))]);
+}
+
+const MAX_PARENT_FETCHES = 15;
+const PARENT_TIMEOUT_MS = 1500;
+
 function readLocal(key: string): Pos | null {
   try {
     return parsePos(localStorage.getItem(key));
@@ -54,6 +80,12 @@ function loadOrder(): Order {
 /** One account's home feed and its reading position. A new instance is created on every account switch. */
 export class FeedStore {
   items = $state<Status[]>([]);
+  /**
+   * The posts that replies in the list answer, shown above them. They are fetched before the replies are added to
+   * the list (not when they are rendered), because a parent appearing above a post that is already on screen would
+   * push the page down: Safari has no scroll anchoring. Not reactive on purpose, it is filled before `items` changes.
+   */
+  private parents = new Map<string, Status>();
   order = $state<Order>(loadOrder());
   loading = $state(false);
   error = $state('');
@@ -160,6 +192,8 @@ export class FeedStore {
           if (gen !== this.generation) return;
           const newer = normalizePage('newest-first', page.items);
           for (const s of newer) this.noteLatest(s.created_at);
+          await this.loadParents(newer);
+          if (gen !== this.generation) return;
           this.items = [...newer, status];
         }
         this.restoredId = status.id;
@@ -197,7 +231,11 @@ export class FeedStore {
       const fresh = notIn(this.items, normalizePage(this.order, page.items));
       for (const s of fresh) this.noteLatest(s.created_at);
       if (fresh.length === 0) this.endReached = true;
-      else this.items.push(...fresh);
+      else {
+        await this.loadParents(fresh);
+        if (gen !== this.generation) return;
+        this.items.push(...fresh);
+      }
     } catch (e) {
       if (gen === this.generation) this.error = errorMessage(e);
     } finally {
@@ -220,7 +258,11 @@ export class FeedStore {
       if (gen !== this.generation) return;
       const fresh = notIn(this.items, normalizePage('oldest-first', page.items));
       if (fresh.length === 0) this.olderEnd = true;
-      else this.items.unshift(...fresh);
+      else {
+        await this.loadParents(fresh);
+        if (gen !== this.generation) return;
+        this.items.unshift(...fresh);
+      }
     } catch (e) {
       if (gen === this.generation) this.error = errorMessage(e);
     } finally {
@@ -251,6 +293,8 @@ export class FeedStore {
         this.newerNone = true;
         this.newerNoneTimer = setTimeout(() => (this.newerNone = false), 3000);
       } else {
+        await Promise.all([warmImages(fresh), this.loadParents(fresh)]);
+        if (gen !== this.generation) return;
         this.items.unshift(...fresh);
       }
     } catch (e) {
@@ -258,6 +302,31 @@ export class FeedStore {
     } finally {
       if (gen === this.generation) this.newerLoading = false;
     }
+  }
+
+  /** The post that `status` is a reply to, when it is known (a boost has none: the original's context is not shown) */
+  parentOf(status: Status): Status | undefined {
+    return !status.reblog && status.in_reply_to_id ? this.parents.get(status.in_reply_to_id) : undefined;
+  }
+
+  /**
+   * Makes the parents of the replies in `posts` known before the posts are shown. Posts that are in the list
+   * already cost nothing; the rest are fetched in parallel, a limited number per page and for a limited time,
+   * and a failure only means that the reply is shown without its parent.
+   */
+  private async loadParents(posts: Status[]) {
+    for (const p of [...this.items, ...posts]) if (!this.parents.has(p.id)) this.parents.set(p.id, p);
+    const missing = [
+      ...new Set(posts.flatMap((p) => (!p.reblog && p.in_reply_to_id && !this.parents.has(p.in_reply_to_id) ? [p.in_reply_to_id] : []))),
+    ].slice(0, MAX_PARENT_FETCHES);
+    if (!missing.length) return;
+    const fetched = missing.map((id) =>
+      this.client.get<Status>(`/api/v1/statuses/${id}`).then(
+        (parent) => void this.parents.set(id, parent),
+        () => {},
+      ),
+    );
+    await Promise.race([Promise.all(fetched), new Promise((r) => setTimeout(r, PARENT_TIMEOUT_MS))]);
   }
 
   /** Oldest-first mode: check for new posts once we reach the end. */
