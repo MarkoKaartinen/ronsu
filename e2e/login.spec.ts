@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const SCOPES = 'read write:favourites write:statuses write:bookmarks write:follows';
+const SCOPES = 'read write:favourites write:statuses write:media write:bookmarks write:follows';
 const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'content-type': 'application/json' };
 
 test('logging in registers the app as "Ronsu" and ignores an older registration made under another name', async ({ page }) => {

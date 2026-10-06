@@ -67,11 +67,18 @@ export class MastodonClient {
   ): Promise<T> {
     const headers: Record<string, string> = { ...extraHeaders };
     let payload: BodyInit | undefined;
-    if (body !== undefined) {
+    if (body instanceof FormData) {
+      payload = body; // the browser sets the multipart Content-Type (with its boundary) itself
+    } else if (body !== undefined) {
       headers['Content-Type'] = 'application/json';
       payload = JSON.stringify(body);
     }
     return (await this.request<T>(path, { ...init, method: 'POST', headers, body: payload })).data;
+  }
+
+  async put<T>(path: string, body: unknown): Promise<T> {
+    const headers = { 'Content-Type': 'application/json' };
+    return (await this.request<T>(path, { method: 'PUT', headers, body: JSON.stringify(body) })).data;
   }
 }
 

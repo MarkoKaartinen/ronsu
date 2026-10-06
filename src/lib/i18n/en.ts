@@ -126,6 +126,22 @@ export const en = {
   'compose.languageDefault': 'Default', // mastodon: about.default_locale
   'compose.discard': 'Discard your draft post?', // mastodon: confirmations.discard_draft.post.title
   'compose.published': 'Post published.', // mastodon: compose.published.body
+  'compose.media.add': 'Add images, a video or an audio file', // mastodon: upload_button.label
+  'compose.media.edit': 'Edit', // mastodon: upload_form.edit
+  'compose.media.remove': 'Remove', // mastodon: collections.remove_account
+  'compose.media.uploading': 'Uploading...', // mastodon: upload_progress.label
+  'compose.media.processing': 'Processing…', // mastodon: upload_progress.processing
+  'compose.media.drop': 'Drag & drop to upload', // mastodon: upload_area.title
+  'compose.media.limit': 'File upload limit exceeded.', // mastodon: upload_error.limit
+  'compose.media.altBadge': 'Alt text', // mastodon: alt_text_badge.title
+  'compose.alt.title': 'Add alt text', // mastodon: alt_text_modal.add_alt_text
+  'compose.alt.placeholder': 'Describe this for people with visual impairments…', // mastodon: alt_text_modal.describe_for_people_with_visual_impairments
+  'compose.alt.done': 'Done', // mastodon: alt_text_modal.done
+  'compose.altReminder.title': 'Add alt text?', // mastodon: confirmations.missing_alt_text.title
+  'compose.altReminder.message': 'Your post contains media without alt text. Adding descriptions helps make your content accessible to more people.', // mastodon: confirmations.missing_alt_text.message
+  'compose.altReminder.add': 'Add alt text', // mastodon: confirmations.missing_alt_text.confirm
+  'compose.altReminder.postAnyway': 'Post anyway', // mastodon: confirmations.missing_alt_text.secondary
+  'compose.media.reauth': 'Adding pictures needs a new permission. Log in again to add pictures.',
 
   'login.tagline': 'A Mastodon reader that remembers where you left off.',
   'login.server': 'Server', // mastodon: about.rules ("Server rules"), "server" is the term used for instances

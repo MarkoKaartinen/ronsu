@@ -3,7 +3,7 @@ import { MastodonClient } from './client';
 import { tNow } from '../i18n/runtime';
 import type { Account, StoredAccount } from './types';
 
-const SCOPES = 'read write:favourites write:statuses write:bookmarks write:follows';
+const SCOPES = 'read write:favourites write:statuses write:media write:bookmarks write:follows';
 const PENDING_KEY = 'oauth-pending';
 /** The name shown to the user and on every post made with the app (Mastodon's `application` field) */
 const CLIENT_NAME = 'Ronsu';

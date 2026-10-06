@@ -18,6 +18,8 @@ let imageAspect = 4 / 3;
 let withCw = false;
 /** Whether posts with i % 5 === 3 carry a quote, code and a list (set from Server.formatted) */
 let formatted = false;
+/** Polls of each upload (the file is ready on the second one) */
+const polls: Record<string, number> = {};
 
 function status(i: number) {
   return {
@@ -63,6 +65,10 @@ export interface Server {
   created?: { body: Record<string, unknown>; key: string | undefined }[]; // successful POST /statuses
   attempts?: (string | undefined)[]; // all attempts (Idempotency-Key)
   failPost?: boolean;
+  uploads?: string[]; // names of the files uploaded (POST /api/v2/media)
+  descriptions?: Record<string, string>; // PUT /api/v1/media/:id
+  noMediaScope?: boolean; // 403: a token without the write:media scope
+  processing?: boolean; // uploads answer 202 and the file is ready on the second poll
   actions?: string[]; // POST /statuses/:id/<action>
   failActions?: boolean;
   marker: { last_read_id: string; version: number; updated_at: string } | null;
@@ -161,6 +167,28 @@ export async function mockMastodon(page: Page, server: Server) {
     }
     if (url.pathname === '/api/v2/instance') {
       return json({ configuration: { statuses: { max_characters: 500 } } });
+    }
+    if (url.pathname === '/api/v2/media' && req.method() === 'POST') {
+      if (server.noMediaScope) {
+        return route.fulfill({ status: 403, headers: { ...cors, 'content-type': 'application/json' }, body: '{"error":"This action is outside the authorized scopes"}' });
+      }
+      const name = /filename="([^"]*)"/.exec(req.postData() ?? '')?.[1] ?? 'file';
+      (server.uploads ??= []).push(name);
+      const id = `up${server.uploads.length}`;
+      polls[id] = 0;
+      return route.fulfill({
+        status: server.processing ? 202 : 200, headers: { ...cors, 'content-type': 'application/json' },
+        body: JSON.stringify({ id, type: 'image', url: server.processing ? null : `${HOST}/img/${id}.png`, preview_url: `${HOST}/img/${id}.png`, description: null }),
+      });
+    }
+    const media = url.pathname.match(/^\/api\/v1\/media\/(\w+)$/);
+    if (media && req.method() === 'PUT') {
+      (server.descriptions ??= {})[media[1]] = JSON.parse(req.postData() ?? '{}').description;
+      return json({ id: media[1], type: 'image', url: `${HOST}/img/${media[1]}.png`, preview_url: '', description: server.descriptions[media[1]] });
+    }
+    if (media && req.method() === 'GET') {
+      const ready = ++polls[media[1]] >= 2;
+      return json({ id: media[1], type: 'image', url: ready ? `${HOST}/img/${media[1]}.png` : null, preview_url: '', description: null });
     }
     if (url.pathname === '/api/v1/statuses' && req.method() === 'POST') {
       const key = req.headers()['idempotency-key'];

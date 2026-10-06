@@ -12,6 +12,7 @@ export interface NewStatus {
   in_reply_to_id?: string;
   spoiler_text?: string;
   language?: string;
+  media_ids?: string[];
 }
 
 /**
@@ -21,19 +22,36 @@ export interface NewStatus {
 export const postStatus = (client: MastodonClient, body: NewStatus, idempotencyKey: string) =>
   client.post<Status>('/api/v1/statuses', body, { 'Idempotency-Key': idempotencyKey });
 
-const maxCharsCache = new Map<string, number>();
-const DEFAULT_MAX_CHARS = 500;
+export interface InstanceLimits {
+  maxChars: number;
+  maxMedia: number;
+  /** Characters allowed in an alt text */
+  altChars: number;
+}
 
-/** The server's character limit (from the v2 instance info); 500 if it cannot be fetched. */
-export async function getMaxChars(client: MastodonClient): Promise<number> {
-  const cached = maxCharsCache.get(client.base);
+const DEFAULT_LIMITS: InstanceLimits = { maxChars: 500, maxMedia: 4, altChars: 1500 };
+const limitsCache = new Map<string, InstanceLimits>();
+
+/** The server's limits (from the v2 instance info); Mastodon's defaults if they cannot be fetched. */
+export async function getLimits(client: MastodonClient): Promise<InstanceLimits> {
+  const cached = limitsCache.get(client.base);
   if (cached) return cached;
   try {
-    const info = await client.get<{ configuration?: { statuses?: { max_characters?: number } } }>('/api/v2/instance');
-    const max = info.configuration?.statuses?.max_characters ?? DEFAULT_MAX_CHARS;
-    maxCharsCache.set(client.base, max);
-    return max;
+    const info = await client.get<{
+      configuration?: {
+        statuses?: { max_characters?: number; max_media_attachments?: number };
+        media_attachments?: { description_limit?: number };
+      };
+    }>('/api/v2/instance');
+    const c = info.configuration;
+    const limits = {
+      maxChars: c?.statuses?.max_characters ?? DEFAULT_LIMITS.maxChars,
+      maxMedia: c?.statuses?.max_media_attachments ?? DEFAULT_LIMITS.maxMedia,
+      altChars: c?.media_attachments?.description_limit ?? DEFAULT_LIMITS.altChars,
+    };
+    limitsCache.set(client.base, limits);
+    return limits;
   } catch {
-    return DEFAULT_MAX_CHARS;
+    return DEFAULT_LIMITS;
   }
 }

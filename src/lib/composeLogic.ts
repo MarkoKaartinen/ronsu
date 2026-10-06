@@ -48,7 +48,26 @@ export function remaining({ text, cwOn, cw, maxChars }: Draft): number {
   return maxChars - countChars(text) - (cwOn ? countChars(cw) : 0);
 }
 
-export function canSend(draft: Draft, prefix: string): boolean {
+/** A post needs text or at least one picture; a reply that only repeats the mentions does not count as text. */
+export function canSend(draft: Draft, prefix: string, mediaCount = 0): boolean {
   const body = draft.text.trim();
-  return body !== '' && body !== prefix.trim() && remaining(draft) >= 0 && (!draft.cwOn || draft.cw.trim() !== '');
+  const hasContent = mediaCount > 0 || (body !== '' && body !== prefix.trim());
+  return hasContent && remaining(draft) >= 0 && (!draft.cwOn || draft.cw.trim() !== '');
 }
+
+export interface Picked {
+  /** The pictures that fit */
+  accepted: File[];
+  /** Some pictures did not fit under the server's limit */
+  overLimit: boolean;
+}
+
+/** Keeps only pictures (drops everything else from a paste or a drop) and as many as there is room for. */
+export function pickImages(files: Iterable<File>, room: number): Picked {
+  const images = [...files].filter((f) => f.type.startsWith('image/'));
+  const space = Math.max(0, room);
+  return { accepted: images.slice(0, space), overLimit: images.length > space };
+}
+
+/** Whether any picture lacks an alt text (for the reminder before posting). */
+export const missingAltText = (items: { description: string }[]) => items.some((i) => i.description.trim() === '');
