@@ -59,6 +59,8 @@ export const fi: Record<keyof typeof en, string> = {
   'feed.remoteAhead': 'Toisella laitteella on luettu pidemmälle.',
   'feed.jump': 'Siirry',
   'feed.notNow': 'Ei nyt',
+  'feed.continuedFromRemote': 'Jatketaan siitä, mihin jäit toisella laitteella.',
+  'feed.ok': 'Selvä',
   'feed.more': 'Lataa lisää',
   'feed.loadOlder': 'Lataa vanhemmat',
   'feed.loadNew': 'Lataa uudet',

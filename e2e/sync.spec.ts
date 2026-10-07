@@ -91,3 +91,44 @@ test('our own position moved after the other device did: ours (the newer one) is
   await expect.poll(() => server.posts.length).toBeGreaterThan(0); // ours wins: it is sent to the server
   await expect(banner(page)).toHaveCount(0);
 });
+
+test('opening the app where another device has read further says so', async ({ page }) => {
+  const server = fresh();
+  await mockMastodon(page, server);
+  await seedAccount(page);
+  await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('read-marker')).forEach((k) => localStorage.removeItem(k)));
+  movedByAnotherDevice(server, 150);
+  await page.reload();
+  await page.waitForSelector('article[data-id]');
+  const note = page.getByRole('status').filter({ hasText: 'Continuing from where you read on another device.' });
+  await expect(note).toBeVisible();
+  await note.getByRole('button', { name: 'OK' }).click();
+  await expect(note).toHaveCount(0);
+});
+
+test('the notice is in the sticky bar: it stays in view after scrolling', async ({ page }) => {
+  const server = fresh();
+  await open(page, server);
+  for (let y = 1500; y <= 4000; y += 500) {
+    await page.evaluate((v) => window.scrollTo(0, v), y);
+    await page.waitForTimeout(60);
+  }
+  await page.waitForTimeout(300);
+  await page.evaluate(() => window.dispatchEvent(new Event('focus'))); // our position is sent first
+  await expect.poll(() => server.posts.length).toBeGreaterThan(0);
+  movedByAnotherDevice(server, 190);
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect(banner(page)).toBeInViewport();
+});
+
+test('newest first: "You left off here" is at the top of the screen under the bar, with the read posts below it', async ({ page }) => {
+  const server = fresh();
+  await open(page, server);
+  await page.getByLabel('Reading order').selectOption('newest-first');
+  await page.reload(); // a refresh must not move the place either
+  const divider = page.locator('.divider[data-restored]');
+  await expect(divider).toBeVisible();
+  await page.waitForTimeout(300);
+  const [d, bar] = await Promise.all([divider.boundingBox(), page.locator('.bar:has(.row)').boundingBox()]);
+  expect(Math.abs(d!.y - (bar!.y + bar!.height))).toBeLessThan(4);
+});

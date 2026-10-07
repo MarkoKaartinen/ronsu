@@ -125,6 +125,8 @@ export class FeedStore {
   latestAt = $state<number | null>(null);
   /** Another device has moved the reading position: one can jump to this id */
   remoteAhead = $state<string | null>(null);
+  /** The feed opened at the position another device had left, not at this device's own one: said out loud */
+  continuedFromRemote = $state(false);
 
   private timer: ReturnType<typeof setTimeout> | undefined;
   /**
@@ -153,6 +155,7 @@ export class FeedStore {
     const start = pickStart(readLocal(this.storageKey), this.remote);
     this.marker = start?.id ?? null;
     this.markerAt = start?.at ?? 0;
+    this.continuedFromRemote = !!start && start === this.remote && start.id !== readLocal(this.storageKey)?.id;
     // Local is ahead (e.g. the page closed before syncing): send it to the server
     if (this.marker && this.marker !== this.remote?.id) {
       this.dirty = true;
@@ -194,9 +197,16 @@ export class FeedStore {
           if (gen !== this.generation) return;
           const newer = normalizePage('newest-first', page.items);
           for (const s of newer) this.noteLatest(s.created_at);
-          await this.loadParents([...newer, status]);
+          // The older ones are fetched in the same go: the divider is scrolled to the top of the screen, which needs
+          // posts below it from the start, or the page would first be too short and the divider would jump into place
+          const older = await this.client.getPage<Status>('/api/v1/timelines/home', { limit: PAGE_SIZE, max_id: status.id });
           if (gen !== this.generation) return;
-          this.items = [...newer, status];
+          const below = notIn([...newer, status], normalizePage('newest-first', older.items));
+          for (const s of below) this.noteLatest(s.created_at);
+          this.endReached = below.length === 0;
+          await this.loadParents([...newer, status, ...below]);
+          if (gen !== this.generation) return;
+          this.items = [...newer, status, ...below];
         }
         this.restoredId = status.id;
       } catch {
@@ -205,7 +215,7 @@ export class FeedStore {
     }
     if (gen !== this.generation) return;
     this.loading = false;
-    await this.loadMore();
+    if (!this.restoredId || this.order === 'oldest-first') await this.loadMore();
   }
 
   async setOrder(order: Order) {
@@ -470,6 +480,7 @@ export class FeedStore {
     const id = this.remoteAhead;
     if (!id) return;
     this.remoteAhead = null;
+    this.continuedFromRemote = false;
     this.dirty = false;
     this.setMarker(id, this.remote?.at ?? this.serverNow());
     await this.load();
@@ -477,6 +488,10 @@ export class FeedStore {
 
   dismissRemote() {
     this.remoteAhead = null;
+  }
+
+  dismissContinued() {
+    this.continuedFromRemote = false;
   }
 
   destroy() {

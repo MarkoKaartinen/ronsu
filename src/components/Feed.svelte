@@ -120,8 +120,8 @@
     poll = setInterval(onWake, 60_000);
   });
 
-  // Newest first is read upwards from where you left off: show the divider (near the bottom of the screen, so the
-  // newer posts are above it) once per load
+  // Newest first is read upwards from where you left off: show the divider at the top of the screen, right under the
+  // bar, on every device (the already-read posts are below it) once per load
   let scrolledTo: string | null = null;
   $effect(() => {
     const id = feed.restoredId;
@@ -131,8 +131,22 @@
     tick().then(() => {
       const el = listEl?.querySelector<HTMLElement>('[data-restored]');
       if (!el) return;
-      const bar = barEl?.getBoundingClientRect().bottom ?? 0;
-      window.scrollBy(0, el.getBoundingClientRect().top - Math.max(bar + 80, innerHeight - 200));
+      // The older posts below it arrive a moment later: until then the page is too short to scroll that far, so the
+      // place is held (as in keepPlace) until the reader touches the screen
+      const align = () => {
+        if (el.isConnected) window.scrollBy(0, el.getBoundingClientRect().top - (barEl?.getBoundingClientRect().bottom ?? 0));
+      };
+      align();
+      if (!listEl) return;
+      const resize = new ResizeObserver(align);
+      resize.observe(listEl);
+      const stop = () => {
+        resize.disconnect();
+        clearTimeout(timer);
+        for (const name of HOLD_ENDS) window.removeEventListener(name, stop);
+      };
+      const timer = setTimeout(stop, 2500);
+      for (const name of HOLD_ENDS) window.addEventListener(name, stop, { passive: true, once: true });
     });
   });
 
@@ -201,15 +215,20 @@
       <ChevronDown size={16} aria-hidden="true" />
     </label>
   </div>
+  <!-- Inside the sticky bar: the notice stays in view however far down the list one has scrolled -->
+  {#if feed.remoteAhead}
+    <div class="banner" role="status">
+      <span>{t('feed.remoteAhead')}</span>
+      <button class="primary" onclick={() => feed.jumpToRemote()}>{t('feed.jump')}</button>
+      <button class="ghost" onclick={() => feed.dismissRemote()}>{t('feed.notNow')}</button>
+    </div>
+  {:else if feed.continuedFromRemote}
+    <div class="banner" role="status">
+      <span>{t('feed.continuedFromRemote')}</span>
+      <button class="ghost" onclick={() => feed.dismissContinued()}>{t('feed.ok')}</button>
+    </div>
+  {/if}
 </div>
-
-{#if feed.remoteAhead && feed.order === 'oldest-first'}
-  <div class="banner" role="status">
-    <span>{t('feed.remoteAhead')}</span>
-    <button onclick={() => feed.jumpToRemote()}>{t('feed.jump')}</button>
-    <button class="ghost" onclick={() => feed.dismissRemote()}>{t('feed.notNow')}</button>
-  </div>
-{/if}
 
 {#if feed.order === 'newest-first' && feed.items.length}
   <div class="older">
@@ -281,9 +300,10 @@
   .order select { appearance: none; min-height: 2.75rem; padding: 0 1.6rem 0 0.5rem; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
   .order :global(svg) { position: absolute; right: 0.3rem; pointer-events: none; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  .banner { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; padding: 0.6rem 1rem; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .banner { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin: 0.3rem 0 0.2rem; padding: 0.6rem 0.8rem; background: color-mix(in srgb, var(--accent) 16%, var(--bg)); border: 1px solid var(--accent); border-radius: 0.6rem; color: var(--text); font-weight: 600; }
   .banner span { flex: 1; min-width: 12rem; }
-  .banner button, .msg button { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 0.4rem; padding: 0.3rem 0.8rem; }
+  .banner button, .msg button { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 0.4rem; padding: 0.4rem 0.9rem; min-height: 2.5rem; }
+  .banner .primary { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
   .banner .ghost { background: none; }
   .divider { display: flex; align-items: center; gap: 0.6rem; color: var(--marker); font-size: 0.85rem; font-weight: 600; padding: 0.6rem 1rem; background: var(--surface); border-bottom: 1px solid var(--border); }
   .divider .line { flex: 1; height: 1px; background: color-mix(in srgb, var(--marker) 40%, transparent); }
