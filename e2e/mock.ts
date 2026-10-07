@@ -16,6 +16,8 @@ let imageCount = 1;
 let imageAspect = 4 / 3;
 /** Whether posts divisible by 4 (with remainder 2) carry a content warning (set from Server.cw) */
 let withCw = false;
+/** Whether those content warnings are long (set from Server.cwLong) */
+let longCw = false;
 /** Whether posts with i % 5 === 3 carry a quote, code and a list (set from Server.formatted) */
 let formatted = false;
 /** Whether every post quotes another one (set from Server.quoteAll) */
@@ -32,7 +34,7 @@ function status(i: number, withQuote = true) {
     created_at: new Date(Date.UTC(2026, 9, 4, 5, 0, 0) + i * 60_000).toISOString(), // every post a minute after the previous
     account: { id: '2', username: 'u', acct: 'u', display_name: 'U', avatar: '', url: '', emojis: [] },
     content: `<p>Post ${i}. ${i % 7 === 1 ? '<a class="u-url mention" href="https://mock.test/@maija" rel="nofollow" target="_blank">@<span>maija</span></a> ' : ''}${'Lorem ipsum dolor sit amet. '.repeat(6 + (i % 5))}</p>${formatted && i % 5 === 3 ? '<blockquote><p>A quoted line of text that is long enough to wrap onto a second line when the column is narrow.</p></blockquote><pre><code>const x = 1;</code></pre><p>Inline <code>code</code>.</p><ul><li>one</li><li>two</li></ul>' : ''}`,
-    spoiler_text: withCw && i % 4 === 2 ? 'food talk' : '',
+    spoiler_text: withCw && i % 4 === 2 ? (longCw ? 'food talk: a long warning that does not fit on one line next to the button, so it has to wrap onto several lines of text' : 'food talk') : '',
     sensitive: false,
     visibility: 'public',
     in_reply_to_id: null,
@@ -61,6 +63,7 @@ export interface Server {
   boostedQuote?: boolean; // the boosted post is itself a quote post (with `boosted`)
   quoteAll?: boolean; // every post quotes another post
   formatted?: boolean; // some posts have a quote, a code block and a list
+  cwLong?: boolean; // with `cw`: the warning text is long
   cw?: boolean; // some posts have a content warning
   aspect?: number; // aspect ratio of the pictures (default 4/3)
   images?: number; // pictures per post that has any (default 1)
@@ -86,6 +89,7 @@ export async function mockMastodon(page: Page, server: Server) {
   imageCount = server.images ?? 1;
   imageAspect = server.aspect ?? 4 / 3;
   withCw = !!server.cw;
+  longCw = !!server.cwLong;
   formatted = !!server.formatted;
   quoteAll = !!server.quoteAll;
   await page.route(`${HOST}/**`, async (route) => {

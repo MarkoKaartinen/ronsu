@@ -153,7 +153,7 @@ test('a content warning is drawn in the warning colour and is visible on the sel
 
   const cw = page.locator('[data-focused] .cw');
   await expect(cw).toContainText('food talk');
-  await expect(cw.locator('svg')).toBeVisible();
+  await expect(cw.getByRole('button', { name: 'Show post' })).toBeVisible();
 
   // Not the same colour as the band behind it (the box used to sink into the selected post's background)
   const [box, band] = await Promise.all([
@@ -193,4 +193,24 @@ test('the quote inside the selected post stands out from the post\'s background 
   await expect(frame).toBeVisible();
   const bg = (sel: string) => page.locator(sel).first().evaluate((el) => getComputedStyle(el).backgroundColor);
   expect(await bg('[data-focused] article.quoted')).not.toBe(await bg('[data-focused] > article'));
+});
+
+test('a short content warning keeps the button beside it, a long one puts the button below it', async ({ page }) => {
+  for (const cwLong of [false, true]) {
+    await open(page, { marker: null, posts: [], cw: true, cwLong });
+    await page.evaluate((i) => (location.hash = `/thread/${i}`), idOf(150));
+    const cw = page.locator('[data-focused] .cw');
+    await expect(cw).toBeVisible();
+    const button = cw.getByRole('button', { name: 'Show post' });
+    await expect(button).toHaveText('Show');
+    await expect(button.locator('svg')).toBeVisible();
+    const [text, box] = await Promise.all([
+      cw.locator('.cw-text').evaluate((el) => el.getBoundingClientRect()),
+      button.evaluate((el) => el.getBoundingClientRect()),
+    ]);
+    if (cwLong) {
+      expect(box.top).toBeGreaterThanOrEqual(text.bottom - 1);
+      expect(Math.abs(box.left - text.left)).toBeLessThan(2); // below, at the left edge
+    } else expect(box.left).toBeGreaterThan(text.right - 1);
+  }
 });

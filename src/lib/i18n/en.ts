@@ -84,6 +84,8 @@ export const en = {
   'poll.endingSoon': 'Ends soon',
   'poll.yourVote': 'Your vote',
   'status.readMore': 'Read more',
+  'status.cwShow': 'Show',
+  'status.cwHide': 'Hide',
   'status.showPost': 'Show post', // mastodon: content_warning.show_post
   'status.hidePost': 'Hide post', // mastodon: content_warning.hide_post
   'status.sensitive': 'Sensitive content', // mastodon: status.sensitive_warning

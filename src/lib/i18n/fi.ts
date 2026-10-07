@@ -82,6 +82,8 @@ export const fi: Record<keyof typeof en, string> = {
   'poll.endingSoon': 'Päättyy pian',
   'poll.yourVote': 'Äänesi',
   'status.readMore': 'Lue lisää',
+  'status.cwShow': 'Näytä',
+  'status.cwHide': 'Piilota',
   'status.showPost': 'Näytä julkaisu',
   'status.hidePost': 'Piilota julkaisu',
   'status.sensitive': 'Arkaluonteista sisältöä',

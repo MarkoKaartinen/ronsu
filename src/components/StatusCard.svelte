@@ -194,9 +194,9 @@
 
       {#if hasCw}
         <div class="cw">
-          <TriangleAlert size={18} aria-hidden="true" />
           <span class="cw-text">{@html sanitizeText(s.spoiler_text, s.emojis)}</span>
-          <button onclick={() => (cwOpen = !cwOpen)} aria-expanded={cwOpen}>{cwOpen ? t('status.hidePost') : t('status.showPost')}</button>
+          <!-- The label is short (the box is narrow); the full phrase is the accessible name -->
+          <button onclick={() => (cwOpen = !cwOpen)} aria-expanded={cwOpen} aria-label={cwOpen ? t('status.hidePost') : t('status.showPost')}><TriangleAlert size={16} aria-hidden="true" />{cwOpen ? t('status.cwHide') : t('status.cwShow')}</button>
         </div>
       {/if}
 
@@ -305,10 +305,11 @@
   article.tappable { cursor: pointer; }
   /* A content warning stands out in the warning colour (the same as the CW field when writing), and is tinted
      with it instead of a plain surface colour, so it is also visible on the selected post's band */
-  .cw { display: flex; gap: 0.6rem; align-items: center; border: 1px solid color-mix(in srgb, var(--marker) 55%, transparent); background: color-mix(in srgb, var(--marker) 13%, transparent); border-radius: 0.6rem; padding: 0.5rem 0.6rem 0.5rem 0.7rem; margin: 0.3rem 0 0.5rem; }
-  .cw > :global(svg) { flex: none; color: var(--marker); }
-  .cw-text { flex: 1; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
-  .cw button { flex: none; min-height: 2.25rem; border: 1px solid color-mix(in srgb, var(--marker) 55%, transparent); background: var(--bg); color: var(--text); border-radius: 0.4rem; padding: 0 0.7rem; }
+  .cw { display: flex; flex-wrap: wrap; gap: 0.5rem 0.6rem; align-items: center; border: 1px solid color-mix(in srgb, var(--marker) 55%, transparent); background: color-mix(in srgb, var(--marker) 13%, transparent); border-radius: 0.6rem; padding: 0.5rem 0.6rem 0.5rem 0.7rem; margin: 0.3rem 0 0.5rem; }
+  /* A warning that fits on one line stays beside the button; a longer one takes the full width and the button drops below it, at the left edge (the text grows to fill its line, which pushes the button right when they share one; the basis is the text's own width) */
+  .cw button :global(svg) { color: var(--marker); }
+  .cw-text { flex: 1 1 auto; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+  .cw button { display: inline-flex; gap: 0.4rem; align-items: center; flex: none; min-height: 2.25rem; border: 1px solid color-mix(in srgb, var(--marker) 55%, transparent); background: var(--bg); color: var(--text); border-radius: 0.4rem; padding: 0 0.7rem; }
   .reveal { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 0.4rem; padding: 0.3rem 0.7rem; }
   .content { margin-top: 0.15rem; font-size: 1.06rem; line-height: 1.55; overflow-wrap: anywhere; }
   .poll { list-style: none; margin: 0.6rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
