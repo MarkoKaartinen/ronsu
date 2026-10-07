@@ -101,6 +101,8 @@ export interface Status {
   poll?: Poll | null;
   replies_count: number;
   reblogs_count: number;
+  /** Mastodon 4.5+; missing on servers that do not count quotes */
+  quotes_count?: number;
   favourites_count: number;
   favourited?: boolean;
   reblogged?: boolean;

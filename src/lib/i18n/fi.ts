@@ -92,6 +92,8 @@ export const fi: Record<keyof typeof en, string> = {
   'status.replies.other': '{counter} vastausta',
   'status.boosts.one': '{counter} tehostus',
   'status.boosts.other': '{counter} tehostusta',
+  'status.quotes.one': '{counter} lainaus',
+  'status.quotes.other': '{counter} lainausta',
   'status.favorites.one': '{counter} suosikki',
   'status.favorites.other': '{counter} suosikkia',
 

@@ -78,6 +78,7 @@ test('reply: prefill, retry with the same key, CW and visibility', async ({ page
   // The thread refreshes: the own reply shows up and the reply counter grew
   await expect(page.locator('article[data-id]:visible')).toHaveCount(6);
   await expect(page.locator('[data-focused] .stats')).toContainText('1 reply');
+  await expect(page.locator('[data-focused] .stats')).toContainText('1 quote');
 });
 
 test('a new post without a reply target is public by default', async ({ page }) => {

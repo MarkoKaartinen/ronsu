@@ -46,8 +46,11 @@ test('a boost shows who boosted on top and the original in a frame, with a label
   await mockMastodon(page, { marker: null, posts: [], boosted: true });
   await seedAccount(page);
   await page.reload();
-  await expect(page.locator('.boosthead').first()).toContainText('Daniel');
+  await expect(page.locator('article[data-id]:has(article.quoted) > .layout > .body > header').first()).toContainText('Daniel');
   await expect(page.locator('article.quoted').first()).toBeVisible();
+  // The frame is indented like the text of other posts: it starts to the right of the booster's avatar
+  const x = await page.locator('article[data-id]:has(article.quoted)').first().evaluate((a) => ({ avatar: a.querySelector('.avatar')!.getBoundingClientRect().right, frame: a.querySelector('article.quoted')!.getBoundingClientRect().left }));
+  expect(x.frame).toBeGreaterThan(x.avatar);
   const label = page.locator('.boostlabel').first();
   await expect(label).toHaveText('Boost');
   const style = await label.evaluate((el) => ({ color: getComputedStyle(el).color, weight: getComputedStyle(el).fontWeight, boost: getComputedStyle(document.documentElement).getPropertyValue('--boost').trim() }));
@@ -55,4 +58,15 @@ test('a boost shows who boosted on top and the original in a frame, with a label
   // The colour is the theme's boost colour, not the muted grey
   const swatch = await page.evaluate((c) => { const d = document.createElement('i'); d.style.color = c; document.body.appendChild(d); const v = getComputedStyle(d).color; d.remove(); return v; }, style.boost);
   expect(style.color).toBe(swatch);
+});
+
+test('a quote inside a boosted post has its own, different background so it stands out from the outer frame', async ({ page }) => {
+  await mockMastodon(page, { marker: null, posts: [], boosted: true, boostedQuote: true });
+  await seedAccount(page);
+  await page.reload();
+  const outer = page.locator('article.quoted').first();
+  const inner = outer.locator('article.quoted');
+  await expect(inner).toHaveCount(1);
+  const bg = (l: typeof outer) => l.evaluate((el) => getComputedStyle(el).backgroundColor);
+  expect(await bg(inner)).not.toBe(await bg(outer));
 });

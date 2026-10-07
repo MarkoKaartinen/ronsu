@@ -137,11 +137,13 @@
 <article data-id={context || quoted ? undefined : status.id} class:tappable={!focused} class:focused class:reply class:compact={compact || context || quoted} class:quoted class:framed={quoted && actions} class:railed={rail || context} class:context class:joined onclick={onCardClick}>
   {#if boostFrame && booster}
     <!-- A boost, like a quote: who boosted on top, the original post in a frame below it (with its own buttons) -->
-    <div class="boosthead" title={t('status.boostedBy', { name: booster.display_name || booster.username })}>
-      <a class="avatar-link" href={profileHref(booster.acct)} onclick={openBooster} tabindex="-1" aria-hidden="true">
-        <img class="avatar" src={booster.avatar} alt="" width="44" height="44" loading="lazy" decoding="async" />
-      </a>
-      <div class="who">
+    <div class="layout">
+      <div class="side">
+        <a class="avatar-link" href={profileHref(booster.acct)} onclick={openBooster} tabindex="-1" aria-hidden="true">
+          <img class="avatar" src={booster.avatar} alt="" width="44" height="44" loading="lazy" decoding="async" />
+        </a>
+      </div>
+      <div class="body" title={t('status.boostedBy', { name: booster.display_name || booster.username })}>
         <header>
           <a class="profile" href={profileHref(booster.acct)} onclick={openBooster}>
             <strong>{@html sanitizeText(booster.display_name || booster.username, booster.emojis)}</strong>
@@ -150,9 +152,9 @@
           <span class="time">{formatRelativeTime(status.created_at, i18n.locale)}</span>
         </header>
         <p class="boostlabel"><Repeat2 size={14} aria-hidden="true" />{t('status.boost')}</p>
+        <StatusCard status={status.reblog!} quoted actions />
       </div>
     </div>
-    <StatusCard status={status.reblog!} quoted actions />
   {:else}
   <div class="layout">
     {#if !focused}
@@ -268,9 +270,11 @@
           </a>
         </p>
         <p class="stats">
-          {#each [['status.replies', s.replies_count], ['status.boosts', s.reblogs_count], ['status.favorites', s.favourites_count]] as const as [key, count] (key)}
+          {#each [['status.replies', s.replies_count], ['status.boosts', s.reblogs_count], ['status.quotes', s.quotes_count], ['status.favorites', s.favourites_count]] as const as [key, count] (key)}
+            {#if count !== undefined}
             {@const [before, after] = tCounter(key, count)}
             <span>{before}<strong>{formatNumber(count, i18n.locale)}</strong>{after}</span>
+            {/if}
           {/each}
         </p>
       {/if}
@@ -290,8 +294,6 @@
   .avatar { border-radius: var(--radius-avatar); border: var(--avatar-border); display: block; background: var(--surface); }
   .rail { flex: 1; width: 2px; margin: 0.25rem 0 -0.5rem; background: var(--border); }
   .body { flex: 1; min-width: 0; }
-  .boosthead { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.2rem; }
-  .boosthead .who { flex: 1; min-width: 0; }
   .boostlabel { display: flex; gap: 0.3rem; align-items: center; margin: 0; color: var(--boost); font-size: 0.85rem; font-weight: 600; }
   header { display: flex; gap: 0.4rem; align-items: baseline; }
   .profile { display: flex; gap: 0.4rem; align-items: baseline; min-width: 0; flex: 1; color: inherit; text-decoration: none; }
@@ -380,6 +382,8 @@
   .content.hasquote :global(.quote-inline) { display: none; }
   .quoted { margin-top: 0.6rem; padding: 0.75rem 0.8rem 0.2rem; border: 1px solid var(--border); border-radius: 0.9rem; background: var(--surface); }
   .framed { margin-bottom: 0.85rem; }
+  /* A quote inside a framed post (a boosted quote post): the inner frame uses the page background, so it is darker than the outer one in dark themes and stands out in light ones too */
+  .quoted :global(.quoted) { background: var(--bg); border-color: color-mix(in srgb, var(--text) 22%, var(--border)); }
   .quoted .content { font-size: 0.95rem; }
   /* Reply: the divider starts after the avatar, the timestamp follows the handle */
   .reply { padding: 0.9rem 1rem 0; border-bottom: 0; }

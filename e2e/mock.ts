@@ -45,6 +45,7 @@ function status(i: number) {
     mentions: i % 7 === 1 ? [{ id: '2', username: 'maija', acct: 'maija', url: 'https://mock.test/@maija' }] : [],
     replies_count: 0,
     reblogs_count: 0,
+    quotes_count: 1,
     favourites_count: 0,
   };
 }
@@ -54,6 +55,7 @@ export interface Server {
   requested?: boolean;
   total?: number; // number of posts on the timeline (default COUNT); raise it to let new posts arrive
   boosted?: boolean; // the newest post on each page is a boost by "Daniel"
+  boostedQuote?: boolean; // the boosted post is itself a quote post (with `boosted`)
   formatted?: boolean; // some posts have a quote, a code block and a list
   cw?: boolean; // some posts have a content warning
   aspect?: number; // aspect ratio of the pictures (default 4/3)
@@ -128,7 +130,8 @@ export async function mockMastodon(page: Page, server: Server) {
       const page = list.reverse().map(status); // newest first, like the real API
       // boosted: the newest post of the page is wrapped in a boost by another account (the wrapper keeps its id)
       if (server.boosted && page.length) {
-        page[0] = { ...page[0], reblog: page[0], account: { ...page[0].account, id: '9', acct: 'daniel', username: 'daniel', display_name: 'Daniel' } };
+        const inner = server.boostedQuote ? { ...page[0], quote: { state: 'accepted', quoted_status: status(1) } } : page[0];
+        page[0] = { ...page[0], reblog: inner, account: { ...page[0].account, id: '9', acct: 'daniel', username: 'daniel', display_name: 'Daniel' } };
       }
       return json(page);
     }

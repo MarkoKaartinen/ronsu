@@ -94,6 +94,8 @@ export const en = {
   'status.replies.other': '{counter} replies',
   'status.boosts.one': '{counter} boost', // mastodon: status.reblogs_count
   'status.boosts.other': '{counter} boosts',
+  'status.quotes.one': '{counter} quote', // mastodon: status.quotes_count
+  'status.quotes.other': '{counter} quotes',
   'status.favorites.one': '{counter} favorite', // mastodon: status.favourites_count
   'status.favorites.other': '{counter} favorites',
 
