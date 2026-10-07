@@ -183,3 +183,14 @@ test('on a phone the form fills the screen and its tools are small, named contro
   expect(tools!.y + tools!.height).toBeGreaterThan(vp.height - 40);
   expect(tools!.height).toBeLessThan(70);
 });
+
+test('the quote inside the selected post stands out from the post\'s background band', async ({ page }) => {
+  await open(page, { marker: null, posts: [], quoteAll: true });
+  const id = await page.locator('article[data-id]').first().getAttribute('data-id');
+  await page.locator(`article[data-id="${id}"]`).evaluate((el: HTMLElement) => el.click());
+  await expect(page.locator('[data-focused] > article')).toHaveAttribute('data-id', id!);
+  const frame = page.locator('[data-focused] article.quoted');
+  await expect(frame).toBeVisible();
+  const bg = (sel: string) => page.locator(sel).first().evaluate((el) => getComputedStyle(el).backgroundColor);
+  expect(await bg('[data-focused] article.quoted')).not.toBe(await bg('[data-focused] > article'));
+});

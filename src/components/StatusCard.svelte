@@ -383,6 +383,8 @@
   .quoted { margin-top: 0.6rem; padding: 0.75rem 0.8rem 0.2rem; border: 1px solid var(--border); border-radius: 0.9rem; background: var(--surface); }
   .framed { margin-bottom: 0.85rem; }
   /* A quote inside a framed post (a boosted quote post): the inner frame uses the page background, so it is darker than the outer one in dark themes and stands out in light ones too */
+  /* On the selected post's band (also --surface) the frame would vanish: it is darker there too */
+  .focused :global(.quoted) { background: var(--bg); }
   .quoted :global(.quoted) { background: var(--bg); border-color: color-mix(in srgb, var(--text) 22%, var(--border)); }
   .quoted .content { font-size: 0.95rem; }
   /* Reply: the divider starts after the avatar, the timestamp follows the handle */

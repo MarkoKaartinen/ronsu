@@ -100,6 +100,8 @@ export const fi: Record<keyof typeof en, string> = {
   'action.reply': 'Vastaa',
   'action.boost': 'Tehosta',
   'action.unboost': 'Peru tehostus',
+  'action.quote': 'Lainaa',
+  'action.cannotQuote': 'Tätä julkaisua ei voi lainata',
   'action.cannotBoost': 'Tätä julkaisua ei voi tehostaa',
   'action.favorite': 'Suosikki',
   'action.unfavorite': 'Poista suosikeista',
@@ -114,6 +116,8 @@ export const fi: Record<keyof typeof en, string> = {
   'lightbox.counter': '{current} / {total}',
 
   'compose.titleNew': 'Uusi julkaisu',
+  'compose.titleQuote': 'Lainaa',
+  'compose.quotePending': 'Julkaistu. Lainaus näkyy, kun kirjoittaja hyväksyy sen',
   'compose.titleReply': 'Vastaa',
   'compose.publish': 'Julkaise',
   'compose.publishing': 'Julkaistaan…',

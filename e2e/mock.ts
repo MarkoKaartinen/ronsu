@@ -18,11 +18,14 @@ let imageAspect = 4 / 3;
 let withCw = false;
 /** Whether posts with i % 5 === 3 carry a quote, code and a list (set from Server.formatted) */
 let formatted = false;
+/** Whether every post quotes another one (set from Server.quoteAll) */
+let quoteAll = false;
 /** Polls of each upload (the file is ready on the second one) */
 const polls: Record<string, number> = {};
 
-function status(i: number) {
+function status(i: number, withQuote = true) {
   return {
+    quote: quoteAll && withQuote ? { state: 'accepted', quoted_status: status(i + 1000, false) } : null,
     id: idOf(i),
     uri: `${HOST}/s/${i}`,
     url: `${HOST}/s/${i}`,
@@ -56,6 +59,7 @@ export interface Server {
   total?: number; // number of posts on the timeline (default COUNT); raise it to let new posts arrive
   boosted?: boolean; // the newest post on each page is a boost by "Daniel"
   boostedQuote?: boolean; // the boosted post is itself a quote post (with `boosted`)
+  quoteAll?: boolean; // every post quotes another post
   formatted?: boolean; // some posts have a quote, a code block and a list
   cw?: boolean; // some posts have a content warning
   aspect?: number; // aspect ratio of the pictures (default 4/3)
@@ -83,6 +87,7 @@ export async function mockMastodon(page: Page, server: Server) {
   imageAspect = server.aspect ?? 4 / 3;
   withCw = !!server.cw;
   formatted = !!server.formatted;
+  quoteAll = !!server.quoteAll;
   await page.route(`${HOST}/**`, async (route) => {
     const req = route.request();
     const cors = {

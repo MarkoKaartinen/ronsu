@@ -102,6 +102,8 @@ export const en = {
   'action.reply': 'Reply', // mastodon: status.reply
   'action.boost': 'Boost', // mastodon: status.reblog
   'action.unboost': 'Unboost', // mastodon: status.cancel_reblog_private
+  'action.quote': 'Quote',
+  'action.cannotQuote': 'This post cannot be quoted',
   'action.cannotBoost': 'This post cannot be boosted', // mastodon: status.cannot_reblog
   'action.favorite': 'Favorite', // mastodon: status.favourite
   'action.unfavorite': 'Remove from favorites',
@@ -116,6 +118,8 @@ export const en = {
   'lightbox.counter': '{current} / {total}',
 
   'compose.titleNew': 'New post', // mastodon: compose.post.title.new
+  'compose.titleQuote': 'Quote',
+  'compose.quotePending': 'Published. The quote shows once its author approves it',
   'compose.titleReply': 'Reply', // mastodon: compose_form.reply
   'compose.publish': 'Post', // mastodon: compose_form.publish
   'compose.publishing': 'Posting…',

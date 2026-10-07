@@ -103,6 +103,8 @@ export interface Status {
   reblogs_count: number;
   /** Mastodon 4.5+; missing on servers that do not count quotes */
   quotes_count?: number;
+  /** Mastodon 4.5+: who may quote the post; `current_user` is the answer for the signed-in account */
+  quote_approval?: { automatic?: string[]; manual?: string[]; current_user?: 'automatic' | 'manual' | 'denied' | 'unknown' } | null;
   favourites_count: number;
   favourited?: boolean;
   reblogged?: boolean;

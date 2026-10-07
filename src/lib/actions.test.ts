@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { applyState, canReblog, endpoint, toggle } from './actions';
+import { applyState, canQuote, canReblog, quoteSupported, endpoint, toggle } from './actions';
 import type { MastodonClient } from './api/client';
 import type { Status } from './api/types';
 
@@ -66,5 +66,21 @@ describe('canReblog', () => {
     expect(canReblog(status({ visibility: 'unlisted' }))).toBe(true);
     expect(canReblog(status({ visibility: 'private' }))).toBe(false);
     expect(canReblog(status({ visibility: 'direct' }))).toBe(false);
+  });
+});
+
+describe('quoting', () => {
+  it('is only offered by servers that know quotes', () => {
+    expect(quoteSupported(status())).toBe(false);
+    expect(canQuote(status())).toBe(false);
+    expect(quoteSupported(status({ quotes_count: 0 }))).toBe(true);
+    expect(quoteSupported(status({ quote_approval: { current_user: 'manual' } }))).toBe(true);
+  });
+  it('needs a public or unlisted post that the author has not denied', () => {
+    expect(canQuote(status({ quotes_count: 0 }))).toBe(true);
+    expect(canQuote(status({ quotes_count: 0, visibility: 'unlisted' }))).toBe(true);
+    expect(canQuote(status({ quotes_count: 0, visibility: 'private' }))).toBe(false);
+    expect(canQuote(status({ quote_approval: { current_user: 'denied' } }))).toBe(false);
+    expect(canQuote(status({ quote_approval: { current_user: 'unknown' } }))).toBe(true);
   });
 });

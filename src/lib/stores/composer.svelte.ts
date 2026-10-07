@@ -4,11 +4,20 @@ import type { Status } from '../api/types';
 class Composer {
   open = $state(false);
   replyTo = $state<Status | null>(null);
+  /** The post being quoted (a quote post, not a reply) */
+  quoting = $state<Status | null>(null);
   /** Increases on every successful post; the thread view refreshes based on it */
   postedTick = $state(0);
 
   show(replyTo: Status | null = null) {
     this.replyTo = replyTo;
+    this.quoting = null;
+    this.open = true;
+  }
+
+  showQuote(quoting: Status) {
+    this.replyTo = null;
+    this.quoting = quoting;
     this.open = true;
   }
 

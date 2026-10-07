@@ -72,7 +72,8 @@
   const draft = $derived({ text, cwOn, cw, maxChars });
   const left = $derived(remaining(draft));
   const sendable = $derived(canSend(draft, prefix, attachments.length) && !busy && attachments.every((a) => a.state === 'ready'));
-  const quote = $derived(composer.replyTo ? htmlToText(composer.replyTo.content).slice(0, 160) : '');
+  const target = $derived(composer.replyTo ?? composer.quoting);
+  const quote = $derived(target ? htmlToText(target.content).slice(0, 160) : '');
 
   function readSavedLanguage(): string | null {
     try {
@@ -217,12 +218,13 @@
         await updateMedia(client, a.id, a.description);
         a.savedDescription = a.description;
       }
-      await postStatus(
+      const posted = await postStatus(
         client,
         {
           status: text.trim(),
           visibility,
           ...(composer.replyTo ? { in_reply_to_id: composer.replyTo.id } : {}),
+          ...(composer.quoting ? { quoted_status_id: composer.quoting.id } : {}),
           ...(cwOn ? { spoiler_text: cw.trim() } : {}),
           ...(language ? { language } : {}),
           ...(attachments.length ? { media_ids: attachments.map((a) => a.id) } : {}),
@@ -236,7 +238,11 @@
       }
       if (composer.replyTo) composer.replyTo.replies_count += 1;
       composer.posted();
-      toast.show(t('compose.published'), 'info');
+      if (composer.quoting) {
+        if (composer.quoting.quotes_count !== undefined) composer.quoting.quotes_count += 1;
+        // A quote that needs the author's approval is not shown until it is given
+        toast.show(posted?.quote?.state === 'pending' ? t('compose.quotePending') : t('compose.published'), 'info');
+      } else toast.show(t('compose.published'), 'info');
       composer.close();
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
@@ -276,13 +282,13 @@
   <form onsubmit={submit}>
     <header>
       <button type="button" class="cancel" onclick={requestClose}>{t('common.cancel')}</button>
-      <h2 id="compose-title">{composer.replyTo ? t('compose.titleReply') : t('compose.titleNew')}</h2>
+      <h2 id="compose-title">{composer.replyTo ? t('compose.titleReply') : composer.quoting ? t('compose.titleQuote') : t('compose.titleNew')}</h2>
       <button type="submit" class="send" disabled={!sendable}>{busy ? t('compose.publishing') : t('compose.publish')}</button>
     </header>
 
-    {#if composer.replyTo}
+    {#if target}
       <p class="quote">
-        <strong>@{composer.replyTo.account.acct}</strong>
+        <strong>@{target.account.acct}</strong>
         {quote}
       </p>
     {/if}

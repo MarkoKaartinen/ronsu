@@ -10,6 +10,8 @@ export interface NewStatus {
   status: string;
   visibility: Visibility;
   in_reply_to_id?: string;
+  /** Makes the post a quote post (Mastodon 4.5+) */
+  quoted_status_id?: string;
   spoiler_text?: string;
   language?: string;
   media_ids?: string[];

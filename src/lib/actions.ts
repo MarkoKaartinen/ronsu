@@ -15,6 +15,16 @@ export function canReblog(s: Status): boolean {
   return s.visibility === 'public' || s.visibility === 'unlisted';
 }
 
+/** The server counts or governs quotes (Mastodon 4.5+); on older ones there is no quote action */
+export function quoteSupported(s: Status): boolean {
+  return s.quotes_count !== undefined || !!s.quote_approval;
+}
+
+/** Only public and unlisted posts can be quoted, and not when the author has denied it to this account. */
+export function canQuote(s: Status): boolean {
+  return quoteSupported(s) && canReblog(s) && s.quote_approval?.current_user !== 'denied';
+}
+
 export function endpoint(id: string, kind: ActionKind, on: boolean): string {
   return `/api/v1/statuses/${id}/${on ? kind : `un${kind}`}`;
 }

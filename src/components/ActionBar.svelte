@@ -2,9 +2,10 @@
   import Bookmark from '@lucide/svelte/icons/bookmark';
   import Heart from '@lucide/svelte/icons/heart';
   import MessageCircle from '@lucide/svelte/icons/message-circle';
+  import Quote from '@lucide/svelte/icons/quote';
   import Repeat2 from '@lucide/svelte/icons/repeat-2';
   import { getContext } from 'svelte';
-  import { canReblog, isOn, toggle, type ActionKind } from '../lib/actions';
+  import { canQuote, canReblog, isOn, quoteSupported, toggle, type ActionKind } from '../lib/actions';
   import type { MastodonClient } from '../lib/api/client';
   import type { Status } from '../lib/api/types';
   import { composer } from '../lib/stores/composer.svelte';
@@ -50,6 +51,19 @@
     <Repeat2 size={large ? 22 : 20} aria-hidden="true" />
     {#if !large}<span>{status.reblogs_count}</span>{/if}
   </button>
+
+  {#if quoteSupported(status)}
+    <button
+      class="quote"
+      disabled={!canQuote(status)}
+      aria-label={t('action.quote')}
+      title={canQuote(status) ? t('action.quote') : t('action.cannotQuote')}
+      onclick={() => composer.showQuote(status)}
+    >
+      <Quote size={large ? 22 : 20} aria-hidden="true" />
+      {#if !large}<span>{status.quotes_count ?? 0}</span>{/if}
+    </button>
+  {/if}
 
   <button
     class="fav"
