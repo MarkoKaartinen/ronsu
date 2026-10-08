@@ -25,4 +25,8 @@ describe('threadRows', () => {
     const rows = threadRows({ ancestors: [], descendants: [st('9', '999')] }, st('1'));
     expect(rows[1].depth).toBe(1);
   });
+  it('marks a reply that has a deeper reply right under it', () => {
+    const rows = threadRows({ ancestors: [], descendants: [st('2', '1'), st('3', '2'), st('4', '2'), st('5', '1')] }, st('1'));
+    expect(rows.map((r) => r.hasChild)).toEqual([false, true, false, false, false]);
+  });
 });

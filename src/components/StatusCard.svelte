@@ -27,6 +27,8 @@
     focused = false,
     rail = false,
     reply = false,
+    small = false,
+    chain = false,
     compact = false,
     context = false,
     joined = false,
@@ -38,6 +40,8 @@
     focused?: boolean;
     rail?: boolean;
     reply?: boolean;
+    small?: boolean;
+    chain?: boolean;
     compact?: boolean;
     context?: boolean;
     joined?: boolean;
@@ -134,7 +138,7 @@
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-<article data-id={context || quoted ? undefined : status.id} class:tappable={!focused} class:focused class:reply class:compact={compact || context || quoted} class:quoted class:framed={quoted && actions} class:railed={rail || context} class:context class:joined onclick={onCardClick}>
+<article data-id={context || quoted ? undefined : status.id} class:tappable={!focused} class:focused class:reply class:chained={chain} class:compact={compact || context || quoted} class:quoted class:framed={quoted && actions} class:railed={rail || context} class:context class:joined onclick={onCardClick}>
   {#if boostFrame && booster}
     <!-- A boost, like a quote: who boosted on top, the original post in a frame below it (with its own buttons) -->
     <div class="layout">
@@ -160,9 +164,9 @@
     {#if !focused}
       <div class="side">
         <a class="avatar-link" href={profileHref(s.account.acct)} onclick={openProfile} tabindex="-1" aria-hidden="true">
-          <img class="avatar" src={s.account.avatar} alt="" width={reply || quoted ? 36 : 44} height={reply || quoted ? 36 : 44} loading="lazy" />
+          <img class="avatar" src={s.account.avatar} alt="" width={small ? 30 : reply || quoted ? 36 : 44} height={small ? 30 : reply || quoted ? 36 : 44} loading="lazy" />
         </a>
-        {#if rail || context}<span class="rail"></span>{/if}
+        {#if rail || context || chain}<span class="rail"></span>{/if}
       </div>
     {/if}
 
@@ -391,6 +395,9 @@
   /* Reply: the divider starts after the avatar, the timestamp follows the handle */
   .reply { padding: 0.9rem 1rem 0; border-bottom: 0; }
   .reply .body { padding-bottom: 0.9rem; border-bottom: 1px solid var(--border); }
+  /* A reply with a deeper reply under it: no divider, the line from its avatar runs on to the reply */
+  .chained .body { border-bottom: 0; }
+  .chained .rail { margin-bottom: -0.9rem; }
   .compact .profile { flex: 0 1 auto; }
   .compact header { justify-content: flex-start; }
   .compact .time::before { content: '· '; }

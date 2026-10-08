@@ -22,6 +22,12 @@
   let root: HTMLElement | undefined = $state();
 
   const rows = $derived(focused && ctx ? threadRows(ctx, focused) : []);
+  // Each indent step, and the reading line under a parent's avatar: it runs down the replies' left side
+  const STEP = 1.5;
+  const avatarRadius = (depth: number) => (depth === 1 ? 18 : 15);
+  const guides = (depth: number) =>
+    Array.from({ length: Math.max(depth - 1, 0) }, (_, i) => `calc(${(i + 1 - depth) * STEP}rem + 1rem + ${avatarRadius(i + 1) - 1}px)`);
+
   const focusIdx = $derived(rows.findIndex((r) => r.focused));
 
   async function load(scrollToFocused: boolean) {
@@ -68,12 +74,15 @@
     </p>
   {:else}
     {#each rows as row, i (row.status.id)}
-      <div class="row" class:indent={row.depth > 0} data-focused={row.focused || undefined} style:margin-left="{row.depth * 0.75}rem">
+      <div class="row" class:indent={row.depth > 0} data-focused={row.focused || undefined} style:margin-left="{row.depth * STEP}rem">
+        {#each guides(row.depth) as left}<span class="guide" style:left></span>{/each}
         <StatusCard
           status={row.status}
           focused={row.focused}
           rail={i < focusIdx}
           reply={i > focusIdx}
+          small={row.depth > 1}
+          chain={row.hasChild}
           compact={!row.focused}
         />
       </div>
@@ -94,7 +103,10 @@
   .msg { text-align: center; color: var(--muted); padding: 1.5rem 1rem; margin: 0; }
   .msg.error { color: var(--danger); }
   .msg button { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 0.4rem; padding: 0.3rem 0.8rem; }
-  .row { scroll-margin-top: calc(3.5rem + var(--sticky-top, 0px)); }
+  .row { position: relative; scroll-margin-top: calc(3.5rem + var(--sticky-top, 0px)); }
+  /* The reply bar's top border closes the thread: the last post needs no divider of its own */
+  .row:last-child :global(article.reply .body) { border-bottom: 0; }
+  .guide { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--border); }
   .row:first-child :global(article.railed) { padding-top: 1rem; }
   .row:first-child :global(article.railed)::before { display: none; }
   .replybar { position: sticky; bottom: 0; z-index: 3; padding: 0.6rem 1rem calc(0.7rem + env(safe-area-inset-bottom)); background: var(--bg); border-top: 1px solid var(--border); }
