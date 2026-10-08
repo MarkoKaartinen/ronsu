@@ -217,7 +217,7 @@
     {#if n.type === 'follow' || n.type === 'follow_request'}
       <div class="group follow">
         <span class="icon">
-          {#if n.type === 'follow'}<UserPlus size={20} aria-hidden="true" />{:else}<UserCheck size={20} aria-hidden="true" />{/if}
+          {#if n.type === 'follow'}<UserPlus size={26} aria-hidden="true" />{:else}<UserCheck size={26} aria-hidden="true" />{/if}
         </span>
         <div class="gbody">
           {@render avatars(row.accounts)}
@@ -229,7 +229,7 @@
         {#if GROUPED.has(n.type)}
           <div class="group {n.type}">
             <span class="icon">
-              {#if n.type === 'reblog'}<Repeat2 size={20} aria-hidden="true" />{:else}<Heart size={20} aria-hidden="true" />{/if}
+              {#if n.type === 'reblog'}<Repeat2 size={26} aria-hidden="true" />{:else}<Heart size={26} aria-hidden="true" />{/if}
             </span>
             <div class="gbody">
               {@render avatars(row.accounts)}
@@ -294,7 +294,8 @@
   /* Several people at once: their avatars in a row and one line of text; the icon on the left says what they did */
   .group { display: flex; gap: 0.75rem; padding: 0.9rem 1rem 0; }
   .group.follow { padding-bottom: 0.9rem; border-bottom: 1px solid var(--border); }
-  .icon { flex: none; width: 2rem; display: flex; justify-content: flex-end; padding-top: 0.6rem; color: var(--accent); }
+  /* As wide as a post's avatar with the icon centred in it (as tall as the avatar), so the text starts at the same place as in the posts around it */
+  .icon { flex: none; width: 44px; display: flex; justify-content: center; padding-top: 9px; color: var(--accent); }
   .gbody { flex: 1; min-width: 0; }
   .avatars { display: flex; flex-wrap: wrap; gap: 0.4rem; }
   .avatars a { display: block; }
