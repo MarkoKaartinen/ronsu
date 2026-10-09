@@ -49,6 +49,29 @@ test('several pictures can be browsed with the buttons and the arrow keys', asyn
   await expect(viewer.getByRole('button', { name: 'Previous' })).toBeHidden(); // at the start
 });
 
+test('pressing an arrow key quickly several times does not skip a picture', async ({ page }) => {
+  await open(page, { marker: null, posts: [], images: 4 });
+  await card(page).locator('.media a').first().click();
+  const viewer = page.getByRole('dialog');
+  await expect(viewer.locator('.count')).toHaveText('1 / 4');
+
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(150); // in the middle of the smooth scroll
+  await page.keyboard.press('ArrowRight');
+  await expect(viewer.locator('.count')).toHaveText('3 / 4');
+  await page.waitForTimeout(400);
+  await expect(viewer.locator('.count')).toHaveText('3 / 4');
+});
+
+test('the close button stays at the top right even with a single picture', async ({ page }) => {
+  await open(page, { marker: null, posts: [] });
+  await card(page).locator('.media a').first().click();
+  const viewer = page.getByRole('dialog');
+  const box = await viewer.getByRole('button', { name: 'Close' }).boundingBox();
+  const width = page.viewportSize()!.width;
+  expect(box!.x + box!.width).toBeGreaterThan(width - 20);
+});
+
 test('a tap on the picture zooms, a tap on the dark area and the close button close', async ({ page }) => {
   await open(page, { marker: null, posts: [] });
   await card(page).locator('.media a').first().click();

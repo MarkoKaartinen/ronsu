@@ -11,6 +11,10 @@
   let current = $state(0);
   let zoomed = $state(false);
   let raf = 0;
+  // The picture the last button / key press scrolled towards. `current` lags behind a smooth scroll, so
+  // stepping from it would skip a picture when pressed again mid-animation
+  let target = 0;
+  let stepping = false;
 
   const items = $derived(lightbox.items);
   const caption = $derived(items[current]?.description ?? '');
@@ -20,7 +24,7 @@
     if (!dialog) return;
     if (lightbox.open && !dialog.open) {
       zoomed = false;
-      current = lightbox.index;
+      current = target = lightbox.index;
       dialog.showModal();
       tick().then(() => track?.scrollTo({ left: lightbox.index * track.clientWidth, behavior: 'instant' }));
     } else if (!lightbox.open && dialog.open) {
@@ -33,14 +37,21 @@
     if (raf) return;
     raf = requestAnimationFrame(() => {
       raf = 0;
-      if (track && track.clientWidth) current = Math.round(track.scrollLeft / track.clientWidth);
+      if (!track || !track.clientWidth) return;
+      current = Math.round(track.scrollLeft / track.clientWidth);
+      if (Math.abs(track.scrollLeft - current * track.clientWidth) >= 1) return; // still moving
+      // The browser stops a scroll at every picture, so a press made mid-scroll only got one step: carry on
+      // towards the target. A swipe by hand moves the track without go(): follow it instead
+      if (stepping && current !== target) track.scrollTo({ left: target * track.clientWidth, behavior: 'smooth' });
+      else target = current, stepping = false;
     });
   }
 
   function go(delta: number) {
     if (!track || zoomed) return;
-    const next = Math.min(Math.max(current + delta, 0), items.length - 1);
-    track.scrollTo({ left: next * track.clientWidth, behavior: 'smooth' });
+    stepping = true;
+    target = Math.min(Math.max(target + delta, 0), items.length - 1);
+    track.scrollTo({ left: target * track.clientWidth, behavior: 'smooth' });
   }
 
   async function toggleZoom() {
@@ -128,6 +139,7 @@
   header { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; padding: max(0.6rem, env(safe-area-inset-top)) 0.8rem 0.6rem; pointer-events: none; }
   .count { padding: 0.3rem 0.7rem; border-radius: 999px; background: rgb(0 0 0 / 0.5); font-size: 0.9rem; font-weight: 600; }
   .count:empty { display: none; }
+  header .round { margin-left: auto; }
   .round { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; border: 0; border-radius: 50%; background: rgb(0 0 0 / 0.5); color: #fff; pointer-events: auto; cursor: pointer; }
   .round:hover { background: rgb(0 0 0 / 0.75); }
   .nav { position: absolute; top: 50%; transform: translateY(-50%); }
