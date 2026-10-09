@@ -11,8 +11,8 @@
   let current = $state(0);
   let zoomed = $state(false);
   let raf = 0;
-  // The picture the last button / key press scrolled towards. `current` lags behind a smooth scroll, so
-  // stepping from it would skip a picture when pressed again mid-animation
+  // The picture the last button / key press scrolled towards. `current` is rounded from the scroll position
+  // and lags behind a smooth scroll, so stepping from it would skip a picture when pressed again mid-animation
   let target = 0;
   let stepping = false;
 
@@ -68,8 +68,10 @@
   // the dialog, and the arrow keys must keep working
   function onKeydown(e: KeyboardEvent) {
     if (!lightbox.open) return;
-    if (e.key === 'ArrowLeft') go(-1);
-    else if (e.key === 'ArrowRight') go(1);
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    // The browser would also scroll the track by itself with the arrow keys (Firefox does), a second step on top of ours
+    e.preventDefault();
+    go(e.key === 'ArrowLeft' ? -1 : 1);
   }
 </script>
 

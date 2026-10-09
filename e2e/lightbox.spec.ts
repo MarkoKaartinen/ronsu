@@ -49,18 +49,24 @@ test('several pictures can be browsed with the buttons and the arrow keys', asyn
   await expect(viewer.getByRole('button', { name: 'Previous' })).toBeHidden(); // at the start
 });
 
-test('pressing an arrow key quickly several times does not skip a picture', async ({ page }) => {
+test('pressing an arrow key again mid-scroll counts every press and never skips or bounces back', async ({ page }) => {
   await open(page, { marker: null, posts: [], images: 4 });
   await card(page).locator('.media a').first().click();
   const viewer = page.getByRole('dialog');
   await expect(viewer.locator('.count')).toHaveText('1 / 4');
 
+  const seen: string[] = [];
+  const watch = setInterval(async () => seen.push((await viewer.locator('.count').textContent().catch(() => '')) ?? ''), 20);
   await page.keyboard.press('ArrowRight');
   await page.waitForTimeout(150); // in the middle of the smooth scroll
   await page.keyboard.press('ArrowRight');
   await expect(viewer.locator('.count')).toHaveText('3 / 4');
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(500);
+  clearInterval(watch);
+
   await expect(viewer.locator('.count')).toHaveText('3 / 4');
+  const order = seen.filter((v, i) => v && v !== seen[i - 1]);
+  expect(order).toEqual(['1 / 4', '2 / 4', '3 / 4']); // 2 is shown on the way, and nothing goes backwards
 });
 
 test('the close button stays at the top right even with a single picture', async ({ page }) => {
