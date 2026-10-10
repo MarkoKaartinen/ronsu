@@ -84,3 +84,18 @@ export function advanceMarker<T extends HasId>(items: T[], marker: string, seen:
   while (j >= 0 && seen.has(items[j].id)) j--;
   return j === at - 1 ? null : items[j + 1].id;
 }
+
+/**
+ * Newest-first mode: the posts a quick scroll upwards flew past between two looks at the screen. When the posts on
+ * screen now are all newer than the ones on screen the previous time, the posts in between were scrolled past, and
+ * count as seen so they do not hold the reading position back. A gap longer than `maxGap` is a jump (to the top, to
+ * the divider), not reading, so nothing is counted then.
+ */
+export function skippedBetween<T extends HasId>(items: T[], previous: string[], now: string[], maxGap = 15): string[] {
+  if (!previous.length || !now.length) return [];
+  const prevNewest = previous.reduce((a, b) => (compareIds(a, b) >= 0 ? a : b));
+  const nowOldest = now.reduce((a, b) => (compareIds(a, b) <= 0 ? a : b));
+  if (compareIds(nowOldest, prevNewest) <= 0) return [];
+  const gap = items.filter((i) => compareIds(i.id, prevNewest) > 0 && compareIds(i.id, nowOldest) < 0);
+  return gap.length > maxGap ? [] : gap.map((i) => i.id);
+}

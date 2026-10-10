@@ -3,7 +3,7 @@ import { tNow } from '../i18n/runtime';
 import { compareIds, getHomeMarker, saveHomeMarker } from '../api/markers';
 import { clockOffset, isForeignUpdate, parsePos, pickStart, type Pos } from '../markerSync';
 import type { Marker, Status } from '../api/types';
-import { advanceMarker, normalizePage, pageParams, PAGE_SIZE, type Order } from '../feedLogic';
+import { advanceMarker, normalizePage, pageParams, PAGE_SIZE, skippedBetween, type Order } from '../feedLogic';
 
 const ORDER_KEY = 'reading-order';
 /** Where this device's clock is relative to the server's (ms), learned from our own saves */
@@ -109,6 +109,8 @@ export class FeedStore {
   dividerMarker = $state<string | null>(null);
   /** Newest-first mode: the posts that have been on screen since the list was loaded */
   private seen = new Set<string>();
+  /** The posts on screen at the previous look (newest-first mode), to notice the ones a quick scroll skipped */
+  private lastScreen: string[] = [];
   /** The server state we know about (fetched or written by us) */
   private remote: Pos | null = null;
   /** The post the feed was restored from ("You left off here") */
@@ -180,6 +182,7 @@ export class FeedStore {
     this.viewedId = null;
     this.dividerMarker = this.marker;
     this.seen = new Set();
+    this.lastScreen = [];
 
     if (this.marker) {
       try {
@@ -288,6 +291,7 @@ export class FeedStore {
    */
   async loadNewer() {
     if (this.order !== 'newest-first' || this.newerLoading || !this.items.length) return;
+    this.syncPending();
     const gen = this.generation;
     this.newerLoading = true;
     this.newerNone = false;
@@ -381,6 +385,8 @@ export class FeedStore {
    */
   reportScreen(ids: string[]) {
     if (this.order !== 'newest-first' || !ids.length) return;
+    for (const id of skippedBetween(this.items, this.lastScreen, ids)) this.seen.add(id);
+    this.lastScreen = ids;
     for (const id of ids) this.seen.add(id);
     let next: string | null;
     if (!this.marker) next = [...ids].sort(compareIds)[0];

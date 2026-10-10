@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { advanceMarker, normalizePage, pageParams, pickLastVisibleId, pickTopId } from './feedLogic';
+import { advanceMarker, normalizePage, pageParams, pickLastVisibleId, pickTopId, skippedBetween } from './feedLogic';
 
 const ids = (xs: { id: string }[]) => xs.map((x) => x.id);
 const s = (...list: string[]) => list.map((id) => ({ id }));
@@ -92,5 +92,22 @@ describe('advanceMarker (newest first)', () => {
     expect(advanceMarker(items, '101', seen('104', '105'))).toBeNull();
     expect(advanceMarker(items, '90', seen('105', '104', '103', '102', '101', '100'))).toBeNull();
     expect(advanceMarker(items, '105', seen('105'))).toBeNull();
+  });
+});
+
+describe('skippedBetween (newest first)', () => {
+  const items = ['110', '109', '108', '107', '106', '105'].map((id) => ({ id }));
+
+  it('returns the posts a quick scroll upwards flew past', () => {
+    expect(skippedBetween(items, ['106', '105'], ['109', '108'])).toEqual(['107']);
+  });
+  it('returns nothing when scrolling down, staying put or overlapping', () => {
+    expect(skippedBetween(items, ['109', '108'], ['106', '105'])).toEqual([]);
+    expect(skippedBetween(items, ['108', '107'], ['108', '107'])).toEqual([]);
+    expect(skippedBetween(items, ['107', '106'], ['108', '107'])).toEqual([]);
+  });
+  it('returns nothing for a jump longer than maxGap, or without a previous look', () => {
+    expect(skippedBetween(items, ['105'], ['110'], 3)).toEqual([]);
+    expect(skippedBetween(items, [], ['110'])).toEqual([]);
   });
 });
