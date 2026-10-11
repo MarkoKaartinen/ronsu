@@ -9,6 +9,7 @@
   import type { MastodonClient } from '../lib/api/client';
   import type { Account, Notification } from '../lib/api/types';
   import { sanitizeText } from '../lib/html';
+  import { clock, startClock } from '../lib/clock.svelte';
   import { formatRelativeTime } from '../lib/i18n';
   import { profileHref, router } from '../lib/router.svelte';
   import { i18n, t } from '../lib/stores/i18n.svelte';
@@ -31,6 +32,7 @@
   /** A boost or a favorite is only a line and a short excerpt of your post; the others show the post with its buttons */
   const LIGHT = new Set(['reblog', 'favourite']);
 
+  startClock();
   let items = $state<Notification[]>([]);
   let loading = $state(false);
   let error = $state('');
@@ -221,7 +223,7 @@
         </span>
         <div class="gbody">
           {@render avatars(row.accounts)}
-          <p class="gtext"><span class="grow">{@html line(n, row.accounts)}</span><span class="time">{formatRelativeTime(n.created_at, i18n.locale)}</span></p>
+          <p class="gtext"><span class="grow">{@html line(n, row.accounts)}</span><span class="time">{formatRelativeTime(n.created_at, i18n.locale, clock.now)}</span></p>
         </div>
       </div>
     {:else if n.status}
@@ -233,7 +235,7 @@
             </span>
             <div class="gbody">
               {@render avatars(row.accounts)}
-              <p class="gtext"><span class="grow">{@html line(n, row.accounts)}</span><span class="time">{formatRelativeTime(n.created_at, i18n.locale)}</span></p>
+              <p class="gtext"><span class="grow">{@html line(n, row.accounts)}</span><span class="time">{formatRelativeTime(n.created_at, i18n.locale, clock.now)}</span></p>
               <!-- Your own post, as a short grey excerpt that opens the thread -->
               <a class="excerpt" href="#/thread/{n.status.id}" onclick={(e) => { e.preventDefault(); router.openThread(n.status!.id); }}>{excerpt(n)}</a>
             </div>
@@ -242,7 +244,7 @@
           <p class="note kind {n.type}">
             {#if n.type === 'poll'}<ChartBar size={16} aria-hidden="true" />{:else}<Pencil size={16} aria-hidden="true" />{/if}
             <span class="grow">{#if n.type === 'poll'}{t('notif.poll')}{:else}{@html line(n, row.accounts)}{/if}</span>
-            <span class="time">{formatRelativeTime(n.created_at, i18n.locale)}</span>
+            <span class="time">{formatRelativeTime(n.created_at, i18n.locale, clock.now)}</span>
           </p>
         {/if}
         {#if !LIGHT.has(n.type)}

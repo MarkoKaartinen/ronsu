@@ -8,6 +8,7 @@
   import ActionBar from './ActionBar.svelte';
   import StatusCard from './StatusCard.svelte';
   import { sanitizeContent, sanitizeText } from '../lib/html';
+  import { clock, startClock } from '../lib/clock.svelte';
   import { formatAge, formatDateTime, formatNumber, formatRelativeTime } from '../lib/i18n';
   import { i18n, t, tCounter } from '../lib/stores/i18n.svelte';
   import { lightbox } from '../lib/stores/lightbox.svelte';
@@ -54,6 +55,7 @@
   const s = $derived(status.reblog ?? status);
   const booster = $derived(status.reblog ? status.account : null);
   const boostFrame = $derived(!!status.reblog && !focused && !compact && !context && !quoted && !reply);
+  startClock();
 
   let cwOpen = $state(false);
   let mediaOpen = $state(false);
@@ -153,7 +155,7 @@
             <strong>{@html sanitizeText(booster.display_name || booster.username, booster.emojis)}</strong>
             <small>@{booster.acct}</small>
           </a>
-          <span class="time">{formatRelativeTime(status.created_at, i18n.locale)}</span>
+          <span class="time">{formatRelativeTime(status.created_at, i18n.locale, clock.now)}</span>
         </header>
         <p class="boostlabel"><Repeat2 size={14} aria-hidden="true" />{t('status.boost')}</p>
         <StatusCard status={status.reblog!} quoted actions />
@@ -187,7 +189,7 @@
           </a>
           <!-- The timestamp links to the original post on its own server; the thread opens by tapping the card -->
           <a class="time" href={s.url ?? s.uri} target="_blank" rel="noopener noreferrer" title="{t('status.openOriginal')} · {formatDateTime(s.created_at, i18n.locale)}">
-            {formatRelativeTime(s.created_at, i18n.locale)}
+            {formatRelativeTime(s.created_at, i18n.locale, clock.now)}
           </a>
         </header>
       {/if}
@@ -392,15 +394,12 @@
   .focused :global(.quoted) { background: var(--bg); }
   .quoted :global(.quoted) { background: var(--bg); border-color: color-mix(in srgb, var(--text) 22%, var(--border)); }
   .quoted .content { font-size: 0.95rem; }
-  /* Reply: the divider starts after the avatar, the timestamp follows the handle */
+  /* Reply: the divider starts after the avatar, the timestamp is at the right like in other posts */
   .reply { padding: 0.9rem 1rem 0; border-bottom: 0; }
   .reply .body { padding-bottom: 0.9rem; border-bottom: 1px solid var(--border); }
   /* A reply with a deeper reply under it: no divider, the line from its avatar runs on to the reply */
   .chained .body { border-bottom: 0; }
   .chained .rail { margin-bottom: -0.9rem; }
-  .compact .profile { flex: 0 1 auto; }
-  .compact header { justify-content: flex-start; }
-  .compact .time::before { content: '· '; }
 
   /* The thread's selected post: large layout, background band */
   .focused { background: var(--surface); padding-top: 1.1rem; border-top: 1px solid var(--border); }
