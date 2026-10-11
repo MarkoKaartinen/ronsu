@@ -3,7 +3,7 @@ import { tNow } from '../i18n/runtime';
 import { compareIds, getHomeMarker, saveHomeMarker } from '../api/markers';
 import { clockOffset, isForeignUpdate, parsePos, pickStart, type Pos } from '../markerSync';
 import type { Marker, Status } from '../api/types';
-import { advanceMarker, normalizePage, pageParams, PAGE_SIZE, skippedBetween, type Order } from '../feedLogic';
+import { advanceMarker, normalizePage, pageParams, PAGE_SIZE, skippedBetween, trimTail, type Order } from '../feedLogic';
 
 const ORDER_KEY = 'reading-order';
 /** Where this device's clock is relative to the server's (ms), learned from our own saves */
@@ -311,7 +311,11 @@ export class FeedStore {
       } else {
         await Promise.all([warmImages(fresh), this.loadParents(fresh)]);
         if (gen !== this.generation) return;
-        this.items.unshift(...fresh);
+        const all = [...fresh, ...this.items];
+        const kept = trimTail(all);
+        this.items = kept;
+        // posts were dropped from the end: "Load more" continues from the last one kept
+        if (kept.length < all.length) this.endReached = false;
       }
     } catch (e) {
       if (gen === this.generation) this.error = errorMessage(e);

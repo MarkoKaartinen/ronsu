@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { advanceMarker, normalizePage, pageParams, pickLastVisibleId, pickTopId, skippedBetween } from './feedLogic';
+import { advanceMarker, normalizePage, pageParams, pickLastVisibleId, pickTopId, skippedBetween, trimTail } from './feedLogic';
 
 const ids = (xs: { id: string }[]) => xs.map((x) => x.id);
 const s = (...list: string[]) => list.map((id) => ({ id }));
@@ -109,5 +109,15 @@ describe('skippedBetween (newest first)', () => {
   it('returns nothing for a jump longer than maxGap, or without a previous look', () => {
     expect(skippedBetween(items, ['105'], ['110'], 3)).toEqual([]);
     expect(skippedBetween(items, [], ['110'])).toEqual([]);
+  });
+});
+
+describe('trimTail', () => {
+  it('drops the oldest posts beyond the limit', () => {
+    expect(trimTail([5, 4, 3, 2, 1], 3)).toEqual([5, 4, 3]);
+  });
+  it('leaves a list within the limit as it is', () => {
+    const list = [3, 2, 1];
+    expect(trimTail(list, 3)).toBe(list);
   });
 });

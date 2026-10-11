@@ -4,6 +4,14 @@ export type Order = 'oldest-first' | 'newest-first';
 
 export const PAGE_SIZE = 40;
 
+/** Newest-first mode: how many posts are kept in the list when newer ones are loaded to the top */
+export const MAX_KEPT = 150;
+
+/** The list without its oldest posts beyond `max`; the "Load more" button fetches them again when they are wanted */
+export function trimTail<T>(items: T[], max = MAX_KEPT): T[] {
+  return items.length > max ? items.slice(0, max) : items;
+}
+
 export type Params = Record<string, string | number>;
 
 interface HasId {
