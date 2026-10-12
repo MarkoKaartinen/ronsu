@@ -215,5 +215,6 @@ export const en = {
   'profile.noMore': 'No more posts.',
   'profile.reauth': 'Following needs a new permission. Log in again to follow users.',
   'profile.reauthButton': 'Log in again',
+  'scopes.banner': 'Ronsu has been updated and needs new permissions for some features. Log in again to use them.',
   'profile.followFailed': 'Following failed: {message}',
 } as const;

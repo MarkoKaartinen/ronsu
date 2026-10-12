@@ -213,5 +213,6 @@ export const fi: Record<keyof typeof en, string> = {
   'profile.noMore': 'Ei enempää julkaisuja.',
   'profile.reauth': 'Seuraamiseen tarvitaan uusi lupa. Kirjaudu uudelleen niin voit seurata käyttäjiä.',
   'profile.reauthButton': 'Kirjaudu uudelleen',
+  'scopes.banner': 'Ronsu on päivittynyt ja tarvitsee uusia oikeuksia joihinkin toimintoihin. Kirjaudu uudelleen ottaaksesi ne käyttöön.',
   'profile.followFailed': 'Seuraaminen epäonnistui: {message}',
 };

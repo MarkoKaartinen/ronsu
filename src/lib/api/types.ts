@@ -135,6 +135,8 @@ export interface StoredAccount {
   avatar: string;
   /** The account's own default for new posts (Mastodon's "Posting privacy"); missing on logins made before it was stored */
   defaultPrivacy?: Visibility;
+  /** The permissions (OAuth scopes) the token was given, as the server reported them; missing on logins made before they were stored */
+  scopes?: string;
 }
 
 /** The own account as `verify_credentials` returns it: `source` holds the account's posting defaults */

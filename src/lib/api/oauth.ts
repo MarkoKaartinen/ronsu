@@ -12,6 +12,23 @@ import type { AccountCredentials, StoredAccount } from './types';
  */
 export const SCOPES =
   'read:accounts read:statuses read:notifications read:follows write:favourites write:statuses write:media write:bookmarks write:follows';
+/** What every login asked for before the granted scopes were stored: the scopes of an account without `scopes` */
+const LEGACY_SCOPES = 'read write:favourites write:statuses write:media write:bookmarks write:follows';
+
+/**
+ * The scopes the app wants that a token does not have. A broad scope covers its narrow ones (`read` covers
+ * `read:statuses`), as on Mastodon. An account without a stored list is taken to have the scopes of the first
+ * versions, so only a real change of the scopes asks anyone to log in again.
+ */
+export function missingScopes(granted: string | undefined, required: string = SCOPES): string[] {
+  const have = new Set((granted?.trim() || LEGACY_SCOPES).split(/\s+/).filter(Boolean));
+  const covered = (scope: string) => {
+    const [kind, what] = scope.split(':');
+    // `follow` is the old scope for following, blocking and muting, both ways
+    return have.has(scope) || have.has(kind) || (have.has('follow') && ['follows', 'blocks', 'mutes'].includes(what));
+  };
+  return required.split(/\s+/).filter((s) => s && !covered(s));
+}
 const PENDING_KEY = 'oauth-pending';
 /**
  * A login that was started but not finished is forgotten after this long. The state, the verifier and the app
@@ -181,7 +198,7 @@ export async function finishLogin(): Promise<StoredAccount> {
     }),
   });
   if (!res.ok) throw new Error(tNow('login.error.token', { status: res.status }));
-  const { access_token } = await res.json();
+  const { access_token, scope } = await res.json();
   if (typeof access_token !== 'string' || !access_token) throw new Error(tNow('login.error.token', { status: res.status }));
 
   const client = new MastodonClient({ instance: pending.instance, token: access_token });
@@ -198,6 +215,8 @@ export async function finishLogin(): Promise<StoredAccount> {
     displayName: me.display_name || me.username,
     avatar: me.avatar,
     defaultPrivacy: parseDefaultPrivacy(me.source?.privacy) ?? undefined,
+    // What the server really gave (it answers with the scopes in the token); what was asked if it does not say
+    scopes: typeof scope === 'string' && scope.trim() ? scope.trim() : SCOPES,
   };
 }
 

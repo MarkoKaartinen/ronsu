@@ -41,8 +41,12 @@ class AccountStore {
 
   async add(account: StoredAccount) {
     const i = this.accounts.findIndex((a) => a.key === account.key);
-    if (i >= 0) this.accounts[i] = account;
-    else this.accounts.push(account);
+    if (i >= 0) {
+      // Logging in again (new permissions): the token it replaces would otherwise stay valid on the server
+      const old = $state.snapshot(this.accounts[i]);
+      if (old.token !== account.token) void revokeToken(old);
+      this.accounts[i] = account;
+    } else this.accounts.push(account);
     this.activeKey = account.key;
     await this.persist();
   }

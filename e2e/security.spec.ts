@@ -350,3 +350,62 @@ test.describe('hostile server data', () => {
     expect(await page.evaluate(() => (window as unknown as { __pwned?: number }).__pwned)).toBeUndefined();
   });
 });
+
+test.describe('new permissions', () => {
+  /** The stored account, with the permissions its token was given */
+  async function withScopes(page: Page, scopes: string | undefined, server: Server) {
+    await open(page, server);
+    await page.evaluate(async (value) => {
+      const db: IDBDatabase = await new Promise((resolve, reject) => {
+        const r = indexedDB.open('keyval-store');
+        r.onsuccess = () => resolve(r.result);
+        r.onerror = () => reject(r.error);
+      });
+      const acc = {
+        key: 'mock.test|1', instance: 'mock.test', clientId: 'c', clientSecret: 's', token: 't', accountId: '1', acct: 'me', displayName: 'Me', avatar: '',
+        ...(value === undefined ? {} : { scopes: value }),
+      };
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction('keyval', 'readwrite');
+        tx.objectStore('keyval').put([acc], 'accounts');
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+      db.close();
+    }, scopes);
+    await page.reload();
+    await page.waitForSelector('article[data-id]');
+  }
+  const banner = (page: Page) => page.getByRole('status').filter({ hasText: 'needs new permissions' });
+
+  test('a login with all the permissions, or made before they were stored, is not bothered', async ({ page }) => {
+    await withScopes(page, 'read:accounts read:statuses read:notifications read:follows write:favourites write:statuses write:media write:bookmarks write:follows', newServer());
+    await expect(banner(page)).toHaveCount(0);
+    await withScopes(page, undefined, newServer());
+    await expect(banner(page)).toHaveCount(0);
+    await withScopes(page, 'read write:favourites write:statuses write:media write:bookmarks write:follows', newServer());
+    await expect(banner(page)).toHaveCount(0);
+  });
+
+  test('a login that lacks a permission the app now wants is asked to log in again, and can say not now', async ({ page }) => {
+    await withScopes(page, 'read:accounts read:statuses', newServer());
+    await expect(banner(page)).toBeVisible();
+    await banner(page).getByRole('button', { name: 'Not now' }).click();
+    await expect(banner(page)).toHaveCount(0);
+  });
+
+  test('"Log in again" starts the login on the account\'s own server', async ({ page }) => {
+    await withScopes(page, 'read:accounts', newServer());
+    let authorizeUrl = '';
+    await page.route('https://mock.test/api/v1/apps', (route) =>
+      route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' }, body: '{"client_id":"n","client_secret":"s"}' }),
+    );
+    await page.route('https://mock.test/oauth/authorize**', (route) => {
+      authorizeUrl = route.request().url();
+      return route.fulfill({ status: 200, headers: { 'content-type': 'text/html' }, body: '<p>authorize</p>' });
+    });
+    await banner(page).getByRole('button', { name: 'Log in again' }).click();
+    await expect.poll(() => authorizeUrl).not.toBe('');
+    expect(new URL(authorizeUrl).searchParams.get('scope')).toContain('read:notifications');
+  });
+});

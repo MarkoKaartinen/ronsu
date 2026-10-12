@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { appCacheKey, challengeFor, finishLogin, hasOAuthCallback, normalizeInstance, PENDING_TTL_MS, randomString, revokeToken, SCOPES } from './oauth';
+import { appCacheKey, challengeFor, finishLogin, hasOAuthCallback, missingScopes, normalizeInstance, PENDING_TTL_MS, randomString, revokeToken, SCOPES } from './oauth';
 import type { StoredAccount } from './types';
 
 describe('normalizeInstance', () => {
@@ -55,6 +55,35 @@ describe('scopes', () => {
   });
 });
 
+describe('missingScopes', () => {
+  it('nothing is missing from a login made with the current scopes', () => {
+    expect(missingScopes(SCOPES)).toEqual([]);
+  });
+
+  it('a broad scope covers its narrow ones, so older logins are not asked to log in again', () => {
+    expect(missingScopes('read write')).toEqual([]);
+    expect(missingScopes('read write:favourites write:statuses write:media write:bookmarks write:follows')).toEqual([]);
+    expect(missingScopes('read follow write:favourites write:statuses write:media write:bookmarks')).toEqual([]);
+  });
+
+  it('an account without a stored list is taken to have the first versions\' scopes', () => {
+    expect(missingScopes(undefined)).toEqual([]);
+    expect(missingScopes(undefined, `${SCOPES} write:blocks`)).toEqual(['write:blocks']);
+  });
+
+  it('lists the scopes a change of the app has added, and only those', () => {
+    const wanted = `${SCOPES} write:blocks read:lists`;
+    expect(missingScopes(SCOPES, wanted)).toEqual(['write:blocks', 'read:lists']);
+    expect(missingScopes('read:accounts', 'read:accounts read:statuses')).toEqual(['read:statuses']);
+    expect(missingScopes('write', 'write:statuses read:statuses')).toEqual(['read:statuses']); // write does not cover read
+  });
+
+  it('copes with extra spaces and an empty list', () => {
+    expect(missingScopes('  read:accounts   read:statuses ', 'read:accounts  read:statuses')).toEqual([]);
+    expect(missingScopes('', 'read:accounts')).toEqual([]); // empty means "not stored": the first versions' scopes
+  });
+});
+
 /** A browser as far as the login needs it */
 function stubBrowser(search: string) {
   const store = () => {
@@ -97,13 +126,13 @@ describe('finishLogin', () => {
     const { session, replaceState } = stubBrowser('?code=the-code&state=good-state');
     session.setItem('oauth-pending', pending());
     fetchMock
-      .mockResolvedValueOnce(json({ access_token: 'tok' }))
+      .mockResolvedValueOnce(json({ access_token: 'tok', scope: 'read:accounts read:statuses write:statuses' }))
       .mockResolvedValueOnce(json({ id: '7', acct: 'me', username: 'me', display_name: 'Me', avatar: '', source: { privacy: 'private' } }));
     const account = await finishLogin();
     expect(replaceState).toHaveBeenCalled(); // the code is out of the address bar
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(body).toMatchObject({ grant_type: 'authorization_code', code: 'the-code', code_verifier: 'v'.repeat(43), scope: SCOPES });
-    expect(account).toMatchObject({ key: 'mas.to|7', token: 'tok', defaultPrivacy: 'private' });
+    expect(account).toMatchObject({ key: 'mas.to|7', token: 'tok', defaultPrivacy: 'private', scopes: 'read:accounts read:statuses write:statuses' });
     expect(session.getItem('oauth-pending')).toBeNull();
   });
 
