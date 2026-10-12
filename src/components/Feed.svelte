@@ -6,6 +6,9 @@
   import { FeedStore } from '../lib/stores/feed.svelte';
   import Bookmark from '@lucide/svelte/icons/bookmark';
   import ChevronDown from '@lucide/svelte/icons/chevron-down';
+  import Check from '@lucide/svelte/icons/check';
+  import CloudAlert from '@lucide/svelte/icons/cloud-alert';
+  import CloudUpload from '@lucide/svelte/icons/cloud-upload';
   import { formatAge } from '../lib/i18n';
   import { i18n, t } from '../lib/stores/i18n.svelte';
   import StatusCard from './StatusCard.svelte';
@@ -108,6 +111,14 @@
     if (active && document.visibilityState === 'visible') feed.resume();
   }
   const WAKE_EVENTS = ['pageshow', 'focus', 'online'] as const;
+  /** The reader is using the screen: no jumping under their finger; and the first touch after a break looks at the server */
+  const INPUT_EVENTS = ['touchstart', 'pointerdown', 'keydown', 'wheel'] as const;
+  function onInput() {
+    if (active && document.visibilityState === 'visible') feed.onUserInput();
+  }
+  function onPoll() {
+    if (active && document.visibilityState === 'visible') feed.poll();
+  }
   let poll: ReturnType<typeof setInterval> | undefined;
 
   onMount(() => {
@@ -117,7 +128,8 @@
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('pagehide', onPageHide);
     for (const name of WAKE_EVENTS) window.addEventListener(name, onWake);
-    poll = setInterval(onWake, 60_000);
+    for (const name of INPUT_EVENTS) window.addEventListener(name, onInput, { passive: true });
+    poll = setInterval(onPoll, 15_000);
   });
 
   // Newest first is read upwards from where you left off: show the divider at the top of the screen, right under the
@@ -162,6 +174,7 @@
     document.removeEventListener('visibilitychange', onVisibility);
     window.removeEventListener('pagehide', onPageHide);
     for (const name of WAKE_EVENTS) window.removeEventListener(name, onWake);
+    for (const name of INPUT_EVENTS) window.removeEventListener(name, onInput);
     clearInterval(poll);
     if (raf) cancelAnimationFrame(raf);
     feed.destroy();
@@ -198,13 +211,18 @@
 <div class="bar" bind:this={barEl}>
   <div class="row">
     <span class="status">
-      {#if behindText}
+      {#if feed.checking}
+        {t('feed.checking')}
+      {:else if behindText}
         <strong>{behindText}</strong>
       {:else if feed.order === 'newest-first'}
         {t('feed.hintNewest')}
       {:else}
         {t('feed.hintSaved')}
       {/if}
+    </span>
+    <span class="sync {feed.syncState}" role="img" title={t(`feed.sync.${feed.syncState}`)} aria-label={t(`feed.sync.${feed.syncState}`)}>
+      {#if feed.syncState === 'synced'}<Check size={16} />{:else if feed.syncState === 'pending'}<CloudUpload size={16} />{:else}<CloudAlert size={16} />{/if}
     </span>
     <label class="order">
       <span class="sr">{t('feed.order')}</span>
@@ -221,6 +239,12 @@
       <span>{t('feed.remoteAhead')}</span>
       <button class="primary" onclick={() => feed.jumpToRemote()}>{t('feed.jump')}</button>
       <button class="ghost" onclick={() => feed.dismissRemote()}>{t('feed.notNow')}</button>
+    </div>
+  {:else if feed.jumpedFrom}
+    <div class="banner" role="status">
+      <span>{t('feed.jumpedFromRemote')}</span>
+      <button class="ghost" onclick={() => feed.undoJump()}>{t('feed.undo')}</button>
+      <button class="ghost" onclick={() => feed.dismissJumped()}>{t('feed.ok')}</button>
     </div>
   {:else if feed.continuedFromRemote}
     <div class="banner" role="status">
@@ -295,6 +319,10 @@
 <style>
   .bar { position: sticky; top: var(--sticky-top, 0); z-index: 2; background: var(--bg); border-bottom: 1px solid var(--border); padding: 0.4rem 1rem 0.2rem; }
   .row { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; font-size: 0.9rem; color: var(--muted); min-height: 2.75rem; }
+  .status { flex: 1; }
+  .sync { display: inline-flex; color: var(--muted); }
+  .sync.pending { color: var(--accent); }
+  .sync.error { color: var(--danger); }
   .status strong { color: var(--text); }
   .order { position: relative; display: inline-flex; align-items: center; color: var(--accent); margin-right: -0.5rem; }
   .order select { appearance: none; min-height: 2.75rem; padding: 0 1.6rem 0 0.5rem; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
