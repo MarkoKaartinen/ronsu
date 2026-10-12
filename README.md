@@ -13,6 +13,11 @@ a good reading experience, and features that do not serve it may never come.
 
 "Ronsu" is a Finnish children's word for "elephant"; the logo is an elephant with a bookmark in the corner of the icon.
 
+> **Under active development.** Ronsu changes quickly, and the permissions it asks your Mastodon server for
+> (OAuth scopes) may change with it. After an update the app may ask you to log in again to use a new feature;
+> your reading position is kept on the server, so nothing is lost. A login made before the change keeps working
+> with the permissions it already has.
+
 > **Built with AI.** This app was written with the help of AI (Claude Code by Anthropic), under my direction
 > and review. Treat it like any other code: read it, test it, and check it before trusting it with your
 > account.
@@ -84,5 +89,26 @@ Requirements:
   login redirect URI is `https://<domain>/`.
 - The server needs no rewrite rules (routing uses `#` URLs). Do not cache `index.html`, `sw.js`,
   `theme-init.js`, `boot-guard.js` and `manifest.webmanifest`, so updates apply immediately.
+
+### Security headers
+
+A browser ignores `frame-ancestors` in the `<meta>` Content-Security-Policy of `index.html`, so keeping other sites
+from putting Ronsu in a frame needs an HTTP header from your web server. Send the policy of `index.html` plus
+`frame-ancestors 'none'` with every response. nginx, in the `server` block:
+
+```nginx
+add_header Content-Security-Policy "default-src 'self'; img-src 'self' https: data: blob:; media-src 'self' https: blob:; connect-src 'self' https:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'" always;
+add_header X-Frame-Options "DENY" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+```
+
+Other servers need the same four headers set their own way. Check the real site:
+
+```sh
+curl -sI https://ronsu.example.org/ | grep -iE 'content-security-policy|x-frame-options'
+```
+
+`src/lib/headers.test.ts` fails if the policy above and the one in `index.html` drift apart: update both.
 
 Tests before publishing: `npm run check`, `npm test`, `npm run test:e2e` (the last one needs the build and Chrome).

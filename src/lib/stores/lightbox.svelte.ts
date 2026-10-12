@@ -1,4 +1,5 @@
 import type { MediaAttachment } from '../api/types';
+import { safeHttpUrl } from '../url';
 
 /**
  * State of the image viewer (Lightbox.svelte). One viewer for the whole app.
@@ -17,10 +18,13 @@ class Lightbox {
     });
   }
 
-  show(items: MediaAttachment[], index: number) {
+  show(all: MediaAttachment[], index: number) {
+    // Only pictures with a web address; the index follows the picture that was asked for
+    const wanted = all[index];
+    const items = all.filter((m) => safeHttpUrl(m.url)).map((m) => ({ ...m, url: safeHttpUrl(m.url)! }));
     if (!items.length) return;
     this.items = items;
-    this.index = Math.min(Math.max(index, 0), items.length - 1);
+    this.index = Math.max(0, items.findIndex((m) => m.id === wanted?.id));
     if (!this.open) history.pushState({ ...history.state, lightbox: true }, '');
     this.open = true;
   }

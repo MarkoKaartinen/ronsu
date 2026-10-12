@@ -9,11 +9,24 @@ const ORDER_KEY = 'reading-order';
 /** Where this device's clock is relative to the server's (ms), learned from our own saves */
 const CLOCK_KEY = 'marker-clock-offset';
 /**
- * The position goes to Mastodon at most this often (throttle): at most ~60 requests / 5 min while scrolling
+ * The position goes to Mastodon at most this often (throttle): at most ~100 requests / 5 min while scrolling
  * continuously, where the limit is ~300. A short interval matters: another device only sees the position once it
  * has been sent, and a phone is often put away within seconds.
  */
-const SYNC_INTERVAL_MS = 5_000;
+const SYNC_INTERVAL_MS = 3_000;
+/** The reader touched the screen this recently: they are reading here, so the feed must not jump under them */
+const ACTIVE_MS = 8_000;
+/** The position on the server was looked at longer ago than this: the next touch looks again */
+const STALE_MS = 20_000;
+/** A check after a break longer than this shows "Checking the reading position…" */
+const LONG_BREAK_MS = 30_000;
+/** The server's position was looked at this recently: a fetch does not look again */
+const RECENT_CHECK_MS = 2_000;
+/** How often the server is asked while the reader is active here / otherwise */
+const POLL_ACTIVE_MS = 15_000;
+const POLL_IDLE_MS = 60_000;
+/** The reader counts as active for polling purposes this long after the last touch */
+const RECENT_MS = 120_000;
 
 /**
  * New posts are added above the screen and are painted for the first time when the reader scrolls up to them, so
@@ -129,16 +142,30 @@ export class FeedStore {
   remoteAhead = $state<string | null>(null);
   /** The feed opened at the position another device had left, not at this device's own one: said out loud */
   continuedFromRemote = $state(false);
+  /** The feed moved by itself to where another device had read to: the place it was at before, for Undo */
+  jumpedFrom = $state<string | null>(null);
+  /** Looking at the server's position after a longer break (shown in the bar) */
+  checking = $state(false);
+  /** A check is under way (not shown): two never run at once */
+  private inFlight = false;
+  /** When the server's position was last looked at (ms), and when the reader last touched the screen */
+  private lastCheckAt = 0;
+  private activeAt = 0;
 
   private timer: ReturnType<typeof setTimeout> | undefined;
   /**
    * The reading position has moved and the server has not confirmed it yet. Unlike `timer` this survives a send
    * that never arrived (a phone freezes the page, the keepalive request is dropped), so it is retried on resume.
    */
-  private dirty = false;
+  private dirty = $state(false);
   private generation = 0;
   /** Device clock -> server clock (ms): our own time stamps are on the server's timeline, see clockOffset() */
   private clockOffset = readClockOffset();
+
+  /** Is the reading position safely on the server? */
+  get syncState(): 'synced' | 'pending' | 'error' {
+    return this.markerError ? 'error' : this.dirty ? 'pending' : 'synced';
+  }
 
   /** storageKey: per-account key for the local reading position */
   constructor(
@@ -150,6 +177,7 @@ export class FeedStore {
     this.markerError = '';
     try {
       this.remote = toPos(await getHomeMarker(this.client));
+      this.lastCheckAt = Date.now();
     } catch (e) {
       this.markerError = tNow('feed.error.markerFetch', { message: errorMessage(e) });
     }
@@ -235,9 +263,12 @@ export class FeedStore {
 
   async loadMore() {
     if (this.loading || this.endReached) return;
-    this.syncPending();
-    const gen = this.generation;
     this.loading = true;
+    if (!(await this.beforeFetch())) {
+      this.loading = false;
+      return;
+    }
+    const gen = this.generation;
     this.error = '';
     try {
       const params = pageParams(this.order, this.items, this.marker);
@@ -261,9 +292,12 @@ export class FeedStore {
   /** Loads older posts to the top of the list (oldest-first mode only). Never happens automatically. */
   async loadOlder() {
     if (this.order !== 'oldest-first' || this.olderLoading || this.olderEnd || !this.items.length) return;
-    this.syncPending();
-    const gen = this.generation;
     this.olderLoading = true;
+    if (!(await this.beforeFetch())) {
+      this.olderLoading = false;
+      return;
+    }
+    const gen = this.generation;
     this.error = '';
     try {
       const page = await this.client.getPage<Status>('/api/v1/timelines/home', {
@@ -291,9 +325,12 @@ export class FeedStore {
    */
   async loadNewer() {
     if (this.order !== 'newest-first' || this.newerLoading || !this.items.length) return;
-    this.syncPending();
-    const gen = this.generation;
     this.newerLoading = true;
+    if (!(await this.beforeFetch())) {
+      this.newerLoading = false;
+      return;
+    }
+    const gen = this.generation;
     this.newerNone = false;
     clearTimeout(this.newerNoneTimer);
     this.error = '';
@@ -352,10 +389,12 @@ export class FeedStore {
   /** Oldest-first mode: check for new posts once we reach the end. */
   async checkForNew() {
     if (this.order !== 'oldest-first') return;
-    this.syncPending();
+    const count = this.items.length;
     this.endReached = false;
     this.refreshLatest();
     await this.loadMore();
+    // Another device has moved on and loadMore asked about it instead of fetching: it is still the end of the list
+    if (this.items.length === count && this.remoteAhead && !this.error) this.endReached = true;
   }
 
   /** Asks for the newest post of the home timeline (one small request). */
@@ -402,11 +441,18 @@ export class FeedStore {
   }
 
   /**
-   * Fetching more posts is a good moment to send the reading position as well: the connection is clearly up and
-   * the reader has just been moving. Does not wait for the throttle timer and is not awaited.
+   * Fetching posts is where the reader says "from here": first make sure that here is still the newest place.
+   * If another device has moved the position meanwhile, the question is asked (the banner) and nothing is
+   * fetched, so the list never grows from the wrong place. Otherwise our own position is sent (not awaited).
+   * Returns false when the fetch should not go on. A banner that was already showing and has been ignored does
+   * not block it.
    */
-  private syncPending() {
-    if (this.dirty) void this.flush();
+  private async beforeFetch(): Promise<boolean> {
+    const before = this.remoteAhead;
+    if (Date.now() - this.lastCheckAt > RECENT_CHECK_MS) await this.checkRemote(false);
+    if (this.remoteAhead && this.remoteAhead !== before) return false;
+    if (this.dirty && !this.remoteAhead) void this.flush();
+    return true;
   }
 
   /** The current time on the server's clock (an estimate; exact once we have made a save). */
@@ -466,34 +512,91 @@ export class FeedStore {
   }
 
   /**
-   * The app is back in front (or online again, or a minute has passed): send what we have not sent yet, so the
-   * other devices can see it, and look whether another device has moved the position.
+   * The app is back in front (or online again, or it is time to look): find out whether another device has moved
+   * the reading position, and only then send ours. Sending first would overwrite a position that is newer.
+   * `idle`: the reader is not touching the screen, so the feed follows the other device by itself (see checkRemote).
    */
-  async resume() {
-    if (this.dirty) await this.flush();
-    await Promise.all([this.checkRemote(), this.refreshLatest()]);
+  async resume(idle = this.isIdle()) {
+    if (this.inFlight) return;
+    this.inFlight = true;
+    this.checking = Date.now() - this.lastCheckAt > LONG_BREAK_MS;
+    try {
+      await Promise.all([this.checkRemote(idle), this.refreshLatest()]);
+      if (this.dirty && !this.remoteAhead) await this.flush();
+    } finally {
+      this.checking = false;
+      this.inFlight = false;
+    }
   }
 
-  /** Has another device moved the reading position more recently? */
-  async checkRemote() {
+  private isIdle(): boolean {
+    return Date.now() - this.activeAt > ACTIVE_MS;
+  }
+
+  /**
+   * The reader touched the screen. After a quiet while this is also the moment to look at the server's position
+   * once more, as the first thing that happens after the app was left in the background.
+   */
+  onUserInput() {
+    const wasIdle = this.isIdle();
+    const now = Date.now();
+    this.activeAt = now;
+    if (now - this.lastCheckAt > STALE_MS) void this.resume(wasIdle);
+  }
+
+  /** Called regularly while the app is in front: asks the server more often while the reader is active */
+  poll() {
+    const every = Date.now() - this.activeAt < RECENT_MS ? POLL_ACTIVE_MS : POLL_IDLE_MS;
+    if (Date.now() - this.lastCheckAt >= every) void this.resume();
+  }
+
+  /**
+   * Has another device moved the reading position more recently? An idle reader (the app has just been opened,
+   * or has not been touched for a while) is taken there at once: the point is to continue from the same place
+   * on every device. Someone who is reading here right now is asked instead.
+   */
+  async checkRemote(idle = false) {
     try {
       const remote = toPos(await getHomeMarker(this.client));
+      this.lastCheckAt = Date.now();
       const current = this.marker ? { id: this.marker, at: this.markerAt } : null;
-      if (remote && isForeignUpdate(remote, this.remote, current)) this.remoteAhead = remote.id;
+      const foreign = !!remote && isForeignUpdate(remote, this.remote, current);
       if (remote && (!this.remote || remote.at > this.remote.at || (remote.version ?? 0) > (this.remote.version ?? 0))) this.remote = remote;
+      if (foreign && remote) {
+        this.remoteAhead = remote.id;
+        if (idle) await this.jumpToRemote(true);
+      }
     } catch {
       /* offline: skip */
     }
   }
 
-  async jumpToRemote() {
+  /** `auto`: the feed moved by itself; the place it left is kept for Undo */
+  async jumpToRemote(auto = false) {
     const id = this.remoteAhead;
     if (!id) return;
+    const from = this.marker;
     this.remoteAhead = null;
     this.continuedFromRemote = false;
+    this.jumpedFrom = auto && from && from !== id ? from : null;
     this.dirty = false;
     this.setMarker(id, this.remote?.at ?? this.serverNow());
     await this.load();
+  }
+
+  /** Goes back to where this device was before the feed followed the other device, and makes that the position again */
+  async undoJump() {
+    const id = this.jumpedFrom;
+    if (!id) return;
+    this.jumpedFrom = null;
+    this.setMarker(id, this.serverNow());
+    this.dirty = true;
+    void this.flush();
+    await this.load();
+  }
+
+  dismissJumped() {
+    this.jumpedFrom = null;
   }
 
   dismissRemote() {

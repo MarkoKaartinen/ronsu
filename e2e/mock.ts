@@ -80,6 +80,10 @@ export interface Server {
   processing?: boolean; // uploads answer 202 and the file is ready on the second poll
   actions?: string[]; // POST /statuses/:id/<action>
   failActions?: boolean;
+  privacy?: string; // the account's default posting privacy (source.privacy); 'public' when not set
+  credentialsFail?: boolean; // verify_credentials answers 500
+  revoke?: '200' | '403' | '500' | 'hang'; // the answer of POST /oauth/revoke (200 when not set)
+  revoked?: string[]; // the tokens POST /oauth/revoke was called with
   marker: { last_read_id: string; version: number; updated_at: string } | null;
   posts: string[]; // POST /markers calls
 }
@@ -241,7 +245,16 @@ export async function mockMastodon(page: Page, server: Server) {
       const replies = (server.created ?? []).filter((c) => c.body.in_reply_to_id === m[1]).length;
       return json({ ...status(Number(BigInt(m[1]) - BASE_ID)), replies_count: replies });
     }
-    if (url.pathname === '/api/v1/accounts/verify_credentials') return json({ id: '1', acct: 'me' });
+    if (url.pathname === '/api/v1/accounts/verify_credentials') {
+      if (server.credentialsFail) return route.fulfill({ status: 500, headers: cors, body: '{"error":"boom"}' });
+      return json({ id: '1', acct: 'me', source: { privacy: server.privacy ?? 'public' } });
+    }
+    if (url.pathname === '/oauth/revoke' && req.method() === 'POST') {
+      (server.revoked ??= []).push(JSON.parse(req.postData() ?? '{}').token);
+      if (server.revoke === 'hang') return new Promise(() => {});
+      const status = Number(server.revoke ?? 200);
+      return route.fulfill({ status, headers: { ...cors, 'content-type': 'application/json' }, body: status === 200 ? '{}' : '{"error":"no"}' });
+    }
     return route.fulfill({ status: 404, headers: cors, body: '{"error":"not found"}' });
   });
 }

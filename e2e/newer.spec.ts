@@ -45,7 +45,7 @@ test('oldest first: loading more also sends the reading position, without waitin
   const server = server0();
   await open(page, server);
   await page.evaluate(() => window.scrollTo(0, 1200));
-  await page.waitForTimeout(300); // the position moved; the throttle (5 s) has not fired
+  await page.waitForTimeout(300); // the position moved; the throttle (3 s) has not fired
   expect(server.posts).toHaveLength(0);
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await page.getByRole('button', { name: 'Load more' }).evaluate((el: HTMLElement) => el.click()); // the next page is asked for

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canSend, countChars, defaultLanguage, defaultVisibility, mentionPrefix, missingAltText, pickImages, remaining } from './composeLogic';
+import { canSend, countChars, defaultLanguage, defaultVisibility, hasMention, mentionPrefix, missingAltText, parseDefaultPrivacy, pickImages, remaining } from './composeLogic';
 import type { Status } from './api/types';
 
 const reply = (over: Partial<Status> = {}) =>
@@ -34,9 +34,44 @@ describe('mentionPrefix', () => {
 });
 
 describe('defaultVisibility', () => {
-  it('inherits from the post replied to, a new one is public', () => {
-    expect(defaultVisibility(reply({ visibility: 'private' }))).toBe('private');
-    expect(defaultVisibility(null)).toBe('public');
+  it('a new post uses the account default, whatever it is', () => {
+    expect(defaultVisibility(null, 'private')).toBe('private');
+    expect(defaultVisibility(null, 'unlisted')).toBe('unlisted');
+    expect(defaultVisibility(null, 'public')).toBe('public');
+  });
+  it('without a known default it is followers only, never public', () => {
+    expect(defaultVisibility(null, null)).toBe('private');
+    expect(defaultVisibility(reply({ visibility: 'public' }), null)).toBe('private');
+  });
+  it('a reply is never wider than the post it answers', () => {
+    expect(defaultVisibility(reply({ visibility: 'private' }), 'public')).toBe('private');
+    expect(defaultVisibility(reply({ visibility: 'unlisted' }), 'public')).toBe('unlisted');
+    expect(defaultVisibility(reply({ visibility: 'direct' }), 'public')).toBe('direct');
+  });
+  it('a reply is never wider than the account default either', () => {
+    expect(defaultVisibility(reply({ visibility: 'public' }), 'private')).toBe('private');
+    expect(defaultVisibility(reply({ visibility: 'public' }), 'unlisted')).toBe('unlisted');
+    expect(defaultVisibility(reply({ visibility: 'private' }), 'private')).toBe('private');
+  });
+});
+
+describe('parseDefaultPrivacy', () => {
+  it('accepts what Mastodon allows as a default and nothing else', () => {
+    expect(parseDefaultPrivacy('public')).toBe('public');
+    expect(parseDefaultPrivacy('unlisted')).toBe('unlisted');
+    expect(parseDefaultPrivacy('private')).toBe('private');
+    expect(parseDefaultPrivacy('direct')).toBeNull();
+    expect(parseDefaultPrivacy(undefined)).toBeNull();
+    expect(parseDefaultPrivacy(42)).toBeNull();
+  });
+});
+
+describe('hasMention', () => {
+  it('finds a mention, not an email address', () => {
+    expect(hasMention('@maija moi')).toBe(true);
+    expect(hasMention('moi @maija@mas.to')).toBe(true);
+    expect(hasMention('moi maija@example.org')).toBe(false);
+    expect(hasMention('ei ketään')).toBe(false);
   });
 });
 

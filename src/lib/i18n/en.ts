@@ -63,6 +63,12 @@ export const en = {
   'feed.notNow': 'Not now',
   'feed.continuedFromRemote': 'Continuing from where you read on another device.',
   'feed.ok': 'OK',
+  'feed.jumpedFromRemote': 'Continued from where you read on another device.',
+  'feed.undo': 'Undo',
+  'feed.checking': 'Checking your reading position…',
+  'feed.sync.synced': 'Reading position saved',
+  'feed.sync.pending': 'Reading position not sent yet',
+  'feed.sync.error': 'Sending the reading position failed',
   'feed.more': 'Load more',
   'feed.loadOlder': 'Load older',
   'feed.loadNew': 'Load new',
@@ -135,6 +141,8 @@ export const en = {
   'compose.language': 'Language', // mastodon: about.language_label
   'compose.languageDefault': 'Default', // mastodon: about.default_locale
   'compose.discard': 'Discard your draft post?', // mastodon: confirmations.discard_draft.post.title
+  'compose.visibilityUnknown': 'Your default visibility could not be fetched, so this post is for followers only. Change it above if you want.',
+  'compose.directNeedsMention': 'A private mention goes only to the people mentioned in it. Mention someone with @.',
   'compose.published': 'Post published.', // mastodon: compose.published.body
   'compose.media.add': 'Add images, a video or an audio file', // mastodon: upload_button.label
   'compose.media.edit': 'Edit', // mastodon: upload_form.edit
@@ -163,6 +171,7 @@ export const en = {
   'login.error.register': 'Registering the app failed ({status})',
   'login.error.cancelled': 'Login was cancelled',
   'login.error.noState': 'The login state is missing, please try again',
+  'login.error.expired': 'The login took too long, please try again',
   'login.error.state': 'Login verification failed (state)',
   'login.error.token': 'Fetching the access token failed ({status})',
 
@@ -182,6 +191,9 @@ export const en = {
   'settings.font': 'Font',
   'settings.language': 'Language', // mastodon: about.language_label
   'settings.logout': 'Log out', // mastodon: confirmations.logout.confirm
+  'settings.logout.revoked': 'Logged out, and the access was revoked on the server.',
+  'settings.logout.notRevoked': 'Logged out on this device, but the server did not confirm that the access was revoked. To be sure, remove Ronsu under Settings → Authorized apps on {instance}.',
+  'settings.logout.failed': 'Logging out failed: {message}',
   'theme.nord-dark': 'Nord Dark',
   'theme.nord-light': 'Nord Light',
   'theme.dracula-dark': 'Dracula',
@@ -203,5 +215,6 @@ export const en = {
   'profile.noMore': 'No more posts.',
   'profile.reauth': 'Following needs a new permission. Log in again to follow users.',
   'profile.reauthButton': 'Log in again',
+  'scopes.banner': 'Ronsu has been updated and needs new permissions for some features. Log in again to use them.',
   'profile.followFailed': 'Following failed: {message}',
 } as const;

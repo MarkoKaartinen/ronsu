@@ -19,6 +19,8 @@ test.describe('Finnish browser', () => {
   test.use({ locale: 'fi-FI' });
 
   test('starts in Finnish with Mastodon\'s own terms', async ({ page }) => {
+    // The mock posts are from 4 Oct 2026: the clock stands a few hours after them, so "3 t" and not a date
+    await page.clock.setFixedTime(new Date('2026-10-04T12:00:00Z'));
     await open(page);
     await expect(page.locator('html')).toHaveAttribute('lang', 'fi');
     const card = page.locator('article[data-id]').first();

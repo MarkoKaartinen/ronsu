@@ -16,13 +16,18 @@ async function open(page: Page, server: Server) {
   await page.waitForTimeout(300);
 }
 
+/** The reader touches the screen (not a scroll made by the test itself) */
+const touch = (page: Page) => page.evaluate(() => window.dispatchEvent(new Event('pointerdown')));
+
+const notice = (page: Page) => page.getByRole('status').filter({ hasText: 'Continued from where you read on another device.' });
+
 const fresh = (): Server => ({
   marker: { last_read_id: idOf(100), version: 3, updated_at: new Date(Date.now() - 60_000).toISOString() },
   posts: [],
 });
 
 for (const event of ['focus', 'pageshow', 'online']) {
-  test(`the app notices another device's newer position when it wakes up (${event}), without a visibilitychange`, async ({ page }) => {
+  test(`an idle reader is taken to the other device's position when the app wakes up (${event}), without a visibilitychange`, async ({ page }) => {
     const server = fresh();
     await open(page, server);
     await expect(banner(page)).toHaveCount(0);
@@ -30,13 +35,58 @@ for (const event of ['focus', 'pageshow', 'online']) {
     movedByAnotherDevice(server, 150);
     // An installed app resumed on a phone: no reload, and not every browser sends visibilitychange
     await page.evaluate((name) => window.dispatchEvent(name === 'pageshow' ? new PageTransitionEvent('pageshow') : new Event(name)), event);
-    await expect(banner(page)).toBeVisible();
-
-    // And the jump really goes to the other device's position
-    await banner(page).getByRole('button', { name: 'Jump' }).click();
-    await expect(page.locator(`article[data-id="${idOf(150)}"]`)).toBeVisible();
+    // Nobody is touching the screen: no question, the feed just continues from the other device's place
+    await expect(notice(page)).toBeVisible();
+    await expect(banner(page)).toHaveCount(0);
+    await expect(page.locator(`article[data-id]`).first()).toHaveAttribute('data-id', idOf(150));
   });
 }
+
+test('the automatic jump can be undone, and the old place becomes the position again', async ({ page }) => {
+  const server = fresh();
+  await open(page, server);
+  movedByAnotherDevice(server, 150);
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect(notice(page)).toBeVisible();
+  await notice(page).getByRole('button', { name: 'Undo' }).click();
+  await expect(notice(page)).toHaveCount(0);
+  await expect(page.locator('article[data-id]').first()).toHaveAttribute('data-id', idOf(100));
+  await expect.poll(() => server.marker?.last_read_id).toBe(idOf(100));
+});
+
+test('a reader who is touching the screen is asked instead of being moved', async ({ page }) => {
+  const server = fresh();
+  await open(page, server);
+  await touch(page);
+  movedByAnotherDevice(server, 150);
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect(banner(page)).toBeVisible();
+  await banner(page).getByRole('button', { name: 'Jump' }).click();
+  await expect(page.locator(`article[data-id="${idOf(150)}"]`)).toBeVisible();
+});
+
+test('the first touch after a long break looks at the server, even if no wake-up event came', async ({ page }) => {
+  const server = fresh();
+  await open(page, server);
+  // The page has been frozen for a while: the last look at the server was long ago
+  await page.clock.install();
+  await page.clock.fastForward(60_000);
+  movedByAnotherDevice(server, 150);
+  await touch(page);
+  await expect(notice(page)).toBeVisible();
+});
+
+test('the sync icon tells whether the position has reached the server', async ({ page }) => {
+  const server = fresh();
+  await open(page, server);
+  await expect(page.getByRole('img', { name: 'Reading position saved' })).toBeVisible();
+  for (let y = 1500; y <= 4000; y += 500) {
+    await page.evaluate((v) => window.scrollTo(0, v), y);
+    await page.waitForTimeout(60);
+  }
+  await expect(page.getByRole('img', { name: 'Reading position not sent yet' })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Reading position saved' })).toBeVisible({ timeout: 6000 });
+});
 
 test('a phone whose clock is ahead still notices the other device (the server counts versions, clocks are not trusted)', async ({ page }) => {
   // The phone's clock is 10 minutes ahead of the server's
@@ -58,6 +108,7 @@ test('a phone whose clock is ahead still notices the other device (the server co
   await expect(banner(page)).toHaveCount(0); // our own save is not "another device"
 
   // The desktop reads further; the server's time stamp is 10 minutes *behind* the phone's clock
+  await touch(page); // reading right now: asked, not moved
   movedByAnotherDevice(server, 190);
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
   await expect(banner(page)).toBeVisible();
@@ -116,6 +167,7 @@ test('the notice is in the sticky bar: it stays in view after scrolling', async 
   await page.waitForTimeout(300);
   await page.evaluate(() => window.dispatchEvent(new Event('focus'))); // our position is sent first
   await expect.poll(() => server.posts.length).toBeGreaterThan(0);
+  await touch(page);
   movedByAnotherDevice(server, 190);
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
   await expect(banner(page)).toBeInViewport();
@@ -131,4 +183,20 @@ test('newest first: "You left off here" is at the top of the screen under the ba
   await page.waitForTimeout(300);
   const [d, bar] = await Promise.all([divider.boundingBox(), page.locator('.bar:has(.row)').boundingBox()]);
   expect(Math.abs(d!.y - (bar!.y + bar!.height))).toBeLessThan(4);
+});
+
+test('loading more posts first checks the other device: if it has moved on, the question is asked and nothing is loaded', async ({ page }) => {
+  const server = fresh();
+  await open(page, server);
+  await page.waitForTimeout(2200); // the last look at the server is no longer fresh
+  const before = await page.locator('article[data-id]').count();
+  movedByAnotherDevice(server, 150);
+  await page.getByRole('button', { name: 'Load older' }).click();
+  await expect(banner(page)).toBeVisible();
+  expect(await page.locator('article[data-id]').count()).toBe(before);
+
+  // Ignoring the question does not block loading
+  await banner(page).getByRole('button', { name: 'Not now' }).click();
+  await page.getByRole('button', { name: 'Load older' }).click();
+  await expect.poll(() => page.locator('article[data-id]').count()).toBeGreaterThan(before);
 });

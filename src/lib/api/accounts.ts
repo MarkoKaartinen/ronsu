@@ -1,5 +1,6 @@
 import type { MastodonClient } from './client';
-import type { AccountFull, Relationship } from './types';
+import { parseDefaultPrivacy } from '../composeLogic';
+import type { AccountCredentials, AccountFull, Relationship, Visibility } from './types';
 
 export const getAccount = (client: MastodonClient, id: string) => client.get<AccountFull>(`/api/v1/accounts/${id}`);
 
@@ -13,3 +14,9 @@ export async function getRelationship(client: MastodonClient, id: string): Promi
 }
 
 export const followEndpoint = (id: string, on: boolean) => `/api/v1/accounts/${id}/${on ? 'follow' : 'unfollow'}`;
+
+/** The account's own posting privacy (`source.privacy`), or null if the server does not say */
+export async function getDefaultPrivacy(client: MastodonClient): Promise<Visibility | null> {
+  const me = await client.get<AccountCredentials>('/api/v1/accounts/verify_credentials');
+  return parseDefaultPrivacy(me.source?.privacy);
+}

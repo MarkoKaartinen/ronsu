@@ -3,7 +3,7 @@
   import SquarePen from '@lucide/svelte/icons/square-pen';
   import X from '@lucide/svelte/icons/x';
   import { onMount, tick } from 'svelte';
-  import { finishLogin, hasOAuthCallback } from './lib/api/oauth';
+  import { finishLogin, hasOAuthCallback, missingScopes, startLogin } from './lib/api/oauth';
   import { accountStore } from './lib/stores/accounts.svelte';
   import Login from './components/Login.svelte';
   import Compose from './components/Compose.svelte';
@@ -24,6 +24,11 @@
   let loginError = $state('');
   let adding = $state(false);
   let showSettings = $state(false);
+
+  /** The app wants permissions the login does not have (they were added after it): once per start the reader is asked to log in again */
+  let reauthDismissed = $state(false);
+  const needsReauth = $derived(!!accountStore.active && missingScopes(accountStore.active.scopes).length > 0);
+  const reauth = () => accountStore.active && startLogin(accountStore.active.instance).catch((e) => toast.show(e instanceof Error ? e.message : String(e)));
 
   const threadId = $derived(router.route.name === 'thread' ? router.route.id : null);
   const profileHandle = $derived(router.route.name === 'profile' ? router.route.handle : null);
@@ -105,6 +110,14 @@
       </div>
     </header>
 {/snippet}
+
+  {#if needsReauth && !reauthDismissed}
+    <div class="reauth" role="status">
+      <span>{t('scopes.banner')}</span>
+      <button class="primary" onclick={reauth}>{t('profile.reauthButton')}</button>
+      <button onclick={() => (reauthDismissed = true)}>{t('feed.notNow')}</button>
+    </div>
+  {/if}
 
   <div class="page" class:wide>
   <!-- On a wide screen the top bar spans both columns -->
@@ -210,5 +223,9 @@
   .toast { position: fixed; left: 50%; bottom: calc(1.2rem + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 30; display: flex; gap: 0.8rem; align-items: center; max-width: min(32rem, calc(100vw - 2rem)); padding: 0.7rem 1rem; border-radius: 0.6rem; background: var(--danger-bg); color: var(--on-danger-bg); box-shadow: 0 4px 16px rgb(0 0 0 / 0.3); }
   .toast.info { background: var(--accent); color: var(--on-accent); }
   .toast button { display: inline-flex; background: none; border: 0; color: inherit; padding: 0.2rem; }
+  .reauth { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; max-width: 40rem; margin: 0 auto; padding: 0.6rem 1rem; background: color-mix(in srgb, var(--accent) 16%, var(--bg)); border-bottom: 1px solid var(--accent); font-weight: 600; box-sizing: border-box; }
+  .reauth span { flex: 1; min-width: 12rem; }
+  .reauth button { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 0.4rem; padding: 0.4rem 0.9rem; min-height: 2.5rem; }
+  .reauth .primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
   .loading { text-align: center; margin-top: 3rem; color: var(--muted); }
 </style>

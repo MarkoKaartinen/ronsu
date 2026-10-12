@@ -1,6 +1,7 @@
 <script lang="ts">
   import ChartBar from '@lucide/svelte/icons/chart-bar';
   import Heart from '@lucide/svelte/icons/heart';
+  import LoaderCircle from '@lucide/svelte/icons/loader-circle';
   import Pencil from '@lucide/svelte/icons/pencil';
   import Repeat2 from '@lucide/svelte/icons/repeat-2';
   import UserCheck from '@lucide/svelte/icons/user-check';
@@ -13,6 +14,7 @@
   import { formatRelativeTime } from '../lib/i18n';
   import { profileHref, router } from '../lib/router.svelte';
   import { i18n, t } from '../lib/stores/i18n.svelte';
+  import { toast } from '../lib/stores/toast.svelte';
   import StatusCard from './StatusCard.svelte';
 
   // active=false: stays mounted, hidden, while the other main view, a thread or a profile is open
@@ -23,6 +25,8 @@
   setContext('mastodon-client', client);
 
   const PAGE = 30;
+  /** At most this many are kept when the newest are loaded: the older ones at the end are dropped, "Load older" brings them back */
+  const MAX_KEPT = 50;
   /**
    * The types that are shown. Mentions (and quotes, new posts of someone you follow) are posts of their own and
    * can be answered here; the others are a line saying what happened, with the post it was about.
@@ -37,6 +41,8 @@
   let loading = $state(false);
   let error = $state('');
   let end = $state(false);
+  /** "Load new" is under way (the button says so) */
+  let refreshing = $state(false);
   let root: HTMLElement | undefined = $state();
   /** The id of the oldest notification received so far, whether it is shown or not (the next page starts there) */
   let cursor: string | undefined;
@@ -59,6 +65,7 @@
     if (loading) return;
     const gen = generation;
     loading = true;
+    refreshing = true;
     error = '';
     try {
       const page = await client.getPage<Notification>('/api/v1/notifications', params());
@@ -70,14 +77,25 @@
         items = page.items.filter((n) => SHOWN.has(n.type));
         cursor = page.items.at(-1)?.id;
         end = page.items.length === 0;
+      } else if (fresh.length === 0) {
+        toast.show(t('feed.noNew'), 'info', 2500); // said for a moment instead of silently doing nothing
       } else {
-        items = [...fresh, ...items];
+        const all = [...fresh, ...items];
+        items = all.slice(0, MAX_KEPT);
+        if (all.length > MAX_KEPT) {
+          // The next "Load older" continues from the last one kept
+          cursor = items.at(-1)!.id;
+          end = false;
+        }
       }
       loadedAt = Date.now();
     } catch (e) {
       if (gen === generation) error = errorText(e);
     } finally {
-      if (gen === generation) loading = false;
+      if (gen === generation) {
+        loading = false;
+        refreshing = false;
+      }
     }
   }
 
@@ -113,6 +131,7 @@
     end = false;
     error = '';
     loading = false;
+    refreshing = false;
     // To the top of whatever scrolls: the second column on a wide screen, the page otherwise
     const column = root?.closest('.aside');
     if (column) column.scrollTo(0, 0);
@@ -210,7 +229,11 @@
     <button class:on={filter === 'all'} aria-pressed={filter === 'all'} onclick={() => setFilter('all')}>{t('notif.all')}</button>
     <button class:on={filter === 'mentions'} aria-pressed={filter === 'mentions'} onclick={() => setFilter('mentions')}>{t('notif.mentions')}</button>
   </div>
-  <button class="reload" onclick={reload} disabled={loading}>{loading && !items.length ? t('common.loading') : t('feed.loadNew')}</button>
+  <div class="reloading">
+    <button class="reload" onclick={reload} disabled={loading} aria-busy={refreshing}>
+      {#if refreshing}<LoaderCircle class="spin" size={16} aria-hidden="true" />{t('common.loading')}{:else}{t('feed.loadNew')}{/if}
+    </button>
+  </div>
 </div>
 
 <div class="list">
@@ -276,7 +299,7 @@
   <p class="msg">{t('notif.empty')}</p>
 {:else if items.length && !end}
   <div class="older">
-    <button onclick={loadMore} disabled={loading}>{loading ? t('common.loading') : t('feed.loadOlder')}</button>
+    <button onclick={loadMore} disabled={loading}>{loading && !refreshing ? t('common.loading') : t('feed.loadOlder')}</button>
   </div>
 {/if}
 </div>
@@ -284,9 +307,13 @@
 <style>
   .refresh { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; padding: 0.5rem 1rem; background: var(--bg); border-bottom: 1px solid var(--border); }
   .filter { display: flex; gap: 0.3rem; }
-  .filter button { min-height: 2.25rem; padding: 0 0.9rem; border: 1px solid transparent; border-radius: 999px; background: none; color: var(--muted); font-weight: 600; }
+  .filter button { white-space: nowrap; min-height: 2.25rem; padding: 0 0.9rem; border: 1px solid transparent; border-radius: 999px; background: none; color: var(--muted); font-weight: 600; }
   .filter button.on { background: var(--surface); border-color: var(--border); color: var(--text); }
-  .reload { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 0.5rem; padding: 0.4rem 0.9rem; }
+  .reloading { display: flex; align-items: center; gap: 0.6rem; }
+  .reload { white-space: nowrap; display: inline-flex; align-items: center; gap: 0.4rem; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 0.5rem; padding: 0.4rem 0.9rem; }
+  .reload :global(.spin) { animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .reload :global(.spin) { animation-duration: 3s; } }
   .list { overflow-anchor: none; }
   .note { display: flex; gap: 0.6rem; align-items: center; padding: 0.8rem 1rem 0; margin: 0; color: var(--muted); font-size: 0.9rem; }
   .kind { display: inline-flex; gap: 0.4rem; align-items: center; font-weight: 600; color: var(--text); }
