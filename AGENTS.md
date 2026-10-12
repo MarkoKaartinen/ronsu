@@ -15,6 +15,8 @@ Before committing, scan the staged diff for these.
 
 ## Commits
 
+* Work on a new branch for every change, never directly on `main`. Name it `type/short-description` with a type
+  such as `fix`, `feature`, `docs` or `chore` (for example `fix/login-error`, `feature/image-viewer`)
 * One logical change per commit
 * One concise line, sentence case, present tense. No long explanations in the message
 * Commit messages and PR descriptions are in English
