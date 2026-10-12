@@ -1,10 +1,23 @@
 import { get, set } from 'idb-keyval';
 import { MastodonClient } from './client';
 import { tNow } from '../i18n/runtime';
-import type { Account, StoredAccount } from './types';
+import { parseDefaultPrivacy } from '../composeLogic';
+import type { AccountCredentials, StoredAccount } from './types';
 
-const SCOPES = 'read write:favourites write:statuses write:media write:bookmarks write:follows';
+/**
+ * Only what the app uses, so a token that leaks can do no more than that (the broad `read` is not asked for):
+ * read:accounts (own account, profiles), read:statuses (timeline, threads, reading position), read:notifications,
+ * read:follows (the relationship on a profile), and the writes for posting, uploading, favourites, boosts
+ * (write:statuses), bookmarks and following.
+ */
+export const SCOPES =
+  'read:accounts read:statuses read:notifications read:follows write:favourites write:statuses write:media write:bookmarks write:follows';
 const PENDING_KEY = 'oauth-pending';
+/**
+ * A login that was started but not finished is forgotten after this long. The state, the verifier and the app
+ * secret wait in sessionStorage (this tab only, gone when it closes), not in localStorage.
+ */
+export const PENDING_TTL_MS = 10 * 60 * 1000;
 /** The name shown to the user and on every post made with the app (Mastodon's `application` field) */
 const CLIENT_NAME = 'Ronsu';
 
@@ -18,6 +31,8 @@ interface PendingLogin extends RegisteredApp {
   verifier: string;
   state: string;
   redirectUri: string;
+  /** When the login was started (ms), for the time limit */
+  startedAt: number;
 }
 
 export function redirectUri(): string {
@@ -90,8 +105,9 @@ export async function startLogin(instanceInput: string): Promise<void> {
   const app = await ensureApp(instance);
   const verifier = randomString(48);
   const state = randomString(16);
-  const pending: PendingLogin = { ...app, instance, verifier, state, redirectUri: redirectUri() };
-  localStorage.setItem(PENDING_KEY, JSON.stringify(pending));
+  const pending: PendingLogin = { ...app, instance, verifier, state, redirectUri: redirectUri(), startedAt: Date.now() };
+  sessionStorage.setItem(PENDING_KEY, JSON.stringify(pending));
+  localStorage.removeItem(PENDING_KEY); // where an older version kept it
 
   const url = new URL(`https://${instance}/oauth/authorize`);
   url.search = new URLSearchParams({
@@ -113,21 +129,41 @@ export function hasOAuthCallback(): boolean {
   return p.has('code') || p.has('error');
 }
 
+/** A stored login in progress, or null if it is missing or not what this version wrote */
+function parsePending(raw: string | null): PendingLogin | null {
+  if (!raw) return null;
+  try {
+    const p = JSON.parse(raw);
+    const text = (v: unknown) => typeof v === 'string' && v !== '';
+    if (text(p?.instance) && text(p.verifier) && text(p.state) && text(p.clientId) && text(p.clientSecret) && text(p.redirectUri) && typeof p.startedAt === 'number') {
+      return p as PendingLogin;
+    }
+  } catch {
+    /* not JSON */
+  }
+  return null;
+}
+
 /** Handles the return from the server. Returns the account to store. */
 export async function finishLogin(): Promise<StoredAccount> {
   const params = new URLSearchParams(location.search);
   // Clean the URL right away so the code is not reused (e.g. on reload)
   history.replaceState(null, '', location.pathname + location.hash);
 
-  const raw = localStorage.getItem(PENDING_KEY);
+  // Taken out of storage at once: a callback can be used for one attempt only, whatever its outcome
+  const raw = sessionStorage.getItem(PENDING_KEY);
+  sessionStorage.removeItem(PENDING_KEY);
   localStorage.removeItem(PENDING_KEY);
+  const pending = parsePending(raw);
+  if (!pending) throw new Error(tNow('login.error.noState'));
+  if (Date.now() - pending.startedAt > PENDING_TTL_MS) throw new Error(tNow('login.error.expired'));
+  const stateOk = params.get('state') === pending.state;
   if (params.get('error')) {
-    throw new Error(params.get('error_description') ?? tNow('login.error.cancelled'));
+    // The server's own words only when the answer is really to our request; otherwise anybody could put text in the login screen
+    throw new Error(stateOk ? (params.get('error_description') ?? '').slice(0, 200) || tNow('login.error.cancelled') : tNow('login.error.state'));
   }
-  if (!raw) throw new Error(tNow('login.error.noState'));
-  const pending = JSON.parse(raw) as PendingLogin;
   const code = params.get('code');
-  if (!code || params.get('state') !== pending.state) {
+  if (!code || !stateOk) {
     throw new Error(tNow('login.error.state'));
   }
 
@@ -146,9 +182,10 @@ export async function finishLogin(): Promise<StoredAccount> {
   });
   if (!res.ok) throw new Error(tNow('login.error.token', { status: res.status }));
   const { access_token } = await res.json();
+  if (typeof access_token !== 'string' || !access_token) throw new Error(tNow('login.error.token', { status: res.status }));
 
   const client = new MastodonClient({ instance: pending.instance, token: access_token });
-  const me = await client.get<Account>('/api/v1/accounts/verify_credentials');
+  const me = await client.get<AccountCredentials>('/api/v1/accounts/verify_credentials');
 
   return {
     key: `${pending.instance}|${me.id}`,
@@ -160,18 +197,31 @@ export async function finishLogin(): Promise<StoredAccount> {
     acct: me.acct,
     displayName: me.display_name || me.username,
     avatar: me.avatar,
+    defaultPrivacy: parseDefaultPrivacy(me.source?.privacy) ?? undefined,
   };
 }
 
-/** Revokes the token on the server (errors are ignored: the account is removed locally either way). */
-export async function revokeToken(acc: StoredAccount): Promise<void> {
+/** The server did not answer for this long: the revoking is given up on (the local logout does not wait for it) */
+const REVOKE_TIMEOUT_MS = 8000;
+
+/** `ok` only when the server answered with a success: anything else means the token may still work */
+export type RevokeResult = { ok: true } | { ok: false; reason: 'http' | 'timeout' | 'network'; status?: number };
+
+/** Revokes the token on the server. The answer is checked and a failure is reported, never swallowed. */
+export async function revokeToken(acc: StoredAccount, timeoutMs = REVOKE_TIMEOUT_MS): Promise<RevokeResult> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    await fetch(`https://${acc.instance}/oauth/revoke`, {
+    const res = await fetch(`https://${acc.instance}/oauth/revoke`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ client_id: acc.clientId, client_secret: acc.clientSecret, token: acc.token }),
+      signal: controller.signal,
     });
+    return res.ok ? { ok: true } : { ok: false, reason: 'http', status: res.status };
   } catch {
-    /* offline etc. */
+    return { ok: false, reason: controller.signal.aborted ? 'timeout' : 'network' };
+  } finally {
+    clearTimeout(timer);
   }
 }

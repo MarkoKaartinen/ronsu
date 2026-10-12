@@ -18,9 +18,36 @@ export function mentionPrefix(replyTo: Status | null, ownAcct: string): string {
   return unique.length ? unique.map((a) => `@${a}`).join(' ') + ' ' : '';
 }
 
-/** A reply inherits the original's visibility; a new post is public by default. */
-export function defaultVisibility(replyTo: Status | null): Visibility {
-  return replyTo?.visibility ?? 'public';
+/** From the widest to the narrowest audience */
+const AUDIENCE: Visibility[] = ['public', 'unlisted', 'private', 'direct'];
+
+/** Used when the account's own default is not known (not fetched yet, or fetching failed): never wider than followers */
+export const FALLBACK_VISIBILITY: Visibility = 'private';
+
+/** The posting privacy of the account (`source.privacy`); direct is not a default Mastodon accepts */
+export function parseDefaultPrivacy(value: unknown): Visibility | null {
+  return value === 'public' || value === 'unlisted' || value === 'private' ? value : null;
+}
+
+/** The one of the two with the smaller audience */
+export function narrower(a: Visibility, b: Visibility): Visibility {
+  return AUDIENCE.indexOf(a) >= AUDIENCE.indexOf(b) ? a : b;
+}
+
+/**
+ * The visibility a new form starts with: the account's own default. A reply (or a quote) is never wider than the
+ * post it answers nor than the account's default, so answering a followers-only post does not make it public and
+ * answering a public one does not make a followers-only account public. Without a known default it is
+ * FALLBACK_VISIBILITY, never public by accident.
+ */
+export function defaultVisibility(target: Status | null, accountDefault: Visibility | null): Visibility {
+  const own = accountDefault ?? FALLBACK_VISIBILITY;
+  return target ? narrower(target.visibility, own) : own;
+}
+
+/** Is somebody mentioned? A private mention goes only to the people mentioned in it. */
+export function hasMention(text: string): boolean {
+  return /(^|[^\w@])@[\w.-]+/.test(text);
 }
 
 /** Post languages (ISO 639-1; Norwegian is nb on Mastodon). Empty = the server's default. */

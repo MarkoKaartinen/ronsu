@@ -12,6 +12,7 @@
   import { accountStore } from '../lib/stores/accounts.svelte';
   import { i18n, t } from '../lib/stores/i18n.svelte';
   import { toast } from '../lib/stores/toast.svelte';
+  import { safeHttpUrl } from '../lib/url';
   import StatusCard from './StatusCard.svelte';
 
   // handle: "@user@server" (or a numeric account id from an older link)
@@ -39,12 +40,8 @@
   const following = $derived(rel ? isFollowing(rel) : false);
   /** The profile page on the account's own server, e.g. https://mstdn.social/@magdalenahai */
   const origin = $derived.by(() => {
-    try {
-      const url = new URL(account?.url ?? '');
-      return url.protocol === 'https:' || url.protocol === 'http:' ? { href: url.href, domain: url.hostname } : null;
-    } catch {
-      return null;
-    }
+    const href = safeHttpUrl(account?.url);
+    return href ? { href, domain: new URL(href).hostname } : null;
   });
 
   async function loadAccount() {

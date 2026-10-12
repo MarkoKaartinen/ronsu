@@ -310,7 +310,7 @@
   <p class="msg">
     {feed.items.length ? t('feed.caughtUp') : t('feed.empty')}
     {#if feed.order === 'oldest-first'}
-      <button onclick={() => feed.checkForNew()}>{t('feed.loadNew')}</button>
+      <button onclick={() => keepPlace(() => feed.checkForNew())}>{t('feed.loadNew')}</button>
     {/if}
   </p>
 {/if}

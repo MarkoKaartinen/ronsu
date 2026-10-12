@@ -88,7 +88,9 @@ export default defineConfig({
         navigateFallback: null,
         runtimeCaching: [
           {
-            urlPattern: ({ request }) => request.mode === 'navigate',
+            // Not the return from the login (?code=...&state=... or ?error=...): the one-time code must not end up in the cache
+            urlPattern: ({ request, url }) =>
+              request.mode === 'navigate' && !['code', 'state', 'error'].some((p) => url.searchParams.has(p)),
             handler: 'NetworkFirst',
             options: { cacheName: 'pages', networkTimeoutSeconds: 3 },
           },

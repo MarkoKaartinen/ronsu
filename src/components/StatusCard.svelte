@@ -12,6 +12,7 @@
   import { formatAge, formatDateTime, formatNumber, formatRelativeTime } from '../lib/i18n';
   import { i18n, t, tCounter } from '../lib/stores/i18n.svelte';
   import { lightbox } from '../lib/stores/lightbox.svelte';
+  import { safeHttpUrl } from '../lib/url';
 
   /**
    * focused: the thread's selected post (large layout). rail: a reading rail below the avatar down to the
@@ -110,6 +111,9 @@
    * A plain click on a picture opens the in-app viewer, with all the post's pictures to swipe through. The
    * link stays a real link, so ctrl/cmd/middle-click still opens the picture in a new tab.
    */
+  /** The post's own page on its server, only if it is a web address */
+  const originalUrl = $derived(safeHttpUrl(s.url ?? s.uri));
+
   function openImage(e: MouseEvent, id: string) {
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     e.preventDefault();
@@ -188,9 +192,9 @@
             <small>@{s.account.acct}</small>
           </a>
           <!-- The timestamp links to the original post on its own server; the thread opens by tapping the card -->
-          <a class="time" href={s.url ?? s.uri} target="_blank" rel="noopener noreferrer" title="{t('status.openOriginal')} · {formatDateTime(s.created_at, i18n.locale)}">
+          <svelte:element this={originalUrl ? 'a' : 'span'} class="time" href={originalUrl ?? undefined} target={originalUrl ? '_blank' : undefined} rel={originalUrl ? 'noopener noreferrer' : undefined} title="{t('status.openOriginal')} · {formatDateTime(s.created_at, i18n.locale)}">
             {formatRelativeTime(s.created_at, i18n.locale, clock.now)}
-          </a>
+          </svelte:element>
         </header>
       {/if}
 
@@ -244,20 +248,25 @@
               <button class="reveal" onclick={() => (mediaOpen = true)} title={t('status.showMedia')}>{t('status.sensitive')}</button>
             {:else}
               {#each s.media_attachments as m (m.id)}
-                {#if m.type === 'image'}
-                  <a href={m.url} target="_blank" rel="noopener noreferrer" onclick={(e) => openImage(e, m.id)} >
-                    <img src={m.preview_url} alt={m.description ?? ''} loading="lazy" decoding="async" />
+                <!-- An attachment whose address is not http(s) is left out rather than linked -->
+                {@const url = safeHttpUrl(m.url)}
+                {@const preview = safeHttpUrl(m.preview_url) ?? undefined}
+                {#if !url}
+                  <!-- nothing safe to show -->
+                {:else if m.type === 'image'}
+                  <a href={url} target="_blank" rel="noopener noreferrer" onclick={(e) => openImage(e, m.id)} >
+                    <img src={preview} alt={m.description ?? ''} loading="lazy" decoding="async" />
                   </a>
                 {:else if m.type === 'video'}
                   <!-- svelte-ignore a11y_media_has_caption -->
-                  <video src={m.url} poster={m.preview_url} controls preload="none" playsinline aria-label={m.description ?? ''} ></video>
+                  <video src={url} poster={preview} controls preload="none" playsinline aria-label={m.description ?? ''} ></video>
                 {:else if m.type === 'gifv'}
                   <!-- svelte-ignore a11y_media_has_caption -->
-                  <video src={m.url} poster={m.preview_url} autoplay loop muted playsinline aria-label={m.description ?? ''} ></video>
+                  <video src={url} poster={preview} autoplay loop muted playsinline aria-label={m.description ?? ''} ></video>
                 {:else if m.type === 'audio'}
-                  <audio src={m.url} controls preload="none"></audio>
+                  <audio src={url} controls preload="none"></audio>
                 {:else}
-                  <a href={m.url} target="_blank" rel="noopener noreferrer">{t('status.attachment')}</a>
+                  <a href={url} target="_blank" rel="noopener noreferrer">{t('status.attachment')}</a>
                 {/if}
               {/each}
             {/if}
@@ -271,9 +280,9 @@
 
       {#if focused}
         <p class="meta">
-          <a class="time" href={s.url ?? s.uri} target="_blank" rel="noopener noreferrer" title={t('status.openOriginal')}>
+          <svelte:element this={originalUrl ? 'a' : 'span'} class="time" href={originalUrl ?? undefined} target={originalUrl ? '_blank' : undefined} rel={originalUrl ? 'noopener noreferrer' : undefined} title={t('status.openOriginal')}>
             {formatDateTime(s.created_at, i18n.locale)}
-          </a>
+          </svelte:element>
         </p>
         <p class="stats">
           {#each [['status.replies', s.replies_count], ['status.boosts', s.reblogs_count], ['status.quotes', s.quotes_count], ['status.favorites', s.favourites_count]] as const as [key, count] (key)}

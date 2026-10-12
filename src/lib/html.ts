@@ -6,6 +6,8 @@ const ALLOWED_TAGS = [
   'pre', 'code', 'blockquote', 'ul', 'ol', 'li', 'img',
 ];
 const ALLOWED_ATTR = ['href', 'class', 'rel', 'target', 'src', 'alt', 'title', 'translate'];
+/** The same rule as safeHttpUrl() for the links and pictures inside the post HTML: web addresses only (no mailto:, tel:, ftp: ...) */
+const ALLOWED_URI_REGEXP = /^https?:/i;
 
 let hooked = false;
 function ensureHook() {
@@ -42,7 +44,7 @@ export function replaceEmojis(html: string, emojis: CustomEmoji[] | undefined): 
 /** Sanitizes server HTML (post content). */
 export function sanitizeContent(html: string, emojis?: CustomEmoji[]): string {
   ensureHook();
-  return DOMPurify.sanitize(replaceEmojis(html, emojis), { ALLOWED_TAGS, ALLOWED_ATTR });
+  return DOMPurify.sanitize(replaceEmojis(html, emojis), { ALLOWED_TAGS, ALLOWED_ATTR, ALLOWED_URI_REGEXP });
 }
 
 /** Turns plain text (e.g. a display name) into safe HTML, custom emoji included. */

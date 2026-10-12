@@ -12,9 +12,10 @@
   import { ApiError } from '../lib/api/client';
   import { updateMedia, uploadMedia, waitForProcessing } from '../lib/api/media';
   import { startLogin } from '../lib/api/oauth';
+  import { getDefaultPrivacy } from '../lib/api/accounts';
   import { getLimits, postStatus } from '../lib/api/statuses';
   import type { Visibility } from '../lib/api/types';
-  import { canSend, defaultLanguage, defaultVisibility, LANGUAGES, mentionPrefix, missingAltText, pickImages, remaining } from '../lib/composeLogic';
+  import { canSend, defaultLanguage, defaultVisibility, hasMention, LANGUAGES, mentionPrefix, missingAltText, pickImages, remaining } from '../lib/composeLogic';
   import { htmlToText } from '../lib/html';
   import { languageName, type MessageKey } from '../lib/i18n';
   import { accountStore } from '../lib/stores/accounts.svelte';
@@ -52,7 +53,11 @@
   let text = $state('');
   let cwOn = $state(false);
   let cw = $state('');
-  let visibility = $state<Visibility>('public');
+  let visibility = $state<Visibility>('private');
+  /** The reader has chosen the visibility themselves: the account's default arriving later must not override it */
+  let visibilityTouched = $state(false);
+  /** The account's default visibility is not known (never fetched, or fetching failed): the form says so */
+  let visibilityUnknown = $state(false);
   let language = $state('');
   let maxChars = $state(500);
   let maxMedia = $state(4);
@@ -89,7 +94,10 @@
     text = prefix;
     cwOn = false;
     cw = '';
-    visibility = defaultVisibility(replyTo);
+    const account = accountStore.active;
+    visibility = defaultVisibility(composer.replyTo ?? composer.quoting, account?.defaultPrivacy ?? null);
+    visibilityTouched = false;
+    visibilityUnknown = !account?.defaultPrivacy;
     language = defaultLanguage(readSavedLanguage(), navigator.language);
     error = '';
     busy = false;
@@ -101,12 +109,29 @@
     dragging = false;
     idempotencyKey = crypto.randomUUID();
     const client = accountStore.client();
-    if (client) {
+    if (client && account) {
+      refreshDefaultPrivacy(client, account.key, idempotencyKey);
       getLimits(client).then((l) => {
         maxChars = l.maxChars;
         maxMedia = l.maxMedia;
         altChars = l.altChars;
       });
+    }
+  }
+
+  /**
+   * Asks the server for the account's current default (it may have been changed on the server since the login).
+   * If that fails the form keeps what it started with: the stored default, or followers only (never public).
+   */
+  async function refreshDefaultPrivacy(client: NonNullable<ReturnType<typeof accountStore.client>>, key: string, form: string) {
+    try {
+      const privacy = await getDefaultPrivacy(client);
+      if (!privacy || form !== idempotencyKey) return; // not told, or the form was reset meanwhile
+      accountStore.setDefaultPrivacy(key, privacy);
+      visibilityUnknown = false;
+      if (!visibilityTouched) visibility = defaultVisibility(composer.replyTo ?? composer.quoting, privacy);
+    } catch {
+      /* offline or an error: see above */
     }
   }
 
@@ -210,6 +235,10 @@
       return;
     }
     altReminder = false;
+    if (visibility === 'direct' && !hasMention(text)) {
+      error = t('compose.directNeedsMention');
+      return;
+    }
     busy = true;
     error = '';
     try {
@@ -374,7 +403,7 @@
         {:else if visibility === 'private'}<Lock size={20} aria-hidden="true" />
         {:else}<AtSign size={20} aria-hidden="true" />{/if}
         <ChevronDown size={14} aria-hidden="true" />
-        <select bind:value={visibility} aria-label={t('compose.visibility')} title={t('compose.visibility')}>
+        <select bind:value={visibility} onchange={() => (visibilityTouched = true)} aria-label={t('compose.visibility')} title={t('compose.visibility')}>
           {#each VISIBILITIES as v (v.value)}
             <option value={v.value}>{t(v.label)}</option>
           {/each}
@@ -407,6 +436,9 @@
         {t('compose.media.reauth')}
         <button type="button" class="relogin" onclick={reauth}>{t('profile.reauthButton')}</button>
       </p>
+    {/if}
+    {#if visibilityUnknown && !visibilityTouched}
+      <p class="hint" role="status">{t('compose.visibilityUnknown')}</p>
     {/if}
     {#if error}
       <p class="error" role="alert">{error}</p>
@@ -480,6 +512,7 @@
   .tools .count { flex: none; margin-left: auto; color: var(--muted); font-weight: 600; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
   .tools .count.over { color: var(--danger); font-weight: 700; }
   .error { margin: 0; color: var(--danger); }
+  .hint { margin: 0; color: var(--muted); font-size: 0.9rem; }
   .relogin { min-height: 2.75rem; padding: 0 0.9rem; border: 1px solid var(--border); border-radius: 0.75rem; background: var(--surface); color: var(--text); font: inherit; }
   .tool:disabled { opacity: 0.4; cursor: default; }
   .media { display: flex; gap: 0.5rem; margin: 0; padding: 0; list-style: none; overflow-x: auto; }
