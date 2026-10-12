@@ -5,6 +5,13 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      # These depend on each other's major versions (a plugin needs a matching Vite), so they come as one pull request
+      vite:
+        patterns:
+          - vite
+          - vite-plugin-*
+          - "@sveltejs/vite-plugin-*"
   - package-ecosystem: github-actions
     directory: /
     schedule:
