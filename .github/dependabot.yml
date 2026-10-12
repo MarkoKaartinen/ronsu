@@ -5,6 +5,12 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # svelte-check (the type check) does not support TypeScript 7 yet. Remove this when its peerDependencies
+      # for typescript include 7: npm view svelte-check peerDependencies.typescript
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
     groups:
       # These depend on each other's major versions (a plugin needs a matching Vite), so they come as one pull request
       vite:
