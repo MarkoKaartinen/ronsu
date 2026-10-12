@@ -85,24 +85,11 @@ Requirements:
 - The server needs no rewrite rules (routing uses `#` URLs). Do not cache `index.html`, `sw.js`,
   `theme-init.js`, `boot-guard.js` and `manifest.webmanifest`, so updates apply immediately.
 
-### Security headers (required for a public deployment)
+### Security headers
 
-`index.html` has a Content-Security-Policy in a `<meta>` element. That works for scripts, styles and connections,
-but a browser **ignores `frame-ancestors` in a meta element**, so the only way to stop other sites from putting
-Ronsu in a frame (and tricking a logged-in reader into clicking something) is an HTTP response header from your
-web server. Send these headers with every response, in addition to the meta element:
-
-```
-Content-Security-Policy: default-src 'self'; img-src 'self' https: data: blob:; media-src 'self' https: blob:; connect-src 'self' https:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'
-X-Frame-Options: DENY
-X-Content-Type-Options: nosniff
-Referrer-Policy: strict-origin-when-cross-origin
-```
-
-(`X-Frame-Options` is for old browsers.) The policy is the one in `index.html` plus `frame-ancestors 'none'`; a
-unit test (`src/lib/headers.test.ts`) fails if the two drift apart, so update both together.
-
-nginx (in the `server` block; `always` also covers error pages):
+A browser ignores `frame-ancestors` in the `<meta>` Content-Security-Policy of `index.html`, so keeping other sites
+from putting Ronsu in a frame needs an HTTP header from your web server. Send the policy of `index.html` plus
+`frame-ancestors 'none'` with every response. nginx, in the `server` block:
 
 ```nginx
 add_header Content-Security-Policy "default-src 'self'; img-src 'self' https: data: blob:; media-src 'self' https: blob:; connect-src 'self' https:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'" always;
@@ -111,40 +98,12 @@ add_header X-Content-Type-Options "nosniff" always;
 add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 ```
 
-Apache (`mod_headers`, in the virtual host or `.htaccess`):
-
-```apache
-Header always set Content-Security-Policy "default-src 'self'; img-src 'self' https: data: blob:; media-src 'self' https: blob:; connect-src 'self' https:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
-Header always set X-Frame-Options "DENY"
-Header always set X-Content-Type-Options "nosniff"
-Header always set Referrer-Policy "strict-origin-when-cross-origin"
-```
-
-Caddy:
-
-```caddy
-header {
-    Content-Security-Policy "default-src 'self'; img-src 'self' https: data: blob:; media-src 'self' https: blob:; connect-src 'self' https:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
-    X-Frame-Options "DENY"
-    X-Content-Type-Options "nosniff"
-    Referrer-Policy "strict-origin-when-cross-origin"
-}
-```
-
-Netlify and Cloudflare Pages: put the same four headers under `/*` in a `_headers` file in the published folder
-(for example `static/_headers`, which the build copies to `public/`).
-
-Check the result on the real site, not in a local copy (reload after changing the server, headers can be cached by
-a CDN):
+Other servers need the same four headers set their own way. Check the real site:
 
 ```sh
-curl -sI https://ronsu.example.org/ | grep -iE 'content-security-policy|x-frame-options|x-content-type-options|referrer-policy'
+curl -sI https://ronsu.example.org/ | grep -iE 'content-security-policy|x-frame-options'
 ```
 
-The output must include `frame-ancestors 'none'`. Then try it: a page of your own with
-`<iframe src="https://ronsu.example.org/">` must show an empty frame (the console says the frame was refused).
-
-The login return address contains a one-time `code`. It is useless without the browser's secret verifier, but keep
-it out of long-lived logs where you can (for example do not log query strings of `/`).
+`src/lib/headers.test.ts` fails if the policy above and the one in `index.html` drift apart: update both.
 
 Tests before publishing: `npm run check`, `npm test`, `npm run test:e2e` (the last one needs the build and Chrome).
