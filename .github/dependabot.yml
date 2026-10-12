@@ -18,6 +18,12 @@ updates:
           - vite
           - vite-plugin-*
           - "@sveltejs/vite-plugin-*"
+      # A package goes in the first group it matches, so this one stays below the Vite group.
+      # Minor and patch updates of everything else come as one pull request, as some packages release every few days
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
   - package-ecosystem: github-actions
     directory: /
     schedule:
