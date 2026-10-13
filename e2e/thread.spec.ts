@@ -214,3 +214,41 @@ test('a short content warning keeps the button beside it, a long one puts the bu
     } else expect(box.left).toBeGreaterThan(text.right - 1);
   }
 });
+
+test('a reply that does not answer the post right above it says whom it answers', async ({ page }) => {
+  await mockMastodon(page, { marker: null, posts: [], branched: true });
+  await seedAccount(page);
+  await page.reload();
+  await page.waitForSelector('article[data-id]');
+  await page.evaluate((i) => (location.hash = `/thread/${i}`), idOf(150));
+  await page.waitForSelector('[data-focused]');
+  const label = (n: number) => page.locator(`article[data-id="${idOf(n)}"] .replyto`);
+  // 151 to 153 each answer the post above them and are indented one step deeper than it: no label needed
+  for (const n of [151, 152, 153]) await expect(label(n)).toHaveCount(0);
+  // Every reply is under the post it answers, even when the server listed it late
+  const ids = await page.locator('article[data-id]:visible').evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.id));
+  expect(ids.slice(3)).toEqual([151, 152, 153, 154, 155, 157, 156, 158].map((n) => idOf(n)));
+  // 154 and 155 stay in the capped column, 157 answers 151 after its branch; 156 answers the selected post: no label
+  for (const n of [154, 155, 157]) await expect(label(n)).toHaveText('Replying to @u');
+  await expect(label(156)).toHaveCount(0);
+});
+
+test('each reply to the selected post after the first starts with a full-width line', async ({ page }) => {
+  await mockMastodon(page, { marker: null, posts: [], branched: true });
+  await seedAccount(page);
+  await page.reload();
+  await page.waitForSelector('article[data-id]');
+  await page.evaluate((i) => (location.hash = `/thread/${i}`), idOf(150));
+  await page.waitForSelector('[data-focused]');
+  const row = (n: number) => page.locator(`.row:has(article[data-id="${idOf(n)}"])`);
+  // 156 is the second reply to the selected post: the line is on the row, which spans the whole width
+  await expect(row(156)).toHaveCSS('border-top-width', '1px');
+  await expect(row(156)).toHaveCSS('margin-left', '0px');
+  // The first reply follows the selected post's own bottom line, and a nested reply has no such line
+  await expect(row(151)).toHaveCSS('border-top-width', '0px');
+  await expect(row(157)).toHaveCSS('border-top-width', '0px');
+  // A row that starts a discussion is as tall as its post (it once collapsed to a line and the posts overlapped)
+  const boxes = await page.locator('article[data-id]:visible').evaluateAll((els) => els.map((e) => e.getBoundingClientRect()));
+  for (let i = 1; i < boxes.length; i++) expect(boxes[i].top, `post ${i}`).toBeGreaterThanOrEqual(boxes[i - 1].bottom - 1);
+  expect((await row(156).boundingBox())!.height).toBeGreaterThan(100);
+});
