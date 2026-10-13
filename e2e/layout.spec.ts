@@ -87,3 +87,30 @@ test('narrow screen (600px): the column is as wide as the screen while loading a
   const width = () => page.evaluate(() => Math.round(document.querySelector('.shell')!.getBoundingClientRect().width));
   expect(await width()).toBe(600);
 });
+
+test('the Ronsu logo goes to the feed: from the notifications on a phone, from a thread on a wide screen', async ({ page }) => {
+  await page.setViewportSize({ width: 420, height: 800 });
+  await open(page);
+  await page.getByRole('button', { name: 'Notifications' }).click();
+  await expect(page).toHaveURL(/#\/notifications$/);
+  await page.getByRole('button', { name: 'Ronsu' }).click();
+  await expect(page).not.toHaveURL(/#\/notifications/);
+  await expect(page.locator('article[data-id]:visible').first()).toBeVisible();
+
+  // A wide screen keeps the logo on every view, also above a thread
+  await page.setViewportSize({ width: 1366, height: 900 });
+  await page.evaluate(() => (location.hash = '/thread/109000000000000150'));
+  await expect(page.locator('[data-focused]')).toBeVisible();
+  await page.getByRole('button', { name: 'Ronsu' }).click();
+  await expect(page).not.toHaveURL(/#\/thread/);
+  await expect(page.locator('[data-focused]')).toHaveCount(0);
+});
+
+test('the Ronsu logo on the feed scrolls it to the top', async ({ page }) => {
+  await page.setViewportSize({ width: 420, height: 800 });
+  await open(page);
+  await page.evaluate(() => window.scrollTo(0, 1500));
+  await page.waitForTimeout(300);
+  await page.getByRole('button', { name: 'Ronsu' }).evaluate((el: HTMLElement) => el.click());
+  await expect.poll(() => page.evaluate(() => Math.round(scrollY))).toBe(0);
+});
