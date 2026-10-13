@@ -4,12 +4,17 @@ export type Order = 'oldest-first' | 'newest-first';
 
 export const PAGE_SIZE = 40;
 
-/** Newest-first mode: how many posts are kept in the list when newer ones are loaded to the top */
-export const MAX_KEPT = 150;
+/** A decision: how many posts stay in the list when "Load new" is pressed, so the page does not grow without end */
+export const MAX_KEPT = 50;
 
 /** The list without its oldest posts beyond `max`; the "Load more" button fetches them again when they are wanted */
 export function trimTail<T>(items: T[], max = MAX_KEPT): T[] {
   return items.length > max ? items.slice(0, max) : items;
+}
+
+/** The list without its first posts beyond `max` (oldest-first order: the oldest are at the start) */
+export function trimHead<T>(items: T[], max = MAX_KEPT): T[] {
+  return items.length > max ? items.slice(items.length - max) : items;
 }
 
 export type Params = Record<string, string | number>;
