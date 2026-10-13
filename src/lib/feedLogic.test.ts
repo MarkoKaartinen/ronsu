@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { advanceMarker, normalizePage, pageParams, pickLastVisibleId, pickTopId, skippedBetween, trimTail } from './feedLogic';
+import { advanceMarker, normalizePage, pageParams, pickLastVisibleId, pickTopId, skippedBetween, trimHead, trimTail } from './feedLogic';
 
 const ids = (xs: { id: string }[]) => xs.map((x) => x.id);
 const s = (...list: string[]) => list.map((id) => ({ id }));
@@ -119,5 +119,15 @@ describe('trimTail', () => {
   it('leaves a list within the limit as it is', () => {
     const list = [3, 2, 1];
     expect(trimTail(list, 3)).toBe(list);
+  });
+});
+
+describe('trimHead', () => {
+  it('drops the first posts beyond the limit', () => {
+    expect(trimHead([1, 2, 3, 4, 5], 3)).toEqual([3, 4, 5]);
+  });
+  it('leaves a list within the limit as it is', () => {
+    const list = [1, 2, 3];
+    expect(trimHead(list, 3)).toBe(list);
   });
 });

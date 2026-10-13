@@ -59,13 +59,15 @@
 
   /**
    * Keeps the content that is on screen at exactly the same place while `change` adds posts above it (Safari has
-   * no scroll anchoring, and it is turned off here anyway). The position of the first post is measured, not the
-   * whole page height, so the button disappearing or similar does not matter. Things above the screen keep
+   * no scroll anchoring, and it is turned off here anyway). The position of the first post on screen is measured,
+   * not the whole page height, so the button disappearing or similar does not matter. A post on screen is the
+   * anchor because the first of the list can be dropped by the change (oldest first: the oldest are trimmed). Things above the screen keep
    * changing size for a moment after the posts are in (fonts, link previews, images), so the place is held for
    * a short while, until the reader touches the screen: otherwise the page drifts on a phone.
    */
   async function keepPlace(change: () => Promise<void>) {
-    const anchor = listEl?.querySelector<HTMLElement>('article[data-id]');
+    const articles = [...(listEl?.querySelectorAll<HTMLElement>('article[data-id]') ?? [])];
+    const anchor = articles.find((a) => a.getBoundingClientRect().bottom > 0) ?? articles[0];
     const before = anchor?.getBoundingClientRect().top;
     await change();
     await tick();
