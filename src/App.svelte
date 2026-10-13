@@ -66,6 +66,12 @@
     wasTab = now;
   });
 
+  /** The logo: to the feed from anywhere (a thread, a profile, the notifications); on the feed itself, back to the top */
+  function goHome() {
+    if (tab === 'home') window.scrollTo({ top: 0, behavior: 'smooth' });
+    else router.openTab('home');
+  }
+
   $effect(() => themeStore.apply());
   $effect(() => fontStore.apply());
 
@@ -90,10 +96,10 @@
 {:else}
   {#snippet brandBar()}
     <header class="top">
-      <div class="brand">
+      <button class="brand" onclick={goHome} title={t('nav.home')}>
         <img src="/icon-192.png" alt="" width="40" height="40" />
         <strong>Ronsu</strong>
-      </div>
+      </button>
       <div class="right">
         {#if wide}
           <button class="icon compose" onclick={() => composer.show()} aria-label={t('nav.newPost')} title={t('nav.newPost')}>
@@ -210,7 +216,7 @@
   .shell { max-width: 40rem; margin: 0 auto; min-height: 100dvh; border-inline: 1px solid var(--border); background: var(--bg); box-shadow: 0 0 2rem rgb(0 0 0 / 0.2); padding-bottom: 0; }
   .top { display: flex; justify-content: space-between; align-items: center; padding: 0.7rem 1rem; background: var(--header); border-bottom: 1px solid var(--border); }
   .top.sticky { justify-content: flex-start; gap: 0.5rem; padding: 0.6rem 0.5rem; position: sticky; top: var(--sticky-top, 0); z-index: 3; background: var(--header); border-bottom: 1px solid var(--border); padding-bottom: 0.7rem; }
-  .brand { display: flex; align-items: center; gap: 0.65rem; }
+  .top button.brand { display: flex; align-items: center; gap: 0.65rem; padding: 0; background: none; border-radius: 0; color: inherit; font: inherit; }
   .brand img { border-radius: var(--radius-avatar); display: block; }
   .brand strong { font-size: 1.5rem; letter-spacing: -0.01em; }
   .top .right { display: flex; gap: 0.5rem; align-items: center; min-width: 0; }
