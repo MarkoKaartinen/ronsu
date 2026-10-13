@@ -200,3 +200,42 @@ for (const start of ['oldest-first', 'newest-first'] as const) {
     expect(after.newer.length).toBe(Number(BigInt(idOf(204)) - BigInt(after.restored)));
   });
 }
+
+test('"Load new" keeps at most 50 posts in the list, in both orders, and the post being read stays in place', async ({ page }) => {
+  // Newest first: the oldest posts at the end are dropped
+  const server = server0();
+  server.total = 140;
+  await open(page, server, 'newest-first');
+  server.total = 143;
+  await page.getByRole('button', { name: 'Load new' }).evaluate((el: HTMLElement) => el.click());
+  await expect(page.locator(`article[data-id="${idOf(142)}"]`)).toHaveCount(1);
+  await expect.poll(() => page.locator('article[data-id]').count()).toBeLessThanOrEqual(50);
+  await expect(page.locator('article[data-id]').first()).toHaveAttribute('data-id', idOf(142));
+});
+
+test('oldest first: "Load new" at the end drops the oldest posts beyond 50 and keeps the view', async ({ page }) => {
+  const server = server0();
+  await open(page, server);
+  await toEnd(page);
+  await expect(page.getByText('You are all caught up.')).toBeVisible();
+  const before = await top(page, idOf(199)); // the last post of the list
+  server.total = 215;
+  await page.getByRole('button', { name: 'Load new' }).click();
+  await expect(page.locator(`article[data-id="${idOf(214)}"]`)).toHaveCount(1);
+  await expect.poll(() => page.locator('article[data-id]').count()).toBeLessThanOrEqual(50);
+  await expect(page.getByRole('button', { name: 'Load older' })).toBeVisible();
+  // The new posts are below the screen and the post that was last stays exactly where it was
+  await expect.poll(async () => Math.abs((await top(page, idOf(199))) - before)).toBeLessThan(2);
+});
+
+test('"Load new" with nothing new drops nothing, in either order', async ({ page }) => {
+  const server = server0();
+  await open(page, server);
+  await toEnd(page);
+  await expect(page.getByText('You are all caught up.')).toBeVisible();
+  const count = await page.locator('article[data-id]').count();
+  expect(count).toBeGreaterThan(50);
+  await page.getByRole('button', { name: 'Load new' }).click();
+  await page.waitForTimeout(500);
+  expect(await page.locator('article[data-id]').count()).toBe(count);
+});

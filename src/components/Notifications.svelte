@@ -11,6 +11,7 @@
   import type { Account, Notification } from '../lib/api/types';
   import { sanitizeText } from '../lib/html';
   import { clock, startClock } from '../lib/clock.svelte';
+  import { MAX_KEPT } from '../lib/feedLogic';
   import { formatRelativeTime } from '../lib/i18n';
   import { profileHref, router } from '../lib/router.svelte';
   import { i18n, t } from '../lib/stores/i18n.svelte';
@@ -25,8 +26,6 @@
   setContext('mastodon-client', client);
 
   const PAGE = 30;
-  /** At most this many are kept when the newest are loaded: the older ones at the end are dropped, "Load older" brings them back */
-  const MAX_KEPT = 50;
   /**
    * The types that are shown. Mentions (and quotes, new posts of someone you follow) are posts of their own and
    * can be answered here; the others are a line saying what happened, with the post it was about.

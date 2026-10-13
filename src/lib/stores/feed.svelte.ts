@@ -3,7 +3,7 @@ import { tNow } from '../i18n/runtime';
 import { compareIds, getHomeMarker, saveHomeMarker } from '../api/markers';
 import { clockOffset, isForeignUpdate, parsePos, pickStart, type Pos } from '../markerSync';
 import type { Marker, Status } from '../api/types';
-import { advanceMarker, normalizePage, pageParams, PAGE_SIZE, skippedBetween, trimTail, type Order } from '../feedLogic';
+import { advanceMarker, normalizePage, pageParams, MAX_KEPT, PAGE_SIZE, skippedBetween, trimHead, trimTail, type Order } from '../feedLogic';
 
 const ORDER_KEY = 'reading-order';
 /** Where this device's clock is relative to the server's (ms), learned from our own saves */
@@ -395,6 +395,11 @@ export class FeedStore {
     await this.loadMore();
     // Another device has moved on and loadMore asked about it instead of fetching: it is still the end of the list
     if (this.items.length === count && this.remoteAhead && !this.error) this.endReached = true;
+    if (this.items.length > count && this.items.length > MAX_KEPT) {
+      // Only when new posts came: the oldest at the start are dropped, "Load older" brings them back
+      this.items = trimHead(this.items);
+      this.olderEnd = false;
+    }
   }
 
   /** Asks for the newest post of the home timeline (one small request). */
