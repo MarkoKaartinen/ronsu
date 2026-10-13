@@ -65,6 +65,7 @@ export interface Server {
   formatted?: boolean; // some posts have a quote, a code block and a list
   cwLong?: boolean; // with `cw`: the warning text is long
   cw?: boolean; // some posts have a content warning
+  branched?: boolean; // the thread has a deep chain of replies and a second reply to the selected post and a late reply
   aspect?: number; // aspect ratio of the pictures (default 4/3)
   images?: number; // pictures per post that has any (default 1)
   dupFields?: boolean; // the profile has two fields with the same name
@@ -228,6 +229,16 @@ export async function mockMastodon(page: Page, server: Server) {
         descendants: [
           { ...status(i + 1), in_reply_to_id: idOf(i) },
           { ...status(i + 2), in_reply_to_id: idOf(i + 1) },
+          ...(server.branched
+            ? [
+                { ...status(i + 3), in_reply_to_id: idOf(i + 2) },
+                { ...status(i + 4), in_reply_to_id: idOf(i + 3) },
+                { ...status(i + 5), in_reply_to_id: idOf(i + 4) },
+                { ...status(i + 6), in_reply_to_id: idOf(i) },
+                { ...status(i + 7), in_reply_to_id: idOf(i + 1) }, // listed late: it belongs under 151
+                { ...status(i + 8), in_reply_to_id: idOf(i + 6) }, // a reply to 156, which starts a discussion of its own
+              ]
+            : []),
           ...own,
         ],
       });
