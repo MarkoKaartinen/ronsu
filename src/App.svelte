@@ -235,7 +235,7 @@
   /* The second column: as high as the screen and scrolling on its own, while the feed scrolls with the page */
   .aside { flex: 0 0 clamp(19rem, 46%, 30rem); position: sticky; top: var(--sticky-top, 0); height: calc(100dvh - var(--sticky-top, 0px)); overflow-y: auto; overscroll-behavior: contain; background: var(--bg); border-right: 1px solid var(--border); padding-bottom: 1rem; box-sizing: border-box; }
   .shell.wide.home { padding-bottom: 2rem; }
-  .shell.home { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom)); } /* room for the bottom bar below the last item */
+  .shell.home { padding-bottom: calc(5.5rem + var(--inset-bottom)); } /* room for the bottom bar below the last item */
   .shell { max-width: 40rem; margin: 0 auto; min-height: 100dvh; border-inline: 1px solid var(--border); background: var(--bg); box-shadow: 0 0 2rem rgb(0 0 0 / 0.2); padding-bottom: 0; }
   .top { display: flex; justify-content: space-between; align-items: center; padding: 0.7rem 1rem; background: var(--header); border-bottom: 1px solid var(--border); }
   .top.sticky { justify-content: flex-start; gap: 0.5rem; padding: 0.6rem 0.5rem; position: sticky; top: var(--sticky-top, 0); z-index: 3; background: var(--header); border-bottom: 1px solid var(--border); padding-bottom: 0.7rem; }
