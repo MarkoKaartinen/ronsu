@@ -23,7 +23,7 @@ class ThemeStore {
   /** Applies the chosen theme to the DOM (data-theme and the browser colour); called from an $effect */
   apply() {
     document.documentElement.setAttribute('data-theme', this.current.id);
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', this.current.colors.bg);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', this.current.colors.header); // the colour of the top and bottom bars: the system bars beside them blend in
   }
 
   set(patch: Partial<ThemePrefs>) {

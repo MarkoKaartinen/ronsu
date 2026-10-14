@@ -210,11 +210,11 @@ export const PREFS_KEY = 'theme-prefs';
 
 /**
  * Script that runs before the first paint (loaded as an external file because the CSP does not allow
- * inline scripts): sets data-theme and theme-color so the page does not flash the wrong theme. The same
+ * inline scripts): sets data-theme and theme-color (the header colour, which is what the bars at the top and bottom of the page have) so the page does not flash the wrong theme. The same
  * logic as resolveTheme + parsePrefs, but independent of bundling.
  */
 export function themeInitScript(themes: Theme[] = THEMES): string {
-  const list = themes.map((t) => ({ id: t.id, scheme: t.scheme, bg: t.colors.bg }));
+  const list = themes.map((t) => ({ id: t.id, scheme: t.scheme, header: t.colors.header }));
   return `(function(){try{
 var T=${JSON.stringify(list)},p={};
 try{p=JSON.parse(localStorage.getItem(${JSON.stringify(PREFS_KEY)})||'{}')||{}}catch(e){}
@@ -223,7 +223,7 @@ var s=dark?'dark':'light',w=dark?p.dark:p.light,t=null,i;
 for(i=0;i<T.length;i++){if(T[i].scheme===s&&(t===null||T[i].id===w))t=T[i];if(T[i].scheme===s&&T[i].id===w)break}
 if(!t)t=T[0];
 document.documentElement.setAttribute('data-theme',t.id);
-var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t.bg);
+var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t.header);
 }catch(e){}})();
 `;
 }
