@@ -72,7 +72,7 @@ export default defineConfig({
         start_url: '/',
         scope: '/',
         theme_color: '#252a34',
-        background_color: '#2e3440',
+        background_color: '#252a34',
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
