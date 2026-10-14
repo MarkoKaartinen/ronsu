@@ -111,8 +111,8 @@ describe('themeInitScript', () => {
   }
 
   it('follows the system setting without stored choices', () => {
-    expect(run(undefined, true)).toEqual({ id: 'nord-dark', color: '#2e3440' });
-    expect(run(undefined, false)).toEqual({ id: 'nord-light', color: '#eceff4' });
+    expect(run(undefined, true)).toEqual({ id: 'nord-dark', color: '#252a34' }); // the header colour: the system bars blend in with the bars of the page
+    expect(run(undefined, false)).toEqual({ id: 'nord-light', color: '#d8dee9' });
   });
   it("the user's mode overrides the system", () => {
     expect(run({ mode: 'light' }, true).id).toBe('nord-light');

@@ -17,7 +17,7 @@ test('the theme follows the system, the choice is saved and survives a reload', 
   await page.emulateMedia({ colorScheme: 'light' });
   await expect.poll(() => theme(page)).toBe('nord-light');
   expect(await bg(page)).toBe('rgb(236, 239, 244)');
-  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#eceff4');
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#d8dee9');
 
   // The user's choice overrides the system and persists; the first paint already has the right theme
   await page.getByRole('button', { name: /^Account: @/ }).click();
@@ -46,7 +46,7 @@ test('Dracula and Alucard can be chosen as the dark and the light theme, and are
   await page.getByRole('button', { name: 'Light', exact: true }).click();
   await expect.poll(() => theme(page)).toBe('dracula-light');
   expect(await bg(page)).toBe('rgb(255, 251, 235)');
-  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#fffbeb');
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#dedccf');
 
   // The first paint after a reload already has the chosen theme
   await page.reload();
