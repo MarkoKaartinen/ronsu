@@ -35,7 +35,37 @@ Source code and issues: <https://github.com/MarkoKaartinen/ronsu>
 - Light and dark themes that follow the system or your own choice: Nord (dark/light) and Dracula (dark) / Alucard (light)
 - English and Finnish, switchable in the settings
 - A choice of fonts: Figtree, Inter, Open Sans, JetBrains Mono or the system font (all SIL OFL, self-hosted)
+- Push notifications, also when Ronsu is closed: a switch per notification type, a sound switch per type, and
+  a choice of whom they come from (see [Push notifications](#push-notifications))
+- A red ball on the bell in the bottom bar (and a mark in the page title and on the app icon) when there is
+  something you have not seen; it follows the server's notifications marker, so it is the same on every device
 - Installable as a PWA, works offline for the app shell
+
+## Push notifications
+
+Push notifications need no server of Ronsu's own. The browser subscribes to the push service with your Mastodon
+server's key and gives the address to your server (Mastodon's Web Push API), which then sends the notifications
+straight to the browser. Ronsu's service worker shows them.
+
+- **Permission:** push needs the `push` OAuth scope. A login made before it was added is asked to log in again
+  (the banner at the top); after that the switch is in the settings.
+- **Settings:** which types are sent, and from whom, are stored on the server for this login, so they are separate
+  on each device you log in on. The sound and the mark on the app icon are remembered by the device. The server
+  decides what is sent; Ronsu decides how a notification arrives.
+- **Sound:** the sound of a notification is the system's own. A page can only choose whether a notification makes
+  one, so each type has a sound switch and no choice of sound. While Ronsu is open and in use, it shows the news
+  itself instead (the notifications update at once and Ronsu makes a short sound if that type's sound is on).
+- **Test:** "Send a test notification" shows one through the service worker. It checks the permission, the sound and
+  the click, not that your server delivers; for that, have someone favorite one of your posts.
+- **Server:** the server must send its VAPID key in the instance information (Mastodon 4.3 or newer). Ronsu asks
+  for the standardized encryption, which Mastodon 4.4 or newer supports; the push of an older server may not reach
+  Safari.
+- **iPhone and iPad:** web push works only for an app added to the Home Screen.
+- **Accounts:** a browser subscription is made with one server's key, so push works for the accounts of one server at
+  a time; switching push on for an account on another server replaces the subscription of the first.
+
+The bell shows what the server's `notifications` marker says: it moves forward when you look at the notifications
+(or have them in view on a wide screen), and Mastodon's own apps read and write the same marker.
 
 ## Development
 
@@ -57,7 +87,7 @@ npm run test:e2e     # Playwright (serves the built public/ folder, mocked API, 
 - `src/` the app (`components/`, `lib/` logic and API client, `lib/stores/` state)
 - `src/lib/themes.ts` and `src/lib/fonts.ts` the themes and fonts as data (Nord, Dracula/Alucard; Figtree, Inter, ...); their CSS and `theme-init.js` are generated at build time
 - `src/lib/i18n/` the translations (`en.ts`, `fi.ts`) and the helpers for formatting
-- `static/` files copied as is into `public/` (icons)
+- `static/` files copied as is into `public/` (icons, `push-sw.js`: the push part of the service worker, plain JavaScript)
 - `branding/` the logo sources (SVG)
 - `e2e/` Playwright tests
 

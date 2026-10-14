@@ -6,15 +6,18 @@
   import Repeat2 from '@lucide/svelte/icons/repeat-2';
   import UserCheck from '@lucide/svelte/icons/user-check';
   import UserPlus from '@lucide/svelte/icons/user-plus';
-  import { setContext, tick, untrack } from 'svelte';
+  import { onMount, setContext, tick, untrack } from 'svelte';
   import type { MastodonClient } from '../lib/api/client';
   import type { Account, Notification } from '../lib/api/types';
   import { sanitizeText } from '../lib/html';
   import { clock, startClock } from '../lib/clock.svelte';
   import { MAX_KEPT } from '../lib/feedLogic';
+  import { PUSH_TYPES } from '../lib/pushLogic';
   import { formatRelativeTime } from '../lib/i18n';
   import { profileHref, router } from '../lib/router.svelte';
   import { i18n, t } from '../lib/stores/i18n.svelte';
+  import { push } from '../lib/stores/push.svelte';
+  import { unread } from '../lib/stores/unread.svelte';
   import { toast } from '../lib/stores/toast.svelte';
   import StatusCard from './StatusCard.svelte';
 
@@ -30,7 +33,7 @@
    * The types that are shown. Mentions (and quotes, new posts of someone you follow) are posts of their own and
    * can be answered here; the others are a line saying what happened, with the post it was about.
    */
-  const SHOWN = new Set(['mention', 'status', 'quote', 'reblog', 'favourite', 'follow', 'follow_request', 'poll', 'update']);
+  const SHOWN = new Set<string>(PUSH_TYPES);
   const WITH_LINE = new Set(['reblog', 'favourite', 'poll', 'update']);
   /** A boost or a favorite is only a line and a short excerpt of your post; the others show the post with its buttons */
   const LIGHT = new Set(['reblog', 'favourite']);
@@ -60,7 +63,8 @@
     ...extra,
   });
 
-  async function refresh() {
+  /** `quiet`: not asked for by the reader (a push arrived), so it does not say when there is nothing new */
+  async function refresh(quiet = false) {
     if (loading) return;
     const gen = generation;
     loading = true;
@@ -77,7 +81,7 @@
         cursor = page.items.at(-1)?.id;
         end = page.items.length === 0;
       } else if (fresh.length === 0) {
-        toast.show(t('feed.noNew'), 'info', 2500); // said for a moment instead of silently doing nothing
+        if (!quiet) toast.show(t('feed.noNew'), 'info', 2500); // said for a moment instead of silently doing nothing
       } else {
         const all = [...fresh, ...items];
         items = all.slice(0, MAX_KEPT);
@@ -88,6 +92,7 @@
         }
       }
       loadedAt = Date.now();
+      markSeen();
     } catch (e) {
       if (gen === generation) error = errorText(e);
     } finally {
@@ -138,26 +143,52 @@
     refresh();
   }
 
-  // Nothing is fetched by itself after the first time: the newest only with "Load new", older ones with "Load older"
+  /** Looking at the notifications moves the server's marker, so they are not shown as new here or on another device */
+  function markSeen() {
+    if (active && document.visibilityState === 'visible') void unread.seen(client);
+  }
+
+  // Nothing is fetched by itself after the first time, except when the news has been announced: "Load new" brings the
+  // newest, "Load older" the older ones
   $effect(() => {
-    if (active && loadedAt === 0) untrack(refresh);
+    if (active && loadedAt === 0) untrack(() => refresh());
+  });
+  // Opened again while there is something new (the bell showed it)
+  $effect(() => {
+    if (active) untrack(() => loadedAt > 0 && unread.hasNew && reload(true));
+  });
+  // A push arrived while the app is open: the new ones come in at the top
+  $effect(() => {
+    if (push.signal > 0) untrack(() => active && loadedAt > 0 && reload(true));
   });
 
   /**
    * "Load new": the new ones go to the top of the list. If the reader has scrolled down, what is on screen is kept
    * at the same place (the first row is measured, as in the feed), so the list does not move under them.
    */
-  async function reload() {
+  async function reload(quiet = false) {
     const column = root?.closest('.aside');
     const scrolled = column ? column.scrollTop > 40 : window.scrollY > 40;
     const anchor = root?.querySelector<HTMLElement>('.list')?.firstElementChild as HTMLElement | null | undefined;
     const before = anchor?.getBoundingClientRect().top;
-    await refresh();
+    await refresh(quiet);
     await tick();
     if (!scrolled || !anchor?.isConnected || before === undefined) return;
     const moved = anchor.getBoundingClientRect().top - before;
     if (moved) (column ?? window).scrollBy(0, moved);
   }
+
+  // The window comes back into view: what arrived meanwhile is fetched, and seen
+  onMount(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible' || !active || loadedAt === 0) return;
+      void unread.check(client).then(() => {
+        if (unread.hasNew) void reload(true);
+      });
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  });
 
   /** Several people doing the same thing become one row: favorites and boosts of the same post, a run of follows */
   type Row = { key: string; n: Notification; accounts: Account[] };
@@ -229,7 +260,7 @@
     <button class:on={filter === 'mentions'} aria-pressed={filter === 'mentions'} onclick={() => setFilter('mentions')}>{t('notif.mentions')}</button>
   </div>
   <div class="reloading">
-    <button class="reload" onclick={reload} disabled={loading} aria-busy={refreshing}>
+    <button class="reload" onclick={() => reload()} disabled={loading} aria-busy={refreshing}>
       {#if refreshing}<LoaderCircle class="spin" size={16} aria-hidden="true" />{t('common.loading')}{:else}{t('feed.loadNew')}{/if}
     </button>
   </div>

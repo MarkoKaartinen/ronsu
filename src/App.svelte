@@ -2,7 +2,7 @@
   import ArrowLeft from '@lucide/svelte/icons/arrow-left';
   import SquarePen from '@lucide/svelte/icons/square-pen';
   import X from '@lucide/svelte/icons/x';
-  import { onMount, tick } from 'svelte';
+  import { onMount, tick, untrack } from 'svelte';
   import { finishLogin, hasOAuthCallback, missingScopes, startLogin } from './lib/api/oauth';
   import { accountStore } from './lib/stores/accounts.svelte';
   import Login from './components/Login.svelte';
@@ -18,6 +18,8 @@
   import { themeStore } from './lib/stores/theme.svelte';
   import { router } from './lib/router.svelte';
   import { composer } from './lib/stores/composer.svelte';
+  import { push } from './lib/stores/push.svelte';
+  import { unread } from './lib/stores/unread.svelte';
   import { t } from './lib/stores/i18n.svelte';
   import { toast } from './lib/stores/toast.svelte';
 
@@ -74,8 +76,29 @@
 
   $effect(() => themeStore.apply());
   $effect(() => fontStore.apply());
+  $effect(() => unread.apply());
+
+  /**
+   * Is there something new in the notifications? Asked when the account is chosen, when the app comes back into view
+   * and when a push arrives. Not when the notifications are in view themselves: they see to it (and mark it seen).
+   */
+  function checkUnread() {
+    const client = accountStore.client();
+    if (!client || ((onNotifications || wide) && document.visibilityState === 'visible')) return;
+    void unread.check(client);
+  }
+  $effect(() => {
+    accountStore.activeKey;
+    push.signal;
+    untrack(checkUnread);
+  });
+  onMount(() => {
+    document.addEventListener('visibilitychange', checkUnread);
+    return () => document.removeEventListener('visibilitychange', checkUnread);
+  });
 
   onMount(async () => {
+    void push.init();
     await accountStore.load();
     if (hasOAuthCallback()) {
       try {
@@ -118,7 +141,7 @@
 {/snippet}
 
   {#if needsReauth && !reauthDismissed}
-    <div class="reauth" role="status">
+    <div class="reauth" class:wide role="status">
       <span>{t('scopes.banner')}</span>
       <button class="primary" onclick={reauth}>{t('profile.reauthButton')}</button>
       <button onclick={() => (reauthDismissed = true)}>{t('feed.notNow')}</button>
@@ -229,8 +252,10 @@
   .toast { position: fixed; left: 50%; bottom: calc(1.2rem + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 30; display: flex; gap: 0.8rem; align-items: center; max-width: min(32rem, calc(100vw - 2rem)); padding: 0.7rem 1rem; border-radius: 0.6rem; background: var(--danger-bg); color: var(--on-danger-bg); box-shadow: 0 4px 16px rgb(0 0 0 / 0.3); }
   .toast.info { background: var(--accent); color: var(--on-accent); }
   .toast button { display: inline-flex; background: none; border: 0; color: inherit; padding: 0.2rem; }
-  .reauth { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; max-width: 40rem; margin: 0 auto; padding: 0.6rem 1rem; background: color-mix(in srgb, var(--accent) 16%, var(--bg)); border-bottom: 1px solid var(--accent); font-weight: 600; box-sizing: border-box; }
-  .reauth span { flex: 1; min-width: 12rem; }
+  /* As wide as the page below it (one column, or the two columns on a wide screen), with the same side lines */
+  .reauth { display: flex; gap: 0.5rem 0.75rem; align-items: center; flex-wrap: wrap; max-width: 40rem; margin: 0 auto; padding: 0.7rem 1rem; background: color-mix(in srgb, var(--accent) 16%, var(--bg)); border-inline: 1px solid var(--border); border-bottom: 1px solid var(--accent); font-size: 0.9rem; font-weight: 600; box-sizing: border-box; }
+  .reauth.wide { max-width: 64rem; }
+  .reauth span { flex: 1; min-width: 14rem; }
   .reauth button { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 0.4rem; padding: 0.4rem 0.9rem; min-height: 2.5rem; }
   .reauth .primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
   .loading { text-align: center; margin-top: 3rem; color: var(--muted); }

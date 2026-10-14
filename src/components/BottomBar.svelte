@@ -6,6 +6,7 @@
   import { router } from '../lib/router.svelte';
   import { composer } from '../lib/stores/composer.svelte';
   import { t } from '../lib/stores/i18n.svelte';
+  import { unread } from '../lib/stores/unread.svelte';
 
   let { current }: { current: 'home' | 'notifications' } = $props();
 
@@ -34,8 +35,11 @@
   <button class="compose" onclick={() => composer.show()} aria-label={t('nav.newPost')} title={t('nav.newPost')}>
     <SquarePen size={20} aria-hidden="true" />
   </button>
-  <button class:on={current === 'notifications'} aria-current={current === 'notifications' ? 'page' : undefined} onclick={() => router.openTab('notifications')}>
-    <Bell size={20} aria-hidden="true" />
+  <button class:on={current === 'notifications'} aria-current={current === 'notifications' ? 'page' : undefined} aria-label={unread.hasNew ? t('nav.notificationsNew') : undefined} onclick={() => router.openTab('notifications')}>
+    <span class="bell">
+      <Bell size={20} aria-hidden="true" />
+      {#if unread.hasNew}<span class="dot" aria-hidden="true"></span>{/if}
+    </span>
     <span>{t('nav.notifications')}</span>
   </button>
 </nav>
@@ -51,5 +55,8 @@
   .bar.hidden { transform: translateY(100%); }
   button { display: flex; flex-direction: column; align-items: center; gap: 0.1rem; flex: 1; min-height: 2.5rem; padding: 0.1rem 0; border: 0; background: none; color: var(--muted); font-size: 0.7rem; font-weight: 600; }
   button.on { color: var(--accent); }
+  .bell { position: relative; display: inline-flex; }
+  /* A red ball on the bell: something in the notifications has not been seen */
+  .dot { position: absolute; top: -0.15rem; right: -0.3rem; width: 0.65rem; height: 0.65rem; border-radius: 50%; background: var(--danger); border: 2px solid var(--header); box-sizing: content-box; }
   button.compose { flex: none; width: 2.75rem; height: 2.75rem; min-height: 0; margin: 0 0.5rem; justify-content: center; border-radius: var(--radius-avatar); background: var(--accent); color: var(--on-accent); box-shadow: 0 2px 8px rgb(0 0 0 / 0.3); }
 </style>

@@ -1,12 +1,18 @@
 import type { Page } from '@playwright/test';
 
 const HOST = 'https://mock.test';
+/** What the app asks a login for (src/lib/api/oauth.ts); a seeded account has been given all of it, or the app would ask to log in again */
+export const SCOPES =
+  'read:accounts read:statuses read:notifications read:follows write:favourites write:statuses write:media write:bookmarks write:follows push';
 export const COUNT = 200;
 const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
   'base64',
 );
 const BASE_ID = 109000000000000000n;
+
+/** The server's VAPID key: the 65 bytes of a P-256 public key, URL-safe base64 */
+export const VAPID_KEY = 'BCk-QqERU0q-CfYZjcuB6lnyyOYfJ2AifKqfeGIm7Z-HiTU5T9eTG5GxVA0_OH5mMlI4UkkDTpaZwozy0TzdZ2M';
 
 export const idOf = (i: number) => (BASE_ID + BigInt(i)).toString();
 
@@ -87,6 +93,12 @@ export interface Server {
   revoked?: string[]; // the tokens POST /oauth/revoke was called with
   marker: { last_read_id: string; version: number; updated_at: string } | null;
   posts: string[]; // POST /markers calls
+  notifications?: number; // the id of the newest notification (GET /notifications?limit=1); there are none when not set
+  notifMarker?: { last_read_id: string; version: number; updated_at: string } | null; // the notifications marker
+  notifPosts?: string[]; // POST /markers calls for the notifications marker
+  vapid?: string | false; // the server's VAPID key in the instance information (a key when not set); false: none
+  push?: { endpoint: string; alerts: Record<string, boolean> } | null; // the push subscription of the login
+  pushCalls?: { method: string; body: Record<string, any> }[]; // calls to /push/subscription
 }
 
 /** Mocks the Mastodon API. Post 0 is the oldest, COUNT-1 the newest. */
@@ -117,11 +129,19 @@ export async function mockMastodon(page: Page, server: Server) {
     if (url.pathname === '/api/v1/markers') {
       if (req.method() === 'POST') {
         const body = JSON.parse(req.postData() ?? '{}');
+        if (body.notifications) {
+          server.notifMarker = { last_read_id: body.notifications.last_read_id, version: (server.notifMarker?.version ?? 0) + 1, updated_at: new Date().toISOString() };
+          (server.notifPosts ??= []).push(body.notifications.last_read_id);
+          return json({ notifications: server.notifMarker });
+        }
         server.marker = { last_read_id: body.home.last_read_id, version: (server.marker?.version ?? 0) + 1, updated_at: new Date().toISOString() };
         server.posts.push(body.home.last_read_id);
         return json({ home: server.marker });
       }
-      return json(server.marker ? { home: server.marker } : {});
+      return json({
+        ...(server.marker ? { home: server.marker } : {}),
+        ...(url.searchParams.getAll('timeline[]').includes('notifications') && server.notifMarker ? { notifications: server.notifMarker } : {}),
+      });
     }
     if (url.pathname === '/api/v1/timelines/home') {
       const limit = Number(url.searchParams.get('limit') ?? 20);
@@ -183,7 +203,24 @@ export async function mockMastodon(page: Page, server: Server) {
       });
     }
     if (url.pathname === '/api/v2/instance') {
-      return json({ configuration: { statuses: { max_characters: 500 } } });
+      const vapid = server.vapid === false ? {} : { vapid: { public_key: server.vapid ?? VAPID_KEY } };
+      return json({ configuration: { statuses: { max_characters: 500 }, ...vapid } });
+    }
+    if (url.pathname === '/api/v1/notifications' && !url.searchParams.get('max_id')) {
+      const newest = server.notifications;
+      return json(newest === undefined ? [] : [{ id: String(newest), type: 'mention', created_at: new Date().toISOString(), account: { id: '2', username: 'u', acct: 'u', display_name: 'U', avatar: '', url: '', emojis: [] }, status: status(1) }]);
+    }
+    if (url.pathname === '/api/v1/push/subscription') {
+      const body = req.postData() ? JSON.parse(req.postData()!) : {};
+      (server.pushCalls ??= []).push({ method: req.method(), body });
+      const subscription = () => ({ id: 1, endpoint: server.push!.endpoint, alerts: server.push!.alerts, server_key: VAPID_KEY });
+      if (req.method() === 'GET') {
+        return server.push ? json(subscription()) : route.fulfill({ status: 404, headers: { ...cors, 'content-type': 'application/json' }, body: '{"error":"Record not found"}' });
+      }
+      if (req.method() === 'POST') server.push = { endpoint: body.subscription.endpoint, alerts: { ...body.data.alerts } };
+      else if (req.method() === 'PUT') server.push = { endpoint: server.push!.endpoint, alerts: { ...body.data.alerts } };
+      else server.push = null;
+      return json(server.push ? subscription() : {});
     }
     if (url.pathname === '/api/v2/media' && req.method() === 'POST') {
       if (server.noMediaScope) {
@@ -275,9 +312,9 @@ function range(a: number, b: number) {
 }
 
 /** Stores the account in IndexedDB in the same format as the app (idb-keyval). */
-export async function seedAccount(page: Page) {
+export async function seedAccount(page: Page, scopes: string = SCOPES) {
   await page.goto('/');
-  await page.evaluate(async () => {
+  await page.evaluate(async (scopes) => {
     const db: IDBDatabase = await new Promise((resolve, reject) => {
       const r = indexedDB.open('keyval-store');
       r.onupgradeneeded = () => r.result.createObjectStore('keyval');
@@ -286,7 +323,7 @@ export async function seedAccount(page: Page) {
     });
     const acc = {
       key: 'mock.test|1', instance: 'mock.test', clientId: 'c', clientSecret: 's', token: 't',
-      accountId: '1', acct: 'me', displayName: 'Me', avatar: '',
+      accountId: '1', acct: 'me', displayName: 'Me', avatar: '', scopes,
     };
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction('keyval', 'readwrite');
@@ -296,7 +333,7 @@ export async function seedAccount(page: Page) {
       tx.onerror = () => reject(tx.error);
     });
     db.close();
-  });
+  }, scopes);
 }
 
 /**

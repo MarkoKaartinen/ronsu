@@ -378,13 +378,18 @@ test.describe('new permissions', () => {
   }
   const banner = (page: Page) => page.getByRole('status').filter({ hasText: 'needs new permissions' });
 
-  test('a login with all the permissions, or made before they were stored, is not bothered', async ({ page }) => {
-    await withScopes(page, 'read:accounts read:statuses read:notifications read:follows write:favourites write:statuses write:media write:bookmarks write:follows', newServer());
+  test('a login with all the permissions is not bothered', async ({ page }) => {
+    await withScopes(page, 'read:accounts read:statuses read:notifications read:follows write:favourites write:statuses write:media write:bookmarks write:follows push', newServer());
     await expect(banner(page)).toHaveCount(0);
-    await withScopes(page, undefined, newServer());
+    await withScopes(page, 'read write push', newServer());
     await expect(banner(page)).toHaveCount(0);
+  });
+
+  test('a login made before push notifications (or before the permissions were stored) is asked to log in again', async ({ page }) => {
     await withScopes(page, 'read write:favourites write:statuses write:media write:bookmarks write:follows', newServer());
-    await expect(banner(page)).toHaveCount(0);
+    await expect(banner(page)).toBeVisible();
+    await withScopes(page, undefined, newServer());
+    await expect(banner(page)).toBeVisible();
   });
 
   test('a login that lacks a permission the app now wants is asked to log in again, and can say not now', async ({ page }) => {
