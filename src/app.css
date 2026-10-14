@@ -25,6 +25,19 @@ html, body {
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
+/*
+ * What the page does not cover itself (the padding that keeps clear of the system bars, and in an installed app
+ * the strip under the bottom bar where the gesture bar is) has the colour of the bars, so they run into it.
+ */
+html { background: var(--header); }
+
+/*
+ * The room under the bottom bar for the system's gesture bar. An installed app on Android can report the live inset as
+ * 0 until the first scroll; the largest value it will have (Chrome 135 and later) does not change, so the bar does not
+ * start low and move.
+ */
+:root { --inset-bottom: env(safe-area-max-inset-bottom, env(safe-area-inset-bottom, 0px)); }
+
 /* Beside the reading column (a wide screen) the page is a shade darker, so the column stands out */
 @media (min-width: 41rem) {
   html, body { background: var(--page); }
