@@ -7,6 +7,7 @@
   import AccountSwitcher from './AccountSwitcher.svelte';
   import FontSettings from './FontSettings.svelte';
   import LanguageSettings from './LanguageSettings.svelte';
+  import PushSettings from './PushSettings.svelte';
   import ThemeSettings from './ThemeSettings.svelte';
 
   let { onAdd, onClose }: { onAdd: () => void; onClose: () => void } = $props();
@@ -33,6 +34,7 @@
 
   <div class="content">
     <AccountSwitcher {onAdd} />
+    <PushSettings />
     <ThemeSettings />
     <FontSettings />
     <LanguageSettings />

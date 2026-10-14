@@ -86,6 +86,8 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,png,webmanifest}', 'assets/figtree-*.woff2'],
         globIgnores: ['registerSW.js'],
         navigateFallback: null,
+        // Push notifications (static/push-sw.js) run in this same service worker
+        importScripts: ['push-sw.js'],
         runtimeCaching: [
           {
             // Not the return from the login (?code=...&state=... or ?error=...): the one-time code must not end up in the cache

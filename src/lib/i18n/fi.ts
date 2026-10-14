@@ -27,6 +27,7 @@ export const fi: Record<keyof typeof en, string> = {
   'nav.main': 'Päävalikko',
   'nav.home': 'Koti',
   'nav.notifications': 'Ilmoitukset',
+  'nav.notificationsNew': 'Ilmoitukset, uutta',
   'notif.empty': 'Ei ilmoituksia vielä',
   'notif.more': 'Lataa lisää',
   'notif.and': '{a} ja {b}',
@@ -215,4 +216,33 @@ export const fi: Record<keyof typeof en, string> = {
   'profile.reauthButton': 'Kirjaudu uudelleen',
   'scopes.banner': 'Ronsu on päivittynyt ja tarvitsee uusia oikeuksia joihinkin toimintoihin. Kirjaudu uudelleen ottaaksesi ne käyttöön.',
   'profile.followFailed': 'Seuraaminen epäonnistui: {message}',
+  'push.title': 'Push-ilmoitukset', // Mastodon says "puskuilmoitukset" (notifications.column_settings.push); "push" is the word people use
+  'push.enable': 'Push-ilmoitukset tällä laitteella',
+  'push.hint': 'Ilmoitukset tulevat, vaikka Ronsu olisi suljettu. Nämä asetukset koskevat tätä kirjautumista tällä laitteella.',
+  'push.unsupported': 'Tämä selain ei voi näyttää push-ilmoituksia. iPhonella ja iPadilla lisää Ronsu ensin Koti-valikkoon.',
+  'push.unavailable': 'Tämä palvelin ei lähetä push-ilmoituksia selaimille (se vaatii Mastodonin version 4.3 tai uudemman).',
+  'push.reauth': 'Push-ilmoitukset tarvitsevat uuden oikeuden. Kirjaudu uudelleen ottaaksesi ne käyttöön.',
+  'push.denied': 'Selain on estänyt Ronsun ilmoitukset. Salli ne selaimen tai järjestelmän asetuksista ja yritä uudelleen.',
+  'push.policy': 'Ilmoitukset keneltä',
+  'push.policy.all': 'Kaikilta',
+  'push.policy.followed': 'Seuraamiltani',
+  'push.policy.follower': 'Seuraajiltani',
+  'push.policy.none': 'Ei keneltäkään',
+  'push.types': 'Ilmoitustyypit',
+  'push.notify': 'Ilmoitus',
+  'push.sound': 'Äänimerkki', // mastodon: notifications.column_settings.sound
+  'push.type.mention': 'Maininnat', // mastodon: notifications.column_settings.mention
+  'push.type.quote': 'Lainaukset', // mastodon: notifications.column_settings.quote
+  'push.type.status': 'Uudet julkaisut', // mastodon: notifications.column_settings.status
+  'push.type.reblog': 'Tehostukset', // mastodon: notifications.column_settings.reblog
+  'push.type.favourite': 'Suosikit', // mastodon: notifications.column_settings.favourite
+  'push.type.follow': 'Uudet seuraajat', // mastodon: notifications.column_settings.follow
+  'push.type.follow_request': 'Uudet seurantapyynnöt', // mastodon: notifications.column_settings.follow_request
+  'push.type.poll': 'Äänestystulokset', // mastodon: notifications.column_settings.poll
+  'push.type.update': 'Muokkaukset', // mastodon: notifications.column_settings.update
+  'push.badge': 'Merkki sovelluksen kuvakkeeseen, kun jotain on uutta',
+  'push.test': 'Lähetä testi-ilmoitus',
+  'push.testTitle': 'Ronsu',
+  'push.testBody': 'Ilmoitukset toimivat.',
+  'push.failed': 'Push-ilmoitukset epäonnistuivat: {message}',
 };

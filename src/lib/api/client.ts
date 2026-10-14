@@ -76,6 +76,10 @@ export class MastodonClient {
     return (await this.request<T>(path, { ...init, method: 'POST', headers, body: payload })).data;
   }
 
+  async delete<T>(path: string): Promise<T> {
+    return (await this.request<T>(path, { method: 'DELETE' })).data;
+  }
+
   async put<T>(path: string, body: unknown): Promise<T> {
     const headers = { 'Content-Type': 'application/json' };
     return (await this.request<T>(path, { method: 'PUT', headers, body: JSON.stringify(body) })).data;

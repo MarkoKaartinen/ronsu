@@ -29,6 +29,7 @@ export const en = {
   'nav.main': 'Main navigation',
   'nav.home': 'Home',
   'nav.notifications': 'Notifications',
+  'nav.notificationsNew': 'Notifications, new',
   'notif.empty': 'No notifications yet',
   'notif.more': 'Load more',
   'notif.and': '{a} and {b}',
@@ -217,4 +218,33 @@ export const en = {
   'profile.reauthButton': 'Log in again',
   'scopes.banner': 'Ronsu has been updated and needs new permissions for some features. Log in again to use them.',
   'profile.followFailed': 'Following failed: {message}',
+  'push.title': 'Push notifications', // mastodon: notifications.column_settings.push
+  'push.enable': 'Push notifications on this device',
+  'push.hint': 'Notifications arrive even when Ronsu is closed. These settings are for this login on this device.',
+  'push.unsupported': 'This browser cannot show push notifications. On an iPhone or iPad, add Ronsu to the Home Screen first.',
+  'push.unavailable': 'This server does not send push notifications to browsers (it needs Mastodon 4.3 or newer).',
+  'push.reauth': 'Push notifications need a new permission. Log in again to use them.',
+  'push.denied': 'The browser has blocked notifications for Ronsu. Allow them in the browser or system settings, then try again.',
+  'push.policy': 'Notifications from',
+  'push.policy.all': 'Everyone',
+  'push.policy.followed': 'People I follow',
+  'push.policy.follower': 'My followers',
+  'push.policy.none': 'No one',
+  'push.types': 'Notification types',
+  'push.notify': 'Notify',
+  'push.sound': 'Sound', // mastodon: notifications.column_settings.sound
+  'push.type.mention': 'Mentions', // mastodon: notifications.column_settings.mention
+  'push.type.quote': 'Quotes', // mastodon: notifications.column_settings.quote
+  'push.type.status': 'New posts', // mastodon: notifications.column_settings.status
+  'push.type.reblog': 'Boosts', // mastodon: notifications.column_settings.reblog
+  'push.type.favourite': 'Favorites', // mastodon: notifications.column_settings.favourite
+  'push.type.follow': 'New followers', // mastodon: notifications.column_settings.follow
+  'push.type.follow_request': 'New follow requests', // mastodon: notifications.column_settings.follow_request
+  'push.type.poll': 'Poll results', // mastodon: notifications.column_settings.poll
+  'push.type.update': 'Edits', // mastodon: notifications.column_settings.update
+  'push.badge': 'Mark on the app icon when something is new',
+  'push.test': 'Send a test notification',
+  'push.testTitle': 'Ronsu',
+  'push.testBody': 'Notifications work.',
+  'push.failed': 'Push notifications failed: {message}',
 } as const;

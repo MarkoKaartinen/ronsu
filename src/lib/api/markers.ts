@@ -32,3 +32,20 @@ export async function saveHomeMarker(
   );
   return res.home ?? null;
 }
+
+/** The newest notification id the reader has seen (the server's `notifications` marker, shared with other apps) */
+export async function getNotificationsMarker(client: MastodonClient): Promise<Marker | null> {
+  const res = await client.get<{ notifications?: Marker }>('/api/v1/markers?timeline[]=notifications');
+  return res.notifications ?? null;
+}
+
+export async function saveNotificationsMarker(client: MastodonClient, lastReadId: string): Promise<Marker | null> {
+  const res = await client.post<{ notifications?: Marker }>('/api/v1/markers', { notifications: { last_read_id: lastReadId } });
+  return res.notifications ?? null;
+}
+
+/** Is the newest notification newer than the marker? Without a marker everything counts as unread. */
+export function isUnread(newestId: string | null, markerId: string | null): boolean {
+  if (!newestId) return false;
+  return !markerId || compareIds(newestId, markerId) > 0;
+}
