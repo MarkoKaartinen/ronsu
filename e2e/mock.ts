@@ -24,6 +24,8 @@ let imageAspect = 4 / 3;
 let withCw = false;
 /** Whether those content warnings are long (set from Server.cwLong) */
 let longCw = false;
+/** Whether the pictures are marked sensitive (set from Server.sensitive) */
+let sensitiveMedia = false;
 /** Whether posts with i % 5 === 3 carry a quote, code and a list (set from Server.formatted) */
 let formatted = false;
 /** Whether every post quotes another one (set from Server.quoteAll) */
@@ -41,7 +43,7 @@ function status(i: number, withQuote = true) {
     account: { id: '2', username: 'u', acct: 'u', display_name: 'U', avatar: '', url: '', emojis: [] },
     content: `<p>Post ${i}. ${i % 7 === 1 ? '<a class="u-url mention" href="https://mock.test/@maija" rel="nofollow" target="_blank">@<span>maija</span></a> ' : ''}${'Lorem ipsum dolor sit amet. '.repeat(6 + (i % 5))}</p>${formatted && i % 5 === 3 ? '<blockquote><p>A quoted line of text that is long enough to wrap onto a second line when the column is narrow.</p></blockquote><pre><code>const x = 1;</code></pre><p>Inline <code>code</code>.</p><ul><li>one</li><li>two</li></ul>' : ''}`,
     spoiler_text: withCw && i % 4 === 2 ? (longCw ? 'food talk: a long warning that does not fit on one line next to the button, so it has to wrap onto several lines of text' : 'food talk') : '',
-    sensitive: false,
+    sensitive: sensitiveMedia,
     visibility: 'public',
     in_reply_to_id: null,
     reblog: null,
@@ -69,6 +71,7 @@ export interface Server {
   boostedQuote?: boolean; // the boosted post is itself a quote post (with `boosted`)
   quoteAll?: boolean; // every post quotes another post
   formatted?: boolean; // some posts have a quote, a code block and a list
+  sensitive?: boolean; // the pictures are marked sensitive
   cwLong?: boolean; // with `cw`: the warning text is long
   cw?: boolean; // some posts have a content warning
   branched?: boolean; // the thread has a deep chain of replies and a second reply to the selected post and a late reply
@@ -107,6 +110,7 @@ export async function mockMastodon(page: Page, server: Server) {
   imageAspect = server.aspect ?? 4 / 3;
   withCw = !!server.cw;
   longCw = !!server.cwLong;
+  sensitiveMedia = !!server.sensitive;
   formatted = !!server.formatted;
   quoteAll = !!server.quoteAll;
   await page.route(`${HOST}/**`, async (route) => {

@@ -240,35 +240,35 @@
           <div
             class="media"
             class:single
-            class:multi={!single && !hideMedia}
+            class:multi={!single}
+            class:hidden={hideMedia}
             data-count={s.media_attachments.length}
             style:--aspect={single ? mediaAspect(s.media_attachments[0], true) : undefined}
           >
-            {#if hideMedia}
-              <button class="reveal" onclick={() => (mediaOpen = true)} title={t('status.showMedia')}>{t('status.sensitive')}</button>
-            {:else}
-              {#each s.media_attachments as m (m.id)}
+            {#each s.media_attachments as m (m.id)}
                 <!-- An attachment whose address is not http(s) is left out rather than linked -->
                 {@const url = safeHttpUrl(m.url)}
                 {@const preview = safeHttpUrl(m.preview_url) ?? undefined}
                 {#if !url}
                   <!-- nothing safe to show -->
                 {:else if m.type === 'image'}
-                  <a href={url} target="_blank" rel="noopener noreferrer" onclick={(e) => openImage(e, m.id)} >
+                  <a inert={hideMedia} href={url} target="_blank" rel="noopener noreferrer" onclick={(e) => openImage(e, m.id)} >
                     <img src={preview} alt={m.description ?? ''} loading="lazy" decoding="async" />
                   </a>
                 {:else if m.type === 'video'}
                   <!-- svelte-ignore a11y_media_has_caption -->
-                  <video src={url} poster={preview} controls preload="none" playsinline aria-label={m.description ?? ''} ></video>
+                  <video inert={hideMedia} src={url} poster={preview} controls preload="none" playsinline aria-label={m.description ?? ''} ></video>
                 {:else if m.type === 'gifv'}
                   <!-- svelte-ignore a11y_media_has_caption -->
-                  <video src={url} poster={preview} autoplay loop muted playsinline aria-label={m.description ?? ''} ></video>
+                  <video inert={hideMedia} src={url} poster={preview} autoplay loop muted playsinline aria-label={m.description ?? ''} ></video>
                 {:else if m.type === 'audio'}
-                  <audio src={url} controls preload="none"></audio>
+                  <audio inert={hideMedia} src={url} controls preload="none"></audio>
                 {:else}
-                  <a href={url} target="_blank" rel="noopener noreferrer">{t('status.attachment')}</a>
+                  <a inert={hideMedia} href={url} target="_blank" rel="noopener noreferrer">{t('status.attachment')}</a>
                 {/if}
-              {/each}
+            {/each}
+            {#if hideMedia}
+              <button class="reveal" onclick={() => (mediaOpen = true)} title={t('status.showMedia')}><TriangleAlert size={16} aria-hidden="true" />{t('status.sensitive')}</button>
             {/if}
           </div>
         {/if}
@@ -376,7 +376,13 @@
   /* More than four (some servers allow it): rows of two, an odd last picture takes the full width */
   .media.multi:not([data-count='2'], [data-count='3'], [data-count='4']) { aspect-ratio: auto; grid-template-rows: none; grid-auto-rows: 9rem; }
   .media.multi:not([data-count='2'], [data-count='3'], [data-count='4']) > :last-child:nth-child(odd) { grid-column: 1 / -1; }
-  .reveal { grid-column: 1 / -1; padding: 2rem 1rem; background: var(--surface); }
+  /* Sensitive media: the pictures stay in place but blurred, with the button over them. The blur is strong enough to hide
+     the content and the scale keeps the soft edge outside the rounded frame */
+  .media { position: relative; }
+  .media.hidden { min-height: 6rem; }
+  .media.hidden img, .media.hidden video { filter: blur(1.6rem); transform: scale(1.15); }
+  .media.hidden .reveal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: inline-flex; gap: 0.4rem; align-items: center; min-height: 2.25rem; padding: 0 0.7rem; border-color: color-mix(in srgb, var(--marker) 55%, transparent); background: var(--bg); }
+  .reveal :global(svg) { color: var(--marker); }
 
   /* Light thread rows: no action buttons, smaller text */
   .compact { padding-bottom: 1rem; }
