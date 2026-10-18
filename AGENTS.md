@@ -47,17 +47,21 @@ Before committing, scan the staged diff for these.
 
 ## Changelog
 
-* `CHANGELOG.md` lists every released version, newest first. Update it with each change and check today's date
+* `CHANGELOG.md` lists every released version, newest first, and the changes waiting for the next release. Update it with each change
 * Format: a `### x.y.z: yyyy-mm-dd` heading per version, no main "Changelog" heading, no sub headings
 * Bullets with `*`, one line per change, present tense, concise, no repetition
 * No formatting except inline code and, when absolutely necessary, nothing more
-* No "Unreleased" heading: a change that is deployed is released, so every deploy carries a version heading, a
-  `package.json` bump and a git tag
-* Sensible semver, patch by default: a fix, a tweak or a small feature is a patch. Minor only when something
-  changes profoundly, major only for something like a full redesign of the UI
-* A version is created per release, not per day: once the newest version has been tagged and deployed (check
-  `git tag`), the next change gets a new heading and bump, even on the same day. Until then, changes go under the
-  newest heading, so one unreleased version collects several changes
+* Changes that are not released yet go under a `### Unreleased` heading at the top (no date). Every PR adds its own
+  lines there and never touches the version
+* A contributor's PR adds only its changelog line, never a version. The maintainer picks the version at release time
+* A release is its own small PR (or, for a release of one single change, part of that PR): it renames the heading to
+  `### x.y.z: yyyy-mm-dd`, bumps `package.json` and `package-lock.json` (the version shown in the app comes from
+  there) and checks today's date. After it is merged, tag `vx.y.z` and create the GitHub release
+* Sensible semver, chosen at release time from what has piled up: patch by default (a fix, a tweak or a small
+  feature, also several of them together). Minor when something changes profoundly or the release collects a
+  clearly larger set of changes, major only for something like a full redesign of the UI
+* A version is created per release, not per day: after a release the next change starts a new `Unreleased` section,
+  even on the same day
 
 ## Security
 
