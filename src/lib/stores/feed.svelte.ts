@@ -140,6 +140,8 @@ export class FeedStore {
   latestAt = $state<number | null>(null);
   /** Another device has moved the reading position: one can jump to this id */
   remoteAhead = $state<string | null>(null);
+  /** The server position the reader answered "Not now" to: reading on from here is meant to replace it */
+  private dismissedRemote: string | null = null;
   /** The feed opened at the position another device had left, not at this device's own one: said out loud */
   continuedFromRemote = $state(false);
   /** The feed moved by itself to where another device had read to: the place it was at before, for Undo */
@@ -417,10 +419,14 @@ export class FeedStore {
     if (Number.isFinite(at) && (this.latestAt === null || at > this.latestAt)) this.latestAt = at;
   }
 
-  /** Records the reading position: locally right away, throttled towards Mastodon. Oldest-first mode only. */
+  /**
+   * Records the reading position: locally right away, throttled towards Mastodon. Oldest-first mode only.
+   * It never moves back: a scroll or resize on a device that woke up at an old place would otherwise stamp that
+   * place with a new time and win over a position another device has read further.
+   */
   reportRead(id: string) {
     if (this.order !== 'oldest-first') return;
-    if (id === this.marker) return;
+    if (this.marker && compareIds(id, this.marker) <= 0) return;
     this.setMarker(id, this.serverNow());
     this.dirty = true;
     this.scheduleSync();
@@ -492,12 +498,34 @@ export class FeedStore {
     }, SYNC_INTERVAL_MS);
   }
 
-  /** Sends the reading position to Mastodon right away. keepalive = while the page is closing. */
-  flush(keepalive = false): Promise<void> {
+  /**
+   * Has another device read further than `id`? Mastodon takes whatever it is sent, so a position behind the
+   * server's would silently overwrite it. Reading on from an old place after the app woke up is exactly that:
+   * forwards here, backwards there. The question is asked instead (unless it was already answered with "Not now").
+   */
+  private async serverIsAhead(id: string): Promise<boolean> {
+    try {
+      const remote = toPos(await getHomeMarker(this.client));
+      this.lastCheckAt = Date.now();
+      if (!remote || compareIds(remote.id, id) <= 0 || remote.id === this.dismissedRemote) return false;
+      this.remote = remote;
+      this.remoteAhead = remote.id;
+      return true;
+    } catch {
+      return false; // offline: the send below fails and retries by itself
+    }
+  }
+
+  /**
+   * Sends the reading position to Mastodon right away. keepalive = while the page is closing (no time to ask
+   * the server first). force = the position is meant to go back (Undo).
+   */
+  async flush(keepalive = false, force = false): Promise<void> {
     clearTimeout(this.timer);
     this.timer = undefined;
     const id = this.marker;
-    if (!id) return Promise.resolve();
+    if (!id) return;
+    if (!keepalive && !force && (await this.serverIsAhead(id))) return;
     return saveHomeMarker(this.client, id, this.remote?.id ?? null, keepalive)
       .then((saved) => {
         if (!saved) {
@@ -596,7 +624,7 @@ export class FeedStore {
     this.jumpedFrom = null;
     this.setMarker(id, this.serverNow());
     this.dirty = true;
-    void this.flush();
+    void this.flush(false, true);
     await this.load();
   }
 
@@ -605,6 +633,7 @@ export class FeedStore {
   }
 
   dismissRemote() {
+    this.dismissedRemote = this.remoteAhead;
     this.remoteAhead = null;
   }
 

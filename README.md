@@ -28,7 +28,8 @@ Source code and issues: <https://github.com/MarkoKaartinen/ronsu>
 
 - Home timeline in reading order (oldest first, or newest first) with a saved reading position that follows you
   from device to device. "Load new" keeps at most 50 posts in the list (the ones furthest from where you are
-  reading are dropped, and "Load more" / "Load older" bring them back), so the page does not grow without end
+  reading are dropped, and "Load more" / "Load older" bring them back), so the page does not grow without end.
+  A position is never sent to the server when another device has already read further: the app asks first
 - Several accounts, threads, profiles, replying and posting (content warnings, visibility, language)
 - Favorite, boost and bookmark; follow and unfollow
 - An in-app image viewer: swipe or use the arrow keys between a post's pictures, tap to zoom, Esc or back to close
