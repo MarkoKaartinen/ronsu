@@ -57,3 +57,16 @@ test('the Quote button shows the count, opens the form and posts with quoted_sta
   await expect.poll(() => server.created?.[0]?.body.quoted_status_id).toBe(id);
   expect(server.created![0].body.in_reply_to_id).toBeUndefined();
 });
+
+test('favoriting the post a reply answers (shown above it) updates it at once', async ({ page }) => {
+  const server: Server = { marker: null, posts: [], actions: [], replyToOld: true };
+  await mockMastodon(page, server);
+  await seedAccount(page);
+  await page.reload();
+  const context = page.locator('article.context');
+  await context.waitFor();
+  const fav = context.getByRole('button', { name: 'Favorite' });
+  await fav.click();
+  await expect(fav).toHaveAttribute('aria-pressed', 'true');
+  await expect(fav).toContainText('1');
+});

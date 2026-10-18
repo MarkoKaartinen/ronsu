@@ -96,9 +96,10 @@ export class FeedStore {
   /**
    * The posts that replies in the list answer, shown above them. They are fetched before the replies are added to
    * the list (not when they are rendered), because a parent appearing above a post that is already on screen would
-   * push the page down: Safari has no scroll anchoring. Not reactive on purpose, it is filled before `items` changes.
+   * push the page down: Safari has no scroll anchoring. It is filled before `items` changes. A deep `$state` record, so
+   * that a favourite or boost on a parent shows at once.
    */
-  private parents = new Map<string, Status>();
+  private parents = $state<Record<string, Status>>({});
   order = $state<Order>(loadOrder());
   loading = $state(false);
   error = $state('');
@@ -365,7 +366,9 @@ export class FeedStore {
 
   /** The post that `status` is a reply to, when it is known (a boost has none: the original's context is not shown) */
   parentOf(status: Status): Status | undefined {
-    return !status.reblog && status.in_reply_to_id ? this.parents.get(status.in_reply_to_id) : undefined;
+    const id = !status.reblog ? status.in_reply_to_id : null;
+    // The list's own copy first, so that the post is the same object in both places
+    return id ? (this.items.find((p) => p.id === id) ?? this.parents[id]) : undefined;
   }
 
   /**
@@ -374,14 +377,14 @@ export class FeedStore {
    * and a failure only means that the reply is shown without its parent.
    */
   private async loadParents(posts: Status[]) {
-    for (const p of [...this.items, ...posts]) if (!this.parents.has(p.id)) this.parents.set(p.id, p);
+    for (const p of [...this.items, ...posts]) if (!(p.id in this.parents)) this.parents[p.id] = p;
     const missing = [
-      ...new Set(posts.flatMap((p) => (!p.reblog && p.in_reply_to_id && !this.parents.has(p.in_reply_to_id) ? [p.in_reply_to_id] : []))),
+      ...new Set(posts.flatMap((p) => (!p.reblog && p.in_reply_to_id && !(p.in_reply_to_id in this.parents) ? [p.in_reply_to_id] : []))),
     ].slice(0, MAX_PARENT_FETCHES);
     if (!missing.length) return;
     const fetched = missing.map((id) =>
       this.client.get<Status>(`/api/v1/statuses/${id}`).then(
-        (parent) => void this.parents.set(id, parent),
+        (parent) => void (this.parents[id] = parent),
         () => {},
       ),
     );

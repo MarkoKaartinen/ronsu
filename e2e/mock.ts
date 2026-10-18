@@ -70,6 +70,7 @@ export interface Server {
   boosted?: boolean; // the newest post on each page is a boost by "Daniel"
   boostedQuote?: boolean; // the boosted post is itself a quote post (with `boosted`)
   quoteAll?: boolean; // every post quotes another post
+  replyToOld?: boolean; // the newest post on each page replies to post 1, which is fetched separately
   formatted?: boolean; // some posts have a quote, a code block and a list
   sensitive?: boolean; // the pictures are marked sensitive
   cwLong?: boolean; // with `cw`: the warning text is long
@@ -171,6 +172,7 @@ export async function mockMastodon(page: Page, server: Server) {
         const inner = server.boostedQuote ? { ...page[0], quote: { state: 'accepted', quoted_status: status(1) } } : page[0];
         page[0] = { ...page[0], reblog: inner, account: { ...page[0].account, id: '9', acct: 'daniel', username: 'daniel', display_name: 'Daniel' } };
       }
+      if (server.replyToOld && page.length) page[0] = { ...page[0], in_reply_to_id: idOf(1) };
       return json(page);
     }
     const rel = () => ({
