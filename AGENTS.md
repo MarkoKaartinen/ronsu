@@ -55,7 +55,9 @@ Before committing, scan the staged diff for these.
   `package.json` bump and a git tag
 * Sensible semver, patch by default: a fix, a tweak or a small feature is a patch. Minor only when something
   changes profoundly, major only for something like a full redesign of the UI
-* Several deploys on one day share one version: fold them into that day's heading instead of bumping again
+* A version is created per release, not per day: once the newest version has been tagged and deployed (check
+  `git tag`), the next change gets a new heading and bump, even on the same day. Until then, changes go under the
+  newest heading, so one unreleased version collects several changes
 
 ## Security
 
