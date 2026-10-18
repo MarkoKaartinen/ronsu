@@ -1,3 +1,7 @@
+### Unreleased
+
+* Typing `@` in the post form suggests accounts to mention
+
 ### 0.1.1: 2026-10-18
 
 * Favorite and boost on the post a reply answers (shown above it) update at once

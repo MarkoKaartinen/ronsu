@@ -105,7 +105,7 @@ For a reader this matters more than most features, because it decides what is in
 - [ ] **Drafts**: kept locally; Mastodon has no draft endpoint
 - [ ] **Quote policy per post** (`quote_approval_policy`, Mastodon 4.5): who may quote the new post
 - [ ] **Pin and unpin own posts** (`POST /api/v1/statuses/:id/pin`, `write:accounts`)
-- [ ] **Mentions autocomplete** while typing `@` (`GET /api/v1/accounts/search`, `read:accounts`)
+- [x] **Mentions autocomplete** while typing `@` (`GET /api/v1/accounts/search`, `read:accounts`)
 - [ ] **Hashtag autocomplete** while typing `#` (`GET /api/v2/search?type=hashtags`)
 - [ ] **Sensitive media toggle and media focal point** for uploads (`focus` in `PUT /api/v1/media/:id`)
 - [ ] **Boost visibility**: `POST /api/v1/statuses/:id/reblog` takes `visibility`, so a boost can be private

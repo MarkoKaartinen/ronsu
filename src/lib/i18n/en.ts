@@ -133,6 +133,7 @@ export const en = {
   'compose.publish': 'Post', // mastodon: compose_form.publish
   'compose.publishing': 'Posting…',
   'compose.placeholder': "What's on your mind?", // mastodon: compose_form.placeholder
+  'compose.mentions': 'Suggested accounts',
   'compose.cw': 'Content warning', // mastodon: compose.sensitive.text
   'compose.visibility': 'Visibility', // mastodon: compose.visibility.title
   'compose.visibility.public': 'Public', // mastodon: privacy.public.short

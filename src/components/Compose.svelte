@@ -8,20 +8,22 @@
   import LockOpen from '@lucide/svelte/icons/lock-open';
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
   import X from '@lucide/svelte/icons/x';
-  import { untrack } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import { ApiError } from '../lib/api/client';
   import { updateMedia, uploadMedia, waitForProcessing } from '../lib/api/media';
   import { startLogin } from '../lib/api/oauth';
-  import { getDefaultPrivacy } from '../lib/api/accounts';
+  import { getDefaultPrivacy, searchAccounts } from '../lib/api/accounts';
   import { getLimits, postStatus } from '../lib/api/statuses';
-  import type { Visibility } from '../lib/api/types';
-  import { canSend, defaultLanguage, defaultVisibility, hasMention, LANGUAGES, mentionPrefix, missingAltText, pickImages, remaining } from '../lib/composeLogic';
+  import type { Account, Visibility } from '../lib/api/types';
+  import { canSend, defaultLanguage, defaultVisibility, hasMention, insertMention, LANGUAGES, mentionPrefix, mentionQueryAt, missingAltText, pickImages, remaining } from '../lib/composeLogic';
+  import type { MentionQuery } from '../lib/composeLogic';
   import { htmlToText } from '../lib/html';
   import { languageName, type MessageKey } from '../lib/i18n';
   import { accountStore } from '../lib/stores/accounts.svelte';
   import { composer } from '../lib/stores/composer.svelte';
   import { i18n, t } from '../lib/stores/i18n.svelte';
   import { toast } from '../lib/stores/toast.svelte';
+  import { safeHttpUrl } from '../lib/url';
   import AltTextDialog from './AltTextDialog.svelte';
 
   const VISIBILITIES: { value: Visibility; label: MessageKey }[] = [
@@ -45,6 +47,8 @@
   }
 
   const LANGUAGE_KEY = 'compose-language';
+  /** Wait for a pause in typing before asking the server for handles */
+  const MENTION_DEBOUNCE_MS = 250;
 
   let dialog: HTMLDialogElement | undefined = $state();
   let textarea: HTMLTextAreaElement | undefined = $state();
@@ -70,6 +74,12 @@
   let dragging = $state(false);
   let busy = $state(false);
   let error = $state('');
+  /** The mention being typed (null when the cursor is not in one) and the accounts offered for it */
+  let mention = $state<MentionQuery | null>(null);
+  let suggestions = $state<Account[]>([]);
+  let activeSuggestion = $state(0);
+  /** Where the `@` of a mention the reader closed with Esc was: it stays closed until another mention starts */
+  let dismissedAt = -1;
   let prefix = '';
   // The same key on retries (no duplicate posts), a new key for every new form
   let idempotencyKey = '';
@@ -101,6 +111,7 @@
     language = defaultLanguage(readSavedLanguage(), navigator.language);
     error = '';
     busy = false;
+    closeMentions();
     for (const a of attachments) URL.revokeObjectURL(a.preview);
     attachments = [];
     editing = null;
@@ -284,7 +295,84 @@
   // backdrop, so selecting text in the form and releasing over the backdrop does not close it by accident.
   let downOnBackdrop = false;
 
+  function closeMentions() {
+    mention = null;
+    suggestions = [];
+    activeSuggestion = 0;
+    dismissedAt = -1;
+  }
+
+  /** Looks at the cursor: is it in a mention? Called whenever the text or the cursor changes */
+  function updateMention() {
+    if (!textarea) return;
+    const found = mentionQueryAt(textarea.value, textarea.selectionStart);
+    if (!found) return closeMentions();
+    if (found.start === dismissedAt) {
+      mention = null;
+      suggestions = [];
+      return;
+    }
+    mention = found;
+  }
+
+  // Ask for handles when the typed part changes, after a pause. A slow answer to an older query is dropped.
+  $effect(() => {
+    const q = mention?.query;
+    if (!q) return;
+    const client = untrack(() => accountStore.client());
+    if (!client) return;
+    let stale = false;
+    const timer = setTimeout(async () => {
+      try {
+        const found = await searchAccounts(client, q);
+        if (stale) return;
+        suggestions = found;
+        activeSuggestion = 0;
+      } catch {
+        if (!stale) suggestions = [];
+      }
+    }, MENTION_DEBOUNCE_MS);
+    return () => {
+      stale = true;
+      clearTimeout(timer);
+    };
+  });
+
+  function pickMention(account: Account) {
+    if (!mention || !textarea) return;
+    const result = insertMention(textarea.value, mention, account.acct);
+    text = result.text;
+    closeMentions();
+    // The textarea shows the new text only after Svelte has updated it
+    tick().then(() => {
+      textarea?.focus();
+      textarea?.setSelectionRange(result.cursor, result.cursor);
+    });
+  }
+
+  const suggesting = $derived(mention !== null && suggestions.length > 0);
+
   function onKeydown(e: KeyboardEvent) {
+    if (suggesting && !e.isComposing) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const step = e.key === 'ArrowDown' ? 1 : -1;
+        activeSuggestion = (activeSuggestion + step + suggestions.length) % suggestions.length;
+        return;
+      }
+      if ((e.key === 'Enter' || e.key === 'Tab') && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        pickMention(suggestions[activeSuggestion]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        dismissedAt = mention?.start ?? -1;
+        mention = null;
+        suggestions = [];
+        return;
+      }
+    }
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submit(e);
   }
 </script>
@@ -343,13 +431,49 @@
           bind:this={textarea}
           bind:value={text}
           onkeydown={onKeydown}
+          oninput={updateMention}
+          onkeyup={(e) => {
+            if (e.key.startsWith('Arrow') && !suggesting) updateMention();
+          }}
+          onclick={updateMention}
+          onblur={closeMentions}
           onpaste={onPaste}
+          aria-controls="compose-mentions"
+          aria-autocomplete="list"
+          aria-activedescendant={suggesting ? `compose-mention-${activeSuggestion}` : undefined}
           rows="6"
           aria-label={t('compose.placeholder')}
           placeholder={t('compose.placeholder')}
         ></textarea>
       </div>
     </div>
+
+    {#if suggesting}
+      <ul id="compose-mentions" class="mentions" role="listbox" aria-label={t('compose.mentions')}>
+        {#each suggestions as account, i (account.id)}
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <li
+            id="compose-mention-{i}"
+            role="option"
+            aria-selected={i === activeSuggestion}
+            class:active={i === activeSuggestion}
+            onpointerdown={(e) => e.preventDefault()}
+            onpointermove={() => (activeSuggestion = i)}
+            onclick={() => pickMention(account)}
+          >
+            {#if safeHttpUrl(account.avatar)}
+              <img src={safeHttpUrl(account.avatar)} alt="" width="32" height="32" loading="lazy" />
+            {:else}
+              <span class="initial" aria-hidden="true"></span>
+            {/if}
+            <span class="who">
+              <strong>{account.display_name || account.username}</strong>
+              <span>@{account.acct}</span>
+            </span>
+          </li>
+        {/each}
+      </ul>
+    {/if}
 
     {#if attachments.length}
       <ul class="media">
@@ -502,6 +626,13 @@
   }
   input.cw { min-height: 2.75rem; padding: 0 0.9rem; border-radius: 0.7rem; border: 1px dashed var(--marker); }
   textarea { flex: 1; width: 100%; box-sizing: border-box; min-height: 6rem; padding: 0.2rem 0; border: 0; background: none; font-size: 1.15rem; line-height: 1.5; resize: none; outline: none; }
+  .mentions { flex: none; max-height: min(16rem, 35dvh); overflow-y: auto; margin: 0; padding: 0.25rem; list-style: none; border: 1px solid var(--border); border-radius: 0.7rem; background: var(--surface); }
+  .mentions li { display: flex; align-items: center; gap: 0.6rem; min-height: 2.75rem; padding: 0.25rem 0.5rem; border-radius: 0.5rem; cursor: pointer; }
+  .mentions li.active { background: var(--bg); }
+  .mentions img, .mentions .initial { width: 2rem; height: 2rem; flex: none; border-radius: var(--radius-avatar); }
+  .mentions .who { min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+  .mentions .who > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mentions .who span { color: var(--muted); font-size: 0.9rem; }
   .tools { display: flex; align-items: center; gap: 0.25rem; padding-top: 0.4rem; border-top: 1px solid var(--border); }
   .tool { position: relative; flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.2rem; min-width: 2.75rem; height: 2.75rem; padding: 0 0.5rem; box-sizing: border-box; border: 1px solid transparent; border-radius: 0.75rem; background: none; color: var(--muted); font: inherit; cursor: pointer; }
   .tool:hover, .tool:focus-within { background: var(--surface); color: var(--text); }

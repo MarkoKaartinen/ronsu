@@ -85,6 +85,7 @@ export interface Server {
   created?: { body: Record<string, unknown>; key: string | undefined }[]; // successful POST /statuses
   attempts?: (string | undefined)[]; // all attempts (Idempotency-Key)
   failPost?: boolean;
+  accountSearches?: string[]; // queries of the account search behind mention suggestions
   uploads?: string[]; // names of the files uploaded (POST /api/v2/media)
   descriptions?: Record<string, string>; // PUT /api/v1/media/:id
   noMediaScope?: boolean; // 403: a token without the write:media scope
@@ -178,6 +179,15 @@ export async function mockMastodon(page: Page, server: Server) {
     const rel = () => ({
       id: '2', following: !!server.following, requested: !!server.requested, followed_by: true, blocking: false, muting: false,
     });
+    if (url.pathname === '/api/v1/accounts/search') {
+      (server.accountSearches ??= []).push(url.searchParams.get('q') ?? '');
+      const people = [
+        { id: '21', username: 'maija', acct: 'maija', display_name: 'Maija' },
+        { id: '22', username: 'matti', acct: 'matti@mastodon.example', display_name: 'Matti' },
+      ];
+      const q = (url.searchParams.get('q') ?? '').toLowerCase();
+      return json(people.filter((p) => p.acct.startsWith(q)).map((p) => ({ ...p, avatar: '', url: `https://mock.test/@${p.username}`, emojis: [] })));
+    }
     if (url.pathname === '/api/v1/accounts/relationships') return json([rel()]);
     const follow = url.pathname.match(/^\/api\/v1\/accounts\/2\/(follow|unfollow)$/);
     if (follow && req.method() === 'POST') {

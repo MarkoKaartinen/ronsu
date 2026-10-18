@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canSend, countChars, defaultLanguage, defaultVisibility, hasMention, mentionPrefix, missingAltText, parseDefaultPrivacy, pickImages, remaining } from './composeLogic';
+import { canSend, countChars, insertMention, mentionQueryAt, defaultLanguage, defaultVisibility, hasMention, mentionPrefix, missingAltText, parseDefaultPrivacy, pickImages, remaining } from './composeLogic';
 import type { Status } from './api/types';
 
 const reply = (over: Partial<Status> = {}) =>
@@ -143,5 +143,38 @@ describe('missingAltText', () => {
     expect(missingAltText([{ description: 'a cat' }, { description: '  ' }])).toBe(true);
     expect(missingAltText([{ description: 'a cat' }])).toBe(false);
     expect(missingAltText([])).toBe(false);
+  });
+});
+
+describe('mentionQueryAt', () => {
+  it('finds the mention being typed before the cursor', () => {
+    expect(mentionQueryAt('@ma', 3)).toEqual({ query: 'ma', start: 0, end: 3 });
+    expect(mentionQueryAt('Hi @maija.k', 11)).toEqual({ query: 'maija.k', start: 3, end: 11 });
+    expect(mentionQueryAt('Hi\n@ma', 6)).toEqual({ query: 'ma', start: 3, end: 6 });
+    expect(mentionQueryAt('@maija@mas', 10)).toEqual({ query: 'maija@mas', start: 0, end: 10 });
+  });
+
+  it('only looks at the text before the cursor', () => {
+    expect(mentionQueryAt('@maija and more', 3)).toEqual({ query: 'ma', start: 0, end: 3 });
+  });
+
+  it('needs a letter after the @ and a word start before it', () => {
+    expect(mentionQueryAt('@', 1)).toBeNull();
+    expect(mentionQueryAt('mail me: a@b', 12)).toBeNull();
+    expect(mentionQueryAt('https://mas.to/@maija', 21)).toBeNull();
+    expect(mentionQueryAt('@maija ', 7)).toBeNull();
+  });
+});
+
+describe('insertMention', () => {
+  it('replaces the typed part with the handle and moves the cursor after it', () => {
+    expect(insertMention('Hi @ma', { query: 'ma', start: 3, end: 6 }, 'maija@mas.to')).toEqual({
+      text: 'Hi @maija@mas.to ',
+      cursor: 17,
+    });
+  });
+
+  it('keeps the text after the cursor and does not double the space', () => {
+    expect(insertMention('@ma there', { query: 'ma', start: 0, end: 3 }, 'maija')).toEqual({ text: '@maija there', cursor: 7 });
   });
 });

@@ -1,6 +1,6 @@
 import type { MastodonClient } from './client';
 import { parseDefaultPrivacy } from '../composeLogic';
-import type { AccountCredentials, AccountFull, Relationship, Visibility } from './types';
+import type { Account, AccountCredentials, AccountFull, Relationship, Visibility } from './types';
 
 export const getAccount = (client: MastodonClient, id: string) => client.get<AccountFull>(`/api/v1/accounts/${id}`);
 
@@ -20,3 +20,10 @@ export async function getDefaultPrivacy(client: MastodonClient): Promise<Visibil
   const me = await client.get<AccountCredentials>('/api/v1/accounts/verify_credentials');
   return parseDefaultPrivacy(me.source?.privacy);
 }
+
+/** Number of handle suggestions shown while typing a mention */
+export const MENTION_SUGGESTIONS = 5;
+
+/** Accounts matching what is typed after an `@` (`read:accounts`) */
+export const searchAccounts = (client: MastodonClient, q: string) =>
+  client.get<Account[]>('/api/v1/accounts/search', { q, limit: MENTION_SUGGESTIONS });

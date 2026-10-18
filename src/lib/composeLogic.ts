@@ -98,3 +98,26 @@ export function pickImages(files: Iterable<File>, room: number): Picked {
 
 /** Whether any picture lacks an alt text (for the reminder before posting). */
 export const missingAltText = (items: { description: string }[]) => items.some((i) => i.description.trim() === '');
+
+/** A mention being typed: the text after the `@` up to the cursor, and where the `@` and the cursor are */
+export interface MentionQuery {
+  query: string;
+  start: number;
+  end: number;
+}
+
+/**
+ * The mention under the cursor, if any. The `@` must start a word, so an e-mail address (`a@b`) or a link
+ * (`/@user`) is not one; the part after a second `@` is the server (`user@serv`).
+ */
+export function mentionQueryAt(text: string, cursor: number): MentionQuery | null {
+  const m = /(?:^|[^\w@/.])@([\w.-]+(?:@[\w.-]*)?)$/.exec(text.slice(0, cursor));
+  return m ? { query: m[1], start: cursor - m[1].length - 1, end: cursor } : null;
+}
+
+/** The text with the mention typed so far replaced by the whole handle and a space (unless one follows already) */
+export function insertMention(text: string, mention: MentionQuery, acct: string): { text: string; cursor: number } {
+  const before = `${text.slice(0, mention.start)}@${acct} `;
+  const after = text.slice(mention.end);
+  return { text: before + after.replace(/^\s/, ''), cursor: before.length };
+}
