@@ -131,6 +131,7 @@ export const fi: Record<keyof typeof en, string> = {
   'compose.publish': 'Julkaise',
   'compose.publishing': 'Julkaistaan…',
   'compose.placeholder': 'Mitä mietit?',
+  'compose.mentions': 'Ehdotetut tilit',
   'compose.cw': 'Sisältövaroitus',
   'compose.visibility': 'Näkyvyys',
   'compose.visibility.public': 'Julkinen',
