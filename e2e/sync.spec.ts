@@ -128,10 +128,10 @@ test('a position that has not been sent yet is sent when the app wakes up, not a
   await expect.poll(() => server.posts.length, { timeout: 2000 }).toBeGreaterThan(0);
 });
 
-test('our own position moved after the other device did: ours (the newer one) is kept, no banner', async ({ page }) => {
+test('our own position is further than the other device\'s: ours is kept, no banner', async ({ page }) => {
   const server = fresh();
   await open(page, server);
-  movedByAnotherDevice(server, 120); // the other device was here first...
+  movedByAnotherDevice(server, 102); // the other device was here first...
   await page.waitForTimeout(1100);
   for (let y = 1500; y <= 4000; y += 500) {
     await page.evaluate((v) => window.scrollTo(0, v), y); // ...then we read further, unsent
@@ -200,3 +200,44 @@ test('loading more posts first checks the other device: if it has moved on, the 
   await page.getByRole('button', { name: 'Load older' }).click();
   await expect.poll(() => page.locator('article[data-id]').count()).toBeGreaterThan(before);
 });
+
+test('scrolling back up never moves the position back: an older post is not sent to the server', async ({ page }) => {
+  const server = fresh();
+  await open(page, server);
+  for (let y = 1500; y <= 4000; y += 500) {
+    await page.evaluate((v) => window.scrollTo(0, v), y);
+    await page.waitForTimeout(60);
+  }
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect.poll(() => server.posts.length).toBeGreaterThan(0);
+  const furthest = server.marker?.last_read_id as string;
+  expect(BigInt(furthest)).toBeGreaterThan(BigInt(idOf(100)));
+
+  await page.evaluate(() => window.scrollTo(0, 300));
+  await page.waitForTimeout(300);
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await page.waitForTimeout(1500);
+  expect(server.marker?.last_read_id).toBe(furthest);
+});
+
+for (const order of ['oldest-first', 'newest-first']) {
+  test(`${order}: reading on from an old place never overwrites a position another device has read further (the question is asked)`, async ({ page }) => {
+    const server = fresh();
+    await open(page, server);
+    await page.getByLabel('Reading order').selectOption(order);
+    await page.reload();
+    await page.waitForSelector('article[data-id]');
+    await page.waitForTimeout(300);
+
+    // The other device reads on while this one sits in the background: no wake-up event, so nothing noticed yet
+    movedByAnotherDevice(server, 150);
+    const other = server.marker?.last_read_id;
+    for (let y = 1500; y <= 4000; y += 500) {
+      await page.evaluate((v) => window.scrollTo(0, v), y);
+      await page.waitForTimeout(60);
+    }
+    await page.waitForTimeout(4500); // longer than the send throttle
+    expect(server.marker?.last_read_id).toBe(other);
+    await expect(banner(page)).toBeVisible();
+  });
+}
