@@ -18,9 +18,10 @@ Before committing, scan the staged diff for these.
 * Work on a new branch for every change, never directly on `main`. Name it `type/short-description` with a type
   such as `fix`, `feature`, `docs` or `chore` (for example `fix/login-error`, `feature/image-viewer`)
 * One logical change per commit
-* One concise line, sentence case, present tense. No long explanations in the message
+* One concise line, sentence case, present tense. No long explanations in the message, no emojis
 * Commit messages and PR descriptions are in English
-* Never add Co-Authored-By lines or any AI attribution to commits or pull requests
+* Never add Co-Authored-By lines or any AI attribution (watermarks, "Generated with" lines) to commits or pull requests
+* Update `CHANGELOG.md` in the same change (see Changelog)
 * Commit only when asked. Stage only the relevant files, never `git add -A`
 * Run `git status` after committing to verify nothing is left over
 * Never push, merge or deploy without being asked
@@ -41,8 +42,20 @@ Before committing, scan the staged diff for these.
 
 * Code, comments, tests and docs are in English. Only UI strings are translated (`src/lib/i18n/en.ts` and `fi.ts`,
   always the same keys). Wording follows Mastodon's own translations (Finnish: julkaisu, tehosta, suosikki, palvelin)
-* No emojis in code or UI. Icons are Lucide
+* No emojis in code, commits or UI. Icons are Lucide
 * Prefer CSS classes and theme variables over inline styles. The layout is one column on every screen
+
+## Changelog
+
+* `CHANGELOG.md` lists every released version, newest first. Update it with each change and check today's date
+* Format: a `### x.y.z: yyyy-mm-dd` heading per version, no main "Changelog" heading, no sub headings
+* Bullets with `*`, one line per change, present tense, concise, no repetition
+* No formatting except inline code and, when absolutely necessary, nothing more
+* No "Unreleased" heading: a change that is deployed is released, so every deploy carries a version heading, a
+  `package.json` bump and a git tag
+* Sensible semver, patch by default: a fix, a tweak or a small feature is a patch. Minor only when something
+  changes profoundly, major only for something like a full redesign of the UI
+* Several deploys on one day share one version: fold them into that day's heading instead of bumping again
 
 ## Security
 
@@ -56,3 +69,4 @@ Before committing, scan the staged diff for these.
 
 * Keep `README.md` up to date in the same change as the feature
 * Sentence case headings, real heading levels (never bold text as a heading), an empty line after each heading
+* No separator lines or decorated headings such as `=====` or `=== Something ===`
