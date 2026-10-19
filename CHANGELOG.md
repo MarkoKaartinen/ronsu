@@ -1,5 +1,6 @@
 ### Unreleased
 
+* Add an emoji picker to the post form: frequently used, the server's custom emoji, then Unicode emoji by category with search
 * Update dependencies (`dompurify`, `@lucide/svelte`, `vitest`, `@playwright/test`)
 
 ### 0.1.2: 2026-10-18

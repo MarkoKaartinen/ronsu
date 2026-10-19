@@ -3,6 +3,7 @@
   import ChevronDown from '@lucide/svelte/icons/chevron-down';
   import Globe from '@lucide/svelte/icons/globe';
   import ImagePlus from '@lucide/svelte/icons/image-plus';
+  import Smile from '@lucide/svelte/icons/smile';
   import Languages from '@lucide/svelte/icons/languages';
   import Lock from '@lucide/svelte/icons/lock';
   import LockOpen from '@lucide/svelte/icons/lock-open';
@@ -13,8 +14,10 @@
   import { updateMedia, uploadMedia, waitForProcessing } from '../lib/api/media';
   import { startLogin } from '../lib/api/oauth';
   import { getDefaultPrivacy, searchAccounts } from '../lib/api/accounts';
-  import { getLimits, postStatus } from '../lib/api/statuses';
-  import type { Account, Visibility } from '../lib/api/types';
+  import { getCustomEmojis, getLimits, postStatus } from '../lib/api/statuses';
+  import type { Account, CustomEmoji, Visibility } from '../lib/api/types';
+  import { loadUnicodeGroups, readUse, saveUse } from '../lib/emojiData';
+  import { countUse, customGroups, filterGroups, frequentGroup, insertEmoji, type EmojiGroup, type EmojiUse, type PickerEmoji } from '../lib/emojiLogic';
   import { canSend, defaultLanguage, defaultVisibility, hasMention, insertMention, LANGUAGES, mentionPrefix, mentionQueryAt, missingAltText, pickImages, remaining } from '../lib/composeLogic';
   import type { MentionQuery } from '../lib/composeLogic';
   import { htmlToText } from '../lib/html';
@@ -80,6 +83,16 @@
   let activeSuggestion = $state(0);
   /** Where the `@` of a mention the reader closed with Esc was: it stays closed until another mention starts */
   let dismissedAt = -1;
+  /**
+   * The emoji picker: open or not, the search text, the server's custom emoji (fetched when first opened, per
+   * server), the Unicode emoji in the language of the app, and how much each emoji has been used
+   */
+  let emojiOpen = $state(false);
+  let emojiSearch = $state('');
+  let emojis = $state<CustomEmoji[]>([]);
+  let emojisLoaded = '';
+  let unicodeEmojis = $state<EmojiGroup[]>([]);
+  let emojiUse = $state<EmojiUse>({});
   let prefix = '';
   // The same key on retries (no duplicate posts), a new key for every new form
   let idempotencyKey = '';
@@ -112,6 +125,8 @@
     error = '';
     busy = false;
     closeMentions();
+    emojiOpen = false;
+    emojiSearch = '';
     for (const a of attachments) URL.revokeObjectURL(a.preview);
     attachments = [];
     editing = null;
@@ -350,6 +365,53 @@
     });
   }
 
+  const allEmojis = $derived([...customGroups(emojis, t('compose.emoji.custom')), ...unicodeEmojis]);
+  const groups = $derived.by(() => {
+    if (emojiSearch.trim()) return filterGroups(allEmojis, emojiSearch);
+    const frequent = frequentGroup(allEmojis, emojiUse, t('compose.emoji.frequent'));
+    return frequent ? [frequent, ...allEmojis] : allEmojis;
+  });
+
+  async function toggleEmojis() {
+    if (emojiOpen) return closeEmojis();
+    emojiOpen = true;
+    emojiUse = readUse();
+    const locale = i18n.locale;
+    loadUnicodeGroups(locale).then(
+      (list) => {
+        if (locale === i18n.locale) unicodeEmojis = list;
+      },
+      () => (unicodeEmojis = []),
+    );
+    const account = accountStore.active;
+    const client = accountStore.client();
+    if (!client || !account || emojisLoaded === account.instance) return;
+    emojisLoaded = account.instance;
+    emojis = [];
+    try {
+      const list = await getCustomEmojis(client);
+      if (emojisLoaded === account.instance) emojis = list;
+    } catch {
+      emojisLoaded = ''; // try again the next time the picker is opened
+    }
+  }
+
+  function closeEmojis() {
+    emojiOpen = false;
+    emojiSearch = '';
+    textarea?.focus();
+  }
+
+  // The picker stays open for several emoji and does not take the focus back, so a phone keeps its keyboard down
+  function pickEmoji(emoji: PickerEmoji) {
+    if (!textarea) return;
+    const result = insertEmoji(textarea.value, textarea.selectionStart, textarea.selectionEnd, emoji);
+    text = result.text;
+    emojiUse = countUse(emojiUse, emoji.id);
+    saveUse(emojiUse);
+    tick().then(() => textarea?.setSelectionRange(result.cursor, result.cursor));
+  }
+
   const suggesting = $derived(mention !== null && suggestions.length > 0);
 
   function onKeydown(e: KeyboardEvent) {
@@ -475,6 +537,40 @@
       </ul>
     {/if}
 
+    {#if emojiOpen}
+      <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+      <div
+        class="emojis"
+        role="group"
+        aria-label={t('compose.emoji')}
+        onkeydown={(e) => {
+          if (e.key !== 'Escape') return;
+          e.preventDefault();
+          closeEmojis();
+        }}
+      >
+        <input type="search" bind:value={emojiSearch} placeholder={t('compose.emoji.search')} aria-label={t('compose.emoji.search')} autocomplete="off" />
+        <div class="grid">
+          {#each groups as group (group.key)}
+            <h3>{group.title}</h3>
+            <div class="list">
+              {#each group.emojis as e (e.id)}
+                <button type="button" aria-label={e.label} title={e.label} onclick={() => pickEmoji(e)}>
+                  {#if e.url}
+                    <img src={safeHttpUrl(e.url)} alt="" width="28" height="28" loading="lazy" />
+                  {:else}
+                    {e.unicode}
+                  {/if}
+                </button>
+              {/each}
+            </div>
+          {:else}
+            <p>{t('compose.emoji.none')}</p>
+          {/each}
+        </div>
+      </div>
+    {/if}
+
     {#if attachments.length}
       <ul class="media">
         {#each attachments as a (a.key)}
@@ -520,6 +616,15 @@
         disabled={attachments.length >= maxMedia}
         onclick={() => fileInput?.click()}
       ><ImagePlus size={20} aria-hidden="true" /></button>
+      <button
+        type="button"
+        class="tool"
+        class:on={emojiOpen}
+        aria-pressed={emojiOpen}
+        aria-label={t('compose.emoji')}
+        title={t('compose.emoji')}
+        onclick={toggleEmojis}
+      ><Smile size={20} aria-hidden="true" /></button>
       <!-- Icon-only controls: the native <select> sits invisibly on top, so it keeps its accessible name and its picker -->
       <label class="tool">
         {#if visibility === 'public'}<Globe size={20} aria-hidden="true" />
@@ -633,13 +738,21 @@
   .mentions .who { min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
   .mentions .who > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mentions .who span { color: var(--muted); font-size: 0.9rem; }
+  .emojis { flex: none; display: flex; flex-direction: column; gap: 0.4rem; max-height: min(20rem, 45dvh); padding: 0.4rem; border: 1px solid var(--border); border-radius: 0.7rem; background: var(--surface); }
+  .emojis input { flex: none; min-height: 2.5rem; padding: 0 0.7rem; box-sizing: border-box; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--bg); color: var(--text); font: inherit; }
+  .emojis .grid { min-height: 0; overflow-y: auto; }
+  .emojis h3 { margin: 0.25rem 0.25rem 0.1rem; color: var(--muted); font-size: 0.8rem; font-weight: 700; }
+  .emojis .list { display: flex; flex-wrap: wrap; }
+  .emojis .list button { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; padding: 0; border: 0; border-radius: 0.5rem; background: none; font-size: 1.6rem; line-height: 1; cursor: pointer; }
+  .emojis .list button:hover, .emojis .list button:focus-visible { background: var(--bg); }
+  .emojis p { margin: 0.5rem; color: var(--muted); }
   .tools { display: flex; align-items: center; gap: 0.25rem; padding-top: 0.4rem; border-top: 1px solid var(--border); }
   .tool { position: relative; flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.2rem; min-width: 2.75rem; height: 2.75rem; padding: 0 0.5rem; box-sizing: border-box; border: 1px solid transparent; border-radius: 0.75rem; background: none; color: var(--muted); font: inherit; cursor: pointer; }
   .tool:hover, .tool:focus-within { background: var(--surface); color: var(--text); }
   .tool .code { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; }
   /* The select covers the whole control but is invisible: tapping it opens the native picker */
   .tool select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 1rem; }
-  .cwtoggle.on { border-color: var(--marker); color: var(--marker); }
+  .tool.on { border-color: var(--marker); color: var(--marker); }
   .tools .count { flex: none; margin-left: auto; color: var(--muted); font-weight: 600; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
   .tools .count.over { color: var(--danger); font-weight: 700; }
   .error { margin: 0; color: var(--danger); }

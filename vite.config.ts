@@ -84,7 +84,8 @@ export default defineConfig({
         // new version applies immediately (the cache is only an offline fallback). API calls are never cached.
         // Of the fonts only the default one (Figtree) is precached; the others are cached when first used (below)
         globPatterns: ['**/*.{js,css,png,webmanifest}', 'assets/figtree-*.woff2'],
-        globIgnores: ['registerSW.js'],
+        // The emoji data of the picker (one language each, about 85 kB compressed) is cached when first used (below)
+        globIgnores: ['registerSW.js', 'assets/compact-*.js', 'assets/messages-*.js'],
         navigateFallback: null,
         // Push notifications (static/push-sw.js) run in this same service worker
         importScripts: ['push-sw.js'],
@@ -95,6 +96,12 @@ export default defineConfig({
               request.mode === 'navigate' && !['code', 'state', 'error'].some((p) => url.searchParams.has(p)),
             handler: 'NetworkFirst',
             options: { cacheName: 'pages', networkTimeoutSeconds: 3 },
+          },
+          {
+            // The emoji names of a language, downloaded when the picker is first opened, then available offline
+            urlPattern: ({ url }) => /\/assets\/(compact|messages)-[\w-]+\.js$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: { cacheName: 'emoji-data', expiration: { maxEntries: 4 } },
           },
           {
             // A font the reader chose: downloaded once, then available offline
