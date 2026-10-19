@@ -1,3 +1,7 @@
+### Unreleased
+
+* Update dependencies (`dompurify`, `@lucide/svelte`, `vitest`, `@playwright/test`)
+
 ### 0.1.2: 2026-10-18
 
 * Typing `@` in the post form suggests accounts to mention
