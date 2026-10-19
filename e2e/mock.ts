@@ -85,6 +85,7 @@ export interface Server {
   created?: { body: Record<string, unknown>; key: string | undefined }[]; // successful POST /statuses
   attempts?: (string | undefined)[]; // all attempts (Idempotency-Key)
   failPost?: boolean;
+  emojiRequests?: number; // calls of GET /api/v1/custom_emojis
   accountSearches?: string[]; // queries of the account search behind mention suggestions
   uploads?: string[]; // names of the files uploaded (POST /api/v2/media)
   descriptions?: Record<string, string>; // PUT /api/v1/media/:id
@@ -179,6 +180,11 @@ export async function mockMastodon(page: Page, server: Server) {
     const rel = () => ({
       id: '2', following: !!server.following, requested: !!server.requested, followed_by: true, blocking: false, muting: false,
     });
+    if (url.pathname === '/api/v1/custom_emojis') {
+      server.emojiRequests = (server.emojiRequests ?? 0) + 1;
+      const emoji = (shortcode: string, category: string | null, visible = true) => ({ shortcode, url: `https://mock.test/${shortcode}.png`, static_url: `https://mock.test/${shortcode}.png`, visible_in_picker: visible, category });
+      return json([emoji('blobcat', null), emoji('party', 'Fun'), emoji('blobhaj', 'Fun'), emoji('secret', null, false)]);
+    }
     if (url.pathname === '/api/v1/accounts/search') {
       (server.accountSearches ??= []).push(url.searchParams.get('q') ?? '');
       const people = [

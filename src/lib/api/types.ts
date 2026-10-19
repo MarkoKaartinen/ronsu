@@ -55,6 +55,9 @@ export interface CustomEmoji {
   shortcode: string;
   url: string;
   static_url: string;
+  /** Only in the server's emoji list: false for an emoji that is not meant to be offered */
+  visible_in_picker?: boolean;
+  category?: string | null;
 }
 
 export interface Mention {

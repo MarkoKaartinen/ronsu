@@ -134,6 +134,11 @@ export const en = {
   'compose.publishing': 'Posting…',
   'compose.placeholder': "What's on your mind?", // mastodon: compose_form.placeholder
   'compose.mentions': 'Suggested accounts',
+  'compose.emoji': 'Insert emoji', // mastodon: emoji_button.label
+  'compose.emoji.search': 'Search…', // mastodon: emoji_button.search
+  'compose.emoji.none': 'No matching emojis found', // mastodon: emoji_button.not_found
+  'compose.emoji.frequent': 'Frequently used', // mastodon: emoji_button.recent
+  'compose.emoji.custom': 'Custom', // mastodon: emoji_button.custom
   'compose.cw': 'Content warning', // mastodon: compose.sensitive.text
   'compose.visibility': 'Visibility', // mastodon: compose.visibility.title
   'compose.visibility.public': 'Public', // mastodon: privacy.public.short

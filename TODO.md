@@ -19,8 +19,8 @@ Scopes noted per item are the extra OAuth scopes the item needs. Adding one mean
   `read:filters` only if the filter list itself is shown; honoring `filtered` needs no new scope
 - [ ] **No link previews.** The `card` of a status (title, description, image, provider) is not shown. Also
   `card.authors` (fediverse creator attribution) if wanted
-- [ ] **Custom emoji in names and posts are rendered, but not in the compose box.** There is no emoji picker
-  (`GET /api/v1/custom_emojis`). Low priority: typing `:name:` works
+- [x] **Emoji picker** in the compose box: frequently used, the server's custom emoji (`GET /api/v1/custom_emojis`) and
+  Unicode emoji from `emojibase-data`. Left: skin tones, autocomplete while typing `:name:`
 - [ ] **Edited posts are not marked.** `edited_at` is not shown, and history is not viewable
   (`GET /api/v1/statuses/:id/history`)
 - [ ] **No translation.** `POST /api/v1/statuses/:id/translate` (`read:statuses`) when the server supports it

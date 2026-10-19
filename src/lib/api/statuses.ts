@@ -1,5 +1,5 @@
 import type { MastodonClient } from './client';
-import type { Context, Status, Visibility } from './types';
+import type { Context, CustomEmoji, Status, Visibility } from './types';
 
 export const getStatus = (client: MastodonClient, id: string) => client.get<Status>(`/api/v1/statuses/${id}`);
 
@@ -57,3 +57,6 @@ export async function getLimits(client: MastodonClient): Promise<InstanceLimits>
     return DEFAULT_LIMITS;
   }
 }
+
+/** The custom emoji of the server (no scope needed) */
+export const getCustomEmojis = (client: MastodonClient) => client.get<CustomEmoji[]>('/api/v1/custom_emojis');
