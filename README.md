@@ -126,7 +126,7 @@ Releases are listed on <https://github.com/MarkoKaartinen/ronsu/releases>. Each 
 instructions. Normally:
 
 ```sh
-git fetch --tags
+git fetch
 git checkout $(git describe --tags --abbrev=0 origin/main)   # the latest release
 npm ci
 npm run build

@@ -25,6 +25,7 @@ Before committing, scan the staged diff for these.
 * Commit only when asked. Stage only the relevant files, never `git add -A`
 * Run `git status` after committing to verify nothing is left over
 * Never push, merge or deploy without being asked
+* After a merge, switch to `main`, pull and delete the local branch (GitHub deletes the remote one automatically)
 
 ## Working method
 
@@ -56,14 +57,17 @@ Before committing, scan the staged diff for these.
 * A contributor's PR adds only its changelog line, never a version. The maintainer picks the version at release time
 * A release is its own small PR (or, for a release of one single change, part of that PR): it renames the heading to
   `### x.y.z: yyyy-mm-dd`, bumps `package.json` and `package-lock.json` (the version shown in the app comes from
-  there) and checks today's date. After it is merged, tag `vx.y.z` and create the GitHub release with this body
+  there) and checks today's date. After it is merged, tag `vx.y.z` and create the GitHub release (its title is `vx.y.z`, like the tag) with this body
   (the changes are copied from `CHANGELOG.md`, the update command is the same every time, `Notes` lists only what a release needs beyond it):
 
   ```
   <the bullets of this version from CHANGELOG.md>
 
   Update:
-      git fetch --tags && git checkout vx.y.z && npm ci && npm run build
+      git fetch
+      git checkout vx.y.z
+      npm ci
+      npm run build
 
   Notes:
   * Log in again: yes/no (OAuth scopes changed)
