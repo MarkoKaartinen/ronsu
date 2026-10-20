@@ -1,6 +1,5 @@
 <script lang="ts">
   import ArrowLeft from '@lucide/svelte/icons/arrow-left';
-  import SquarePen from '@lucide/svelte/icons/square-pen';
   import X from '@lucide/svelte/icons/x';
   import { onMount, tick, untrack } from 'svelte';
   import { finishLogin, hasOAuthCallback, missingScopes, startLogin } from './lib/api/oauth';
@@ -9,6 +8,7 @@
   import Compose from './components/Compose.svelte';
   import Lightbox from './components/Lightbox.svelte';
   import BottomBar from './components/BottomBar.svelte';
+  import Sidebar from './components/Sidebar.svelte';
   import Feed from './components/Feed.svelte';
   import Notifications from './components/Notifications.svelte';
   import Profile from './components/Profile.svelte';
@@ -35,8 +35,9 @@
   const threadId = $derived(router.route.name === 'thread' ? router.route.id : null);
   const profileHandle = $derived(router.route.name === 'profile' ? router.route.handle : null);
   /**
-   * On a wide screen the notifications are a second column beside the feed (always visible, with their own
-   * scrolling) and there is no bottom bar; on a narrow one they are a view of their own (see BottomBar).
+   * On a wide screen there is a sidebar with the navigation, and the notifications are a second column beside the feed
+   * (always visible, with their own scrolling); there is no bottom bar. On a narrow one the top bar and the bottom bar
+   * stay in place and the notifications are a view of their own (see BottomBar).
    */
   const WIDE = '(min-width: 800px)';
   let wide = $state(matchMedia(WIDE).matches);
@@ -120,25 +121,18 @@
   {#snippet brandBar()}
     <header class="top">
       <button class="brand" onclick={goHome} title={t('nav.home')}>
-        <img src="/icon-192.png" alt="" width="40" height="40" />
+        <img src="/icon-192.png" alt="" width="32" height="32" />
         <strong>Ronsu</strong>
       </button>
-      <div class="right">
-        {#if wide}
-          <button class="icon compose" onclick={() => composer.show()} aria-label={t('nav.newPost')} title={t('nav.newPost')}>
-            <SquarePen size={22} aria-hidden="true" />
-          </button>
+      <button class="avatar" onclick={() => (showSettings = true)} aria-label={t('nav.account', { acct: accountStore.active?.acct ?? '' })} title={t('settings.title')}>
+        {#if accountStore.active?.avatar}
+          <img src={accountStore.active.avatar} alt="" width="36" height="36" />
+        {:else}
+          {(accountStore.active?.displayName ?? '').charAt(0).toUpperCase() || '?'}
         {/if}
-        <button class="avatar" onclick={() => (showSettings = true)} aria-label={t('nav.account', { acct: accountStore.active?.acct ?? '' })} title={t('settings.title')}>
-          {#if accountStore.active?.avatar}
-            <img src={accountStore.active.avatar} alt="" width="44" height="44" />
-          {:else}
-            {(accountStore.active?.displayName ?? '').charAt(0).toUpperCase() || '?'}
-          {/if}
-        </button>
-      </div>
+      </button>
     </header>
-{/snippet}
+  {/snippet}
 
   {#if needsReauth && !reauthDismissed}
     <div class="reauth" class:wide role="status">
@@ -148,12 +142,11 @@
     </div>
   {/if}
 
-  <div class="page" class:wide>
-  <!-- On a wide screen the top bar spans both columns -->
-  {#if wide}
-    <div class="widehead">{@render brandBar()}</div>
-  {/if}
+  <div class="page" class:wide class:fixedbars={!wide && tab !== null}>
   <div class="cols">
+  {#if wide}
+    <Sidebar homeActive={onHome} onHome={goHome} onSettings={() => (showSettings = true)} />
+  {/if}
   <div class="shell" class:home={tab !== null} class:wide>
     {#if !tab}
       <header class="top sticky">
@@ -219,35 +212,32 @@
 {/if}
 
 <style>
-  /* From 800 px up: the feed and a notifications column (46 % of the width, at most 30 rem) under one top bar; below that
-     it is the narrow view with the bottom bar */
-  .page { max-width: 64rem; margin: 0 auto; }
-  /* The top bar stays in place while scrolling; what else sticks (the feed's bar, a thread's back bar, the second
-     column) starts below it, by this height */
-  .page.wide { --sticky-top: 4.25rem; }
-  .widehead { position: sticky; top: 0; z-index: 6; }
-  .widehead :global(.top) { height: var(--sticky-top); box-sizing: border-box; padding-block: 0; }
-  .widehead :global(.top) { border-inline: 1px solid var(--border); box-shadow: 0 0 2rem rgb(0 0 0 / 0.2); }
+  /* From 800 px up: the sidebar, the feed and a notifications column; below that it is the narrow view with the top bar
+     and the bottom bar. The sidebar is a rail of icons up to 1180 px, then it has the labels. */
+  .page { max-width: 81rem; margin: 0 auto; --side-width: 4.5rem; }
+  @media (min-width: 1180px) { .page { --side-width: 15rem; } }
+  /* The narrow top bar stays in place while scrolling; what else sticks (the feed's bar) starts below it, by this height */
+  .page.fixedbars { --sticky-top: 3.25rem; }
   .cols { display: flex; align-items: flex-start; }
   /* A flex item is as wide as its content unless told otherwise: on a phone the column must be the width of the screen */
   .cols .shell { width: 100%; min-width: 0; }
-  .cols .shell.wide { margin: 0; max-width: none; flex: 1 1 0; min-width: 0; box-shadow: none; }
+  .cols .shell.wide { margin: 0; max-width: 40rem; flex: 1 1 0; min-width: 0; box-shadow: none; }
   /* The second column: as high as the screen and scrolling on its own, while the feed scrolls with the page */
-  .aside { flex: 0 0 clamp(19rem, 46%, 30rem); position: sticky; top: var(--sticky-top, 0); height: calc(100dvh - var(--sticky-top, 0px)); overflow-y: auto; overscroll-behavior: contain; background: var(--bg); border-right: 1px solid var(--border); padding-bottom: 1rem; box-sizing: border-box; }
+  .aside { flex: 0 0 clamp(18rem, 30%, 26rem); position: sticky; top: 0; height: 100dvh; overflow-y: auto; overscroll-behavior: contain; background: var(--bg); border-right: 1px solid var(--border); padding-bottom: 1rem; box-sizing: border-box; }
   .shell.wide.home { padding-bottom: 2rem; }
-  .shell.home { padding-bottom: calc(5.5rem + var(--inset-bottom)); } /* room for the bottom bar below the last item */
+  .shell.home { padding-bottom: calc(3.5rem + var(--inset-bottom)); } /* room for the bottom bar below the last item */
   .shell { max-width: 40rem; margin: 0 auto; min-height: 100dvh; border-inline: 1px solid var(--border); background: var(--bg); box-shadow: 0 0 2rem rgb(0 0 0 / 0.2); padding-bottom: 0; }
   .top { display: flex; justify-content: space-between; align-items: center; padding: 0.7rem 1rem; background: var(--header); border-bottom: 1px solid var(--border); }
+  /* The narrow top bar: slim, and in place while scrolling */
+  .fixedbars .shell > .top:not(.sticky) { position: sticky; top: 0; z-index: 4; height: var(--sticky-top); padding-block: 0; }
   .top.sticky { justify-content: flex-start; gap: 0.5rem; padding: 0.6rem 0.5rem; position: sticky; top: var(--sticky-top, 0); z-index: 3; background: var(--header); border-bottom: 1px solid var(--border); padding-bottom: 0.7rem; }
   .top button.brand { display: flex; align-items: center; gap: 0.65rem; padding: 0; background: none; border-radius: 0; color: inherit; font: inherit; }
   .brand img { border-radius: var(--radius-avatar); display: block; }
-  .brand strong { font-size: 1.5rem; letter-spacing: -0.01em; }
-  .top .right { display: flex; gap: 0.5rem; align-items: center; min-width: 0; }
+  .brand strong { font-size: 1.3rem; letter-spacing: -0.01em; }
   .top button { border: 0; background: var(--bg); color: var(--text); border-radius: 0.75rem; }
   .top button.icon { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; padding: 0; }
   .top.sticky button.icon { background: none; }
-  .top button.icon.compose { background: var(--accent); color: var(--on-accent); box-shadow: 0 2px 8px rgb(0 0 0 / 0.3); }
-  .top button.avatar { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; padding: 0; border-radius: var(--radius-avatar); background: var(--accent); color: var(--on-accent); font-size: 1.05rem; font-weight: 700; overflow: hidden; }
+  .top button.avatar { display: inline-flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; padding: 0; border-radius: var(--radius-avatar); background: var(--accent); color: var(--on-accent); font-size: 1rem; font-weight: 700; overflow: hidden; }
   .top button.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; border: var(--avatar-border); border-radius: var(--radius-avatar); }
   .toast { position: fixed; left: 50%; bottom: calc(1.2rem + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 30; display: flex; gap: 0.8rem; align-items: center; max-width: min(32rem, calc(100vw - 2rem)); padding: 0.7rem 1rem; border-radius: 0.6rem; background: var(--danger-bg); color: var(--on-danger-bg); box-shadow: 0 4px 16px rgb(0 0 0 / 0.3); }
   .toast.info { background: var(--accent); color: var(--on-accent); }

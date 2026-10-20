@@ -232,7 +232,10 @@ for (const order of ['oldest-first', 'newest-first']) {
     // The other device reads on while this one sits in the background: no wake-up event, so nothing noticed yet
     movedByAnotherDevice(server, 150);
     const other = server.marker?.last_read_id;
-    for (let y = 1500; y <= 4000; y += 500) {
+    // Reading on: down the list (oldest first), or up from the divider (newest first), in steps smaller than the screen
+    const from = await page.evaluate(() => window.scrollY);
+    const ys = order === 'oldest-first' ? [1500, 2000, 2500, 3000, 3500, 4000] : Array.from({ length: 12 }, (_, i) => Math.max(0, from - 300 * (i + 1)));
+    for (const y of ys) {
       await page.evaluate((v) => window.scrollTo(0, v), y);
       await page.waitForTimeout(60);
     }

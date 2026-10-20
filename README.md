@@ -42,6 +42,8 @@ Source code and issues: <https://github.com/MarkoKaartinen/ronsu>
   a choice of whom they come from (see [Push notifications](#push-notifications))
 - A red ball on the bell in the bottom bar (and a mark in the page title and on the app icon) when there is
   something you have not seen; it follows the server's notifications marker, so it is the same on every device
+- Phone: the top and bottom bars stay in place (home, a plus for a new post, notifications). Wide screen: a sidebar
+  with the navigation and your account, the feed and the notifications side by side
 - Installable as a PWA, works offline for the app shell
 
 ## Push notifications

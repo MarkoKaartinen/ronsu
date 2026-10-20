@@ -335,7 +335,7 @@
 </div>
 
 <style>
-  .refresh { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; padding: 0.5rem 1rem; background: var(--bg); border-bottom: 1px solid var(--border); }
+  .refresh { position: sticky; top: var(--sticky-top, 0); z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; padding: 0.5rem 1rem; background: var(--bg); border-bottom: 1px solid var(--border); }
   .filter { display: flex; gap: 0.3rem; }
   .filter button { white-space: nowrap; min-height: 2.25rem; padding: 0 0.9rem; border: 1px solid transparent; border-radius: 999px; background: none; color: var(--muted); font-weight: 600; }
   .filter button.on { background: var(--surface); border-color: var(--border); color: var(--text); }
