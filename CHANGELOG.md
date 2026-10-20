@@ -1,5 +1,6 @@
 ### Unreleased
 
+* Honor the server's keyword filters: filtered posts are hidden, covered with a warning or have their media blurred
 * Add the MIT license
 * Fix an occasionally failing login browser test
 

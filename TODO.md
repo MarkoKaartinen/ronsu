@@ -14,9 +14,8 @@ Scopes noted per item are the extra OAuth scopes the item needs. Adding one mean
 - [ ] **Polls cannot be voted on.** They are shown with results, but there is no way to vote.
   `POST /api/v1/polls/:id/votes` (`write:statuses`, already granted). Also refresh a poll
   (`GET /api/v1/polls/:id`) and show a poll's voters count while it is open
-- [ ] **Server-side filters are ignored.** The `filtered` array of a status (filter action `warn`, `blur` since
-  Mastodon 4.4) is not read, so posts the user has hidden or collapsed with keyword filters show in full. Needs
-  `read:filters` only if the filter list itself is shown; honoring `filtered` needs no new scope
+- [x] **Server-side filters** (`filtered`, filter actions `warn`, `hide` and `blur`) are honored in the home timeline,
+  notifications, threads and profiles. Needs no scope; the filter list itself (`read:filters`) is not shown
 - [ ] **No link previews.** The `card` of a status (title, description, image, provider) is not shown. Also
   `card.authors` (fediverse creator attribution) if wanted
 - [x] **Emoji picker** in the compose box: frequently used, the server's custom emoji (`GET /api/v1/custom_emojis`) and

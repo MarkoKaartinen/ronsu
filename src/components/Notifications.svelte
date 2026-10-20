@@ -301,7 +301,7 @@
           </p>
         {/if}
         {#if !LIGHT.has(n.type)}
-          <StatusCard status={n.status} />
+          <StatusCard status={n.status} filterContext="notifications" />
         {/if}
       </div>
     {/if}

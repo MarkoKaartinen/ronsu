@@ -30,6 +30,8 @@ let sensitiveMedia = false;
 let formatted = false;
 /** Whether every post quotes another one (set from Server.quoteAll) */
 let quoteAll = false;
+/** The server-side filter that matches posts with i % 6 === 4 (set from Server.filter; a blur filter matches i % 6 === 0, posts that have a picture) */
+let filter: Server['filter'];
 /** Polls of each upload (the file is ready on the second one) */
 const polls: Record<string, number> = {};
 
@@ -60,6 +62,10 @@ function status(i: number, withQuote = true) {
     reblogs_count: 0,
     quotes_count: 1,
     favourites_count: 0,
+    filtered:
+      filter && i % 6 === (filter.action === 'blur' ? 0 : 4)
+        ? [{ filter: { id: '1', title: filter.title, context: filter.context ?? ['home', 'thread', 'account', 'notifications'], expires_at: null, filter_action: filter.action } }]
+        : [],
   };
 }
 
@@ -75,6 +81,7 @@ export interface Server {
   sensitive?: boolean; // the pictures are marked sensitive
   cwLong?: boolean; // with `cw`: the warning text is long
   cw?: boolean; // some posts have a content warning
+  filter?: { title: string; action: string; context?: string[] }; // a server-side filter matches some posts
   branched?: boolean; // the thread has a deep chain of replies and a second reply to the selected post and a late reply
   aspect?: number; // aspect ratio of the pictures (default 4/3)
   images?: number; // pictures per post that has any (default 1)
@@ -116,6 +123,7 @@ export async function mockMastodon(page: Page, server: Server) {
   sensitiveMedia = !!server.sensitive;
   formatted = !!server.formatted;
   quoteAll = !!server.quoteAll;
+  filter = server.filter;
   await page.route(`${HOST}/**`, async (route) => {
     const req = route.request();
     const cors = {

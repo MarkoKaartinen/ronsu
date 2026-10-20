@@ -288,9 +288,9 @@
     {@const parent = feed.parentOf(status)}
     <!-- The parent is left out when it is the post right above (oldest first), it is there already -->
     {#if parent && feed.items[i - 1]?.id !== parent.id}
-      <StatusCard status={parent} context />
+      <StatusCard status={parent} context filterContext="home" />
     {/if}
-    <StatusCard {status} joined={!!parent && feed.items[i - 1]?.id !== parent.id} replyTo={parent?.account.acct} />
+    <StatusCard {status} filterContext="home" joined={!!parent && feed.items[i - 1]?.id !== parent.id} replyTo={parent?.account.acct} />
   {/each}
 </div>
 

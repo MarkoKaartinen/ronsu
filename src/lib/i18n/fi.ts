@@ -94,6 +94,7 @@ export const fi: Record<keyof typeof en, string> = {
   'status.showPost': 'Näytä julkaisu',
   'status.hidePost': 'Piilota julkaisu',
   'status.sensitive': 'Arkaluonteista sisältöä',
+  'status.filterMatches': 'Vastaa suodatinta ”{title}”', // mastodon: filter_warning.matches_filter
   'status.showMedia': 'Näytä media',
   'status.attachment': 'Liite',
   'status.openOriginal': 'Avaa alkuperäinen sivu',

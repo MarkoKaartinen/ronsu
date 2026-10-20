@@ -96,6 +96,7 @@ export const en = {
   'status.showPost': 'Show post', // mastodon: content_warning.show_post
   'status.hidePost': 'Hide post', // mastodon: content_warning.hide_post
   'status.sensitive': 'Sensitive content', // mastodon: status.sensitive_warning
+  'status.filterMatches': 'Matches filter “{title}”', // mastodon: filter_warning.matches_filter
   'status.showMedia': 'Show media', // mastodon: content_warning.media.show_short
   'status.attachment': 'Attachment',
   'status.openOriginal': 'Open original page', // mastodon: account.open_original_page
