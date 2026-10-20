@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test';
 const HOST = 'https://mock.test';
 /** What the app asks a login for (src/lib/api/oauth.ts); a seeded account has been given all of it, or the app would ask to log in again */
 export const SCOPES =
-  'read:accounts read:statuses read:notifications read:follows write:favourites write:statuses write:media write:bookmarks write:follows push';
+  'read:accounts read:statuses read:notifications read:follows write:favourites write:statuses write:media write:bookmarks write:follows write:conversations push';
 export const COUNT = 200;
 const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',

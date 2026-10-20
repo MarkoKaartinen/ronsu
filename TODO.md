@@ -42,8 +42,8 @@ the reading position (markers) only exists for `home` and `notifications`, so th
   pasted `@user@server` or post URL (`resolve=true`)
 - [ ] **Bookmarks** and **favorites** views (`GET /api/v1/bookmarks`, `/api/v1/favourites`, `read:bookmarks`,
   `read:favourites`). Bookmarks can be set but never opened again, which makes them write-only today
-- [ ] **Direct messages / conversations** (`GET /api/v1/conversations`, `read:statuses`; `write:conversations`
-  to mark read). Mentions with direct visibility show in notifications, but there is no conversation view
+- [x] **Direct messages / conversations** (`GET /api/v1/conversations`, `read:statuses`; `write:conversations`
+  to mark read). Shown as Mastodon's "Private mentions": the newest post of each conversation, read when the view is opened. Left: delete a conversation, mark one as unread
 - [ ] **Who boosted or favorited a post**: `GET /api/v1/statuses/:id/reblogged_by` and `/favourited_by`
 - [ ] **Trends and suggestions**: `GET /api/v1/trends/tags`, `/trends/statuses`, `/api/v2/suggestions`
   (`read`). Lower priority

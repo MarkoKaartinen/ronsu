@@ -1,11 +1,13 @@
 /** `handle` of a profile: "@user@server" (the usual form) or a numeric account id (older links). */
-export type Route = { name: 'home' } | { name: 'notifications' } | { name: 'thread'; id: string } | { name: 'profile'; handle: string };
+export type MainView = 'home' | 'notifications' | 'messages';
+export type Route = { name: MainView } | { name: 'thread'; id: string } | { name: 'profile'; handle: string };
 
 /** Link to a profile, e.g. `#/user/@magdalenahai@mstdn.social`. */
 export const profileHref = (acct: string) => `#/user/@${encodeURI(acct)}`;
 
 function parse(hash: string): Route {
   if (hash === '#/notifications') return { name: 'notifications' };
+  if (hash === '#/messages') return { name: 'messages' };
   const t = hash.match(/^#\/thread\/(\d+)$/);
   if (t) return { name: 'thread', id: t[1] };
   const byId = hash.match(/^#\/user\/(\d+)$/);
@@ -28,7 +30,7 @@ function parse(hash: string): Route {
 class Router {
   route = $state<Route>(parse(location.hash));
   /** The scroll position of each of the two main views, kept while a thread or a profile is open (or the other view) */
-  tabScroll: Record<string, number> = { home: 0, notifications: 0 };
+  tabScroll: Record<string, number> = { home: 0, notifications: 0, messages: 0 };
 
   constructor() {
     // Restoring the scroll position is the app's job; the browser's own would compete with it
@@ -40,14 +42,14 @@ class Router {
 
   private set(next: Route) {
     if (JSON.stringify(next) === JSON.stringify(this.route)) return;
-    if (this.route.name === 'home' || this.route.name === 'notifications') this.tabScroll[this.route.name] = window.scrollY;
+    if (this.route.name === 'home' || this.route.name === 'notifications' || this.route.name === 'messages') this.tabScroll[this.route.name] = window.scrollY;
     this.route = next;
   }
 
-  /** Switches between the two main views (the bottom bar) */
-  openTab(name: 'home' | 'notifications') {
+  /** Switches between the main views (the bottom bar, the sidebar) */
+  openTab(name: MainView) {
     if (this.route.name === name) return;
-    history.pushState({ inApp: true }, '', name === 'home' ? location.pathname + location.search : '#/notifications');
+    history.pushState({ inApp: true }, '', name === 'home' ? location.pathname + location.search : `#/${name}`);
     this.set({ name });
   }
 

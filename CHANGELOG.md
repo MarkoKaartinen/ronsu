@@ -1,7 +1,9 @@
 ### Unreleased
 
-* Fix the missing space under the text of a quoted post
+* A post that is a private mention says so
 * Fix the feed showing "token revoked" after logging in again until the page was reloaded
+* Add private mentions (conversations) in the sidebar and the bottom bar, with a mark when one is unread; log in again for the new `write:conversations` permission
+* The plus in the bottom bar has no fill, and the notice about new permissions is in the feed column
 * On a wide screen the navigation moves to a sidebar with the account at the bottom, beside the feed and the notifications
 * On a phone the top and bottom bars stay in place, are slimmer, and the new post button in the bottom bar is a plus
 * Show a preview of the link in a post: provider, title, description and picture

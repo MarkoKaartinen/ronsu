@@ -114,3 +114,19 @@ test('the Ronsu logo on the feed scrolls it to the top', async ({ page }) => {
   await page.getByRole('button', { name: 'Ronsu' }).evaluate((el: HTMLElement) => el.click());
   await expect.poll(() => page.evaluate(() => Math.round(scrollY))).toBe(0);
 });
+
+// The notice about new permissions is in the reading column (under its top bar), not across the whole page
+for (const [name, width] of [['phone', 420], ['desktop', 1366]] as const) {
+  test(`${name}: the re-login notice is in the feed column`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await mockMastodon(page, { marker: null, posts: [] });
+    await seedAccount(page, 'read write:favourites write:statuses write:media write:bookmarks write:follows');
+    await page.reload();
+    const notice = page.locator('.shell .reauth');
+    await expect(notice).toBeVisible();
+    const [n, s] = await Promise.all([notice.boundingBox(), page.locator('.shell').first().boundingBox()]);
+    expect(Math.abs(n!.x - s!.x)).toBeLessThanOrEqual(1); // the column's side line
+    expect(Math.round(n!.width)).toBeLessThanOrEqual(Math.round(s!.width));
+    if (width > 800) await page.screenshot({ path: 'test-results/reauth-wide.png' });
+  });
+}

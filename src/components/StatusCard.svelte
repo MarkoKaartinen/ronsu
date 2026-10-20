@@ -4,6 +4,7 @@
   import { filterVerdict } from '../lib/filters';
   import { mediaAspect } from '../lib/media';
   import Check from '@lucide/svelte/icons/check';
+  import Mail from '@lucide/svelte/icons/mail';
   import Repeat2 from '@lucide/svelte/icons/repeat-2';
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
   import { profileHref, router } from '../lib/router.svelte';
@@ -26,6 +27,7 @@
    * not a reading position either, and a tap opens the quoted post, not the one that quotes it). actions: such a
    * card keeps its buttons (the original post inside a boost). filterContext: the view the card is in, which
    * decides which of the user's server-side filters apply (none without it; the selected post is never filtered).
+   * markPrivate: a post that is a private mention says so (off in the view that only lists private mentions).
    */
   let {
     status,
@@ -41,6 +43,7 @@
     quoted = false,
     actions = false,
     filterContext,
+    markPrivate = true,
   }: {
     status: Status;
     focused?: boolean;
@@ -55,6 +58,7 @@
     quoted?: boolean;
     actions?: boolean;
     filterContext?: FilterContext;
+    markPrivate?: boolean;
   } = $props();
 
   // A boost shows the original; the wrapper's id is still the reading-position key (data-id)
@@ -209,6 +213,10 @@
             {formatRelativeTime(s.created_at, i18n.locale, clock.now)}
           </svelte:element>
         </header>
+      {/if}
+
+      {#if markPrivate && s.visibility === 'direct'}
+        <p class="private"><Mail size={14} aria-hidden="true" />{t('status.private')}</p>
       {/if}
 
       {#if replyTo}
@@ -442,6 +450,7 @@
   .context { padding-top: 1rem; }
   .context::before { display: none; }
   .joined { padding-top: 0.25rem; }
+  .private { display: flex; align-items: center; gap: 0.35rem; margin: 0.1rem 0 0; color: var(--accent); font-size: 0.9rem; font-weight: 600; }
   .replyto { margin: 0.1rem 0 0; color: var(--muted); font-size: 0.9rem; }
   .replyto span { color: var(--accent); }
   /* A quote: the quoted post in a frame, and the server's "RE: link" line is hidden because the post is there */
