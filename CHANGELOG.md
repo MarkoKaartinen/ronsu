@@ -1,5 +1,6 @@
 ### Unreleased
 
+* Add the MIT license
 * Fix an occasionally failing login browser test
 
 ### 0.1.3: 2026-10-20

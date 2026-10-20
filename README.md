@@ -184,3 +184,7 @@ curl -sI https://ronsu.example.org/ | grep -iE 'content-security-policy|x-frame-
 `src/lib/headers.test.ts` fails if the policy above and the one in `index.html` drift apart: update both.
 
 Tests before publishing: `npm run check`, `npm test`, `npm run test:e2e` (the last one needs the build and Chrome).
+
+## License
+
+Ronsu is released under the [MIT License](LICENSE).
