@@ -6,7 +6,8 @@ A Mastodon reader PWA (Svelte 5, Vite, TypeScript). A static site with no backen
 
 This is a public repository. Never commit, hardcode or mention, in code, comments, tests, fixtures or commit messages:
 
-* Real names, emails, handles or other personal details of any person
+* Real names, emails, handles or other personal details of any person (the one exception is the copyright line
+  in `LICENSE`)
 * Tokens, client secrets, passwords or any credentials (tests use fake values and `mock.test`)
 * Real server URLs, domains or IP addresses (use `ronsu.example.org` and `mastodon.example`)
 * File paths with a username
