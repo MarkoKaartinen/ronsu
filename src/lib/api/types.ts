@@ -84,6 +84,18 @@ export interface Poll {
   own_votes?: number[];
 }
 
+/** The preview of a link in a post (the `html` of a video or rich card is never used: it is markup from another site) */
+export interface PreviewCard {
+  url: string;
+  title: string;
+  description: string;
+  type: 'link' | 'photo' | 'video' | 'rich' | string;
+  provider_name?: string;
+  image: string | null;
+  /** Mastodon 4.4+: the alt text of the image */
+  image_description?: string;
+}
+
 /** Where a server-side filter applies (`profile` is what the docs call a profile view; the API value is `account`) */
 export type FilterContext = 'home' | 'notifications' | 'public' | 'thread' | 'account';
 
@@ -128,6 +140,8 @@ export interface Status {
   bookmarked?: boolean;
   /** The user's filters that matched the post; only there for a signed-in account */
   filtered?: FilterResult[];
+  /** The first link of the post, with its title, description and picture; null when the server has none (yet) */
+  card?: PreviewCard | null;
 }
 
 export interface Context {

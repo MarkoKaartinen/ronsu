@@ -32,6 +32,8 @@ let formatted = false;
 let quoteAll = false;
 /** The server-side filter that matches posts with i % 6 === 4 (set from Server.filter; a blur filter matches i % 6 === 0, posts that have a picture) */
 let filter: Server['filter'];
+/** Whether posts with i % 8 === 5 carry a link preview (set from Server.cards) */
+let withCards = false;
 /** Polls of each upload (the file is ready on the second one) */
 const polls: Record<string, number> = {};
 
@@ -62,6 +64,9 @@ function status(i: number, withQuote = true) {
     reblogs_count: 0,
     quotes_count: 1,
     favourites_count: 0,
+    card: withCards && i % 8 === 5
+      ? { url: `${HOST}/story/${i}`, title: `Story ${i}`, description: 'About the story', type: 'link', provider_name: 'Mock News', image: `${HOST}/img/card${i}.png`, image_description: 'A harbour' }
+      : null,
     filtered:
       filter && i % 6 === (filter.action === 'blur' ? 0 : 4)
         ? [{ filter: { id: '1', title: filter.title, context: filter.context ?? ['home', 'thread', 'account', 'notifications'], expires_at: null, filter_action: filter.action } }]
@@ -81,6 +86,7 @@ export interface Server {
   sensitive?: boolean; // the pictures are marked sensitive
   cwLong?: boolean; // with `cw`: the warning text is long
   cw?: boolean; // some posts have a content warning
+  cards?: boolean; // some posts (i % 8 === 5) have a link preview
   filter?: { title: string; action: string; context?: string[] }; // a server-side filter matches some posts
   branched?: boolean; // the thread has a deep chain of replies and a second reply to the selected post and a late reply
   aspect?: number; // aspect ratio of the pictures (default 4/3)
@@ -124,6 +130,7 @@ export async function mockMastodon(page: Page, server: Server) {
   formatted = !!server.formatted;
   quoteAll = !!server.quoteAll;
   filter = server.filter;
+  withCards = !!server.cards;
   await page.route(`${HOST}/**`, async (route) => {
     const req = route.request();
     const cors = {

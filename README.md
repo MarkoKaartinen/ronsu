@@ -30,6 +30,7 @@ Source code and issues: <https://github.com/MarkoKaartinen/ronsu>
   from device to device. "Load new" keeps at most 50 posts in the list (the ones furthest from where you are
   reading are dropped, and "Load more" / "Load older" bring them back), so the page does not grow without end.
   A position is never sent to the server when another device has already read further: the app asks first
+- Link previews (provider, title, description and picture) under posts that have a link; the picture stays covered on sensitive posts
 - The keyword filters you have set on your server are honored: a filtered post is hidden, covered with a warning that names the filter, or has its pictures blurred, as the filter says
 - Several accounts, threads, profiles, replying and posting (content warnings, visibility, language, account suggestions after `@`, an emoji picker with the frequently used, the server's custom and the Unicode emoji)
 - Favorite, boost and bookmark; follow and unfollow
