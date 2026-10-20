@@ -1,4 +1,4 @@
-### Unreleased
+### 0.1.3: 2026-10-20
 
 * Add installation and update instructions to the README
 * Add an emoji picker to the post form: frequently used, the server's custom emoji, then Unicode emoji by category with search
