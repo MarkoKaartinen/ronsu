@@ -1,5 +1,6 @@
 ### Unreleased
 
+* Fix the missing space under the text of a quoted post
 * Fix the feed showing "token revoked" after logging in again until the page was reloaded
 * On a wide screen the navigation moves to a sidebar with the account at the bottom, beside the feed and the notifications
 * On a phone the top and bottom bars stay in place, are slimmer, and the new post button in the bottom bar is a plus
