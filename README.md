@@ -103,16 +103,56 @@ To add a language: copy `en.ts` to a new file with the same keys, register it in
 (`LOCALES`, `LOCALE_NAMES`, `dictionaries`), and run `npm test`. The tests check that every language defines
 exactly the same keys and placeholders.
 
-## Deployment
+## Installation
 
-Ronsu is a static site: no backend and no secrets. To publish it, run these commands (Node 22):
+Ronsu is a static site that you build and host yourself (Node 22):
 
 ```sh
+git clone https://github.com/MarkoKaartinen/ronsu.git
+cd ronsu
+git checkout $(git describe --tags --abbrev=0 origin/main)   # the latest release
 npm ci
 npm run build
 ```
 
-The finished site is created in the `public/` folder (it is in `.gitignore`). Serve it from the root of a domain.
+Serve the `public/` folder as described in [Deployment](#deployment).
+
+`main` is the development branch and can contain unreleased features that are not finished.
+Install a tagged release unless you want to follow development.
+
+## Updating
+
+Releases are listed on <https://github.com/MarkoKaartinen/ronsu/releases>. Each release has its own update
+instructions. Normally:
+
+```sh
+git fetch --tags
+git checkout $(git describe --tags --abbrev=0 origin/main)   # the latest release
+npm ci
+npm run build
+```
+
+To update to a specific release, use its tag instead, for example `git checkout v0.1.3`.
+Then replace the served `public/` folder with the new build. The service worker updates the app on the next
+visit, and the app may ask you to log in again if the OAuth scopes changed. Read the release notes first: they
+say if a release needs anything more.
+
+### Following the main branch
+
+`main` contains the changes listed under "Unreleased" in `CHANGELOG.md`. They can be unfinished or change before
+the release, so use it only for testing:
+
+```sh
+git checkout main
+git pull
+npm ci
+npm run build
+```
+
+## Deployment
+
+Ronsu is a static site: no backend and no secrets. [Build it](#installation) and serve the `public/` folder
+(it is in `.gitignore`) from the root of a domain.
 
 Requirements:
 
