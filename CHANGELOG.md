@@ -1,5 +1,7 @@
 ### Unreleased
 
+* On a wide screen the navigation moves to a sidebar with the account at the bottom, beside the feed and the notifications
+* On a phone the top and bottom bars stay in place, are slimmer, and the new post button in the bottom bar is a plus
 * Show a preview of the link in a post: provider, title, description and picture
 * Honor the server's keyword filters: filtered posts are hidden, covered with a warning or have their media blurred
 * Add the MIT license

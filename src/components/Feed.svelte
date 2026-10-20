@@ -322,6 +322,11 @@
   .bar { position: sticky; top: var(--sticky-top, 0); z-index: 2; background: var(--bg); border-bottom: 1px solid var(--border); padding: 0.4rem 1rem 0.2rem; }
   .row { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; font-size: 0.9rem; color: var(--muted); min-height: 2.75rem; }
   .status { flex: 1; }
+  /* Slimmer on a phone, where the bars take room from the reading; the wide screen keeps the height of the notifications' bar beside it */
+  @media (max-width: 799px) {
+    .bar { padding-block: 0.1rem; }
+    .row, .order select { min-height: 2.25rem; }
+  }
   .sync { display: inline-flex; color: var(--muted); }
   .sync.pending { color: var(--accent); }
   .sync.error { color: var(--danger); }

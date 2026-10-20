@@ -1,62 +1,42 @@
 <script lang="ts">
   import Bell from '@lucide/svelte/icons/bell';
   import House from '@lucide/svelte/icons/house';
-  import SquarePen from '@lucide/svelte/icons/square-pen';
-  import { onMount } from 'svelte';
+  import Plus from '@lucide/svelte/icons/plus';
   import { router } from '../lib/router.svelte';
   import { composer } from '../lib/stores/composer.svelte';
   import { t } from '../lib/stores/i18n.svelte';
   import { unread } from '../lib/stores/unread.svelte';
 
   let { current }: { current: 'home' | 'notifications' } = $props();
-
-  // Out of the way while reading: hides when scrolling down, comes back when scrolling up (and at the top)
-  let hidden = $state(false);
-  let lastY = 0;
-
-  onMount(() => {
-    lastY = window.scrollY;
-    const onScroll = () => {
-      const y = window.scrollY;
-      if (y < 80 || y < lastY - 6) hidden = false;
-      else if (y > lastY + 6) hidden = true;
-      lastY = y;
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  });
 </script>
 
-<nav class="bar" class:hidden aria-label={t('nav.main')}>
-  <button class:on={current === 'home'} aria-current={current === 'home' ? 'page' : undefined} onclick={() => router.openTab('home')}>
+<nav class="bar" aria-label={t('nav.main')}>
+  <button class:on={current === 'home'} aria-current={current === 'home' ? 'page' : undefined} aria-label={t('nav.home')} title={t('nav.home')} onclick={() => router.openTab('home')}>
     <House size={24} aria-hidden="true" />
-    <span>{t('nav.home')}</span>
   </button>
   <button class="compose" onclick={() => composer.show()} aria-label={t('nav.newPost')} title={t('nav.newPost')}>
-    <SquarePen size={24} aria-hidden="true" />
+    <Plus size={22} aria-hidden="true" />
   </button>
-  <button class:on={current === 'notifications'} aria-current={current === 'notifications' ? 'page' : undefined} aria-label={unread.hasNew ? t('nav.notificationsNew') : undefined} onclick={() => router.openTab('notifications')}>
+  <button class:on={current === 'notifications'} aria-current={current === 'notifications' ? 'page' : undefined} aria-label={unread.hasNew ? t('nav.notificationsNew') : t('nav.notifications')} title={t('nav.notifications')} onclick={() => router.openTab('notifications')}>
     <span class="bell">
       <Bell size={24} aria-hidden="true" />
       {#if unread.hasNew}<span class="dot" aria-hidden="true"></span>{/if}
     </span>
-    <span>{t('nav.notifications')}</span>
   </button>
 </nav>
 
 <style>
+  /* Always in place, like the top bar */
   .bar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; max-width: 40rem; margin: 0 auto;
     display: flex; align-items: center; justify-content: space-around;
-    padding: 0.3rem 0.5rem calc(0.3rem + var(--inset-bottom));
+    padding: 0.1rem 0.5rem calc(0.1rem + var(--inset-bottom));
     background: var(--header); border-top: 1px solid var(--border);
-    transition: transform 0.2s ease;
   }
-  .bar.hidden { transform: translateY(100%); }
-  button { display: flex; flex-direction: column; align-items: center; gap: 0.1rem; flex: 1; min-height: 3.1rem; padding: 0.1rem 0; border: 0; background: none; color: var(--muted); font-size: 0.8rem; font-weight: 600; }
+  button { display: flex; align-items: center; justify-content: center; flex: 1; min-height: 2.5rem; padding: 0; border: 0; background: none; color: var(--muted); }
   button.on { color: var(--accent); }
   .bell { position: relative; display: inline-flex; }
   /* A red ball on the bell: something in the notifications has not been seen */
   .dot { position: absolute; top: -0.15rem; right: -0.3rem; width: 0.65rem; height: 0.65rem; border-radius: 50%; background: var(--danger); border: 2px solid var(--header); box-sizing: content-box; }
-  button.compose { flex: none; width: 3.25rem; height: 3.25rem; min-height: 0; margin: 0 0.5rem; justify-content: center; border-radius: var(--radius-avatar); background: var(--accent); color: var(--on-accent); box-shadow: 0 2px 8px rgb(0 0 0 / 0.3); }
+  button.compose { flex: none; width: 2.75rem; height: 2.25rem; margin: 0 0.5rem; border-radius: var(--radius-avatar); background: var(--accent); color: var(--on-accent); box-shadow: 0 2px 8px rgb(0 0 0 / 0.3); }
 </style>
