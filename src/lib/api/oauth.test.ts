@@ -60,16 +60,16 @@ describe('missingScopes', () => {
     expect(missingScopes(SCOPES)).toEqual([]);
   });
 
-  it('a broad scope covers its narrow ones, so an older login lacks only `push` (which no broad scope covers)', () => {
+  it('a broad scope covers its narrow ones, so an older login lacks only the scopes no broad scope covers', () => {
     expect(missingScopes('read write')).toEqual(['push']);
-    expect(missingScopes('read write:favourites write:statuses write:media write:bookmarks write:follows')).toEqual(['push']);
-    expect(missingScopes('read follow write:favourites write:statuses write:media write:bookmarks')).toEqual(['push']);
+    expect(missingScopes('read write:favourites write:statuses write:media write:bookmarks write:follows')).toEqual(['write:conversations', 'push']);
+    expect(missingScopes('read follow write:favourites write:statuses write:media write:bookmarks')).toEqual(['write:conversations', 'push']);
     expect(missingScopes('read write push')).toEqual([]);
   });
 
   it('an account without a stored list is taken to have the first versions\' scopes', () => {
-    expect(missingScopes(undefined)).toEqual(['push']);
-    expect(missingScopes(undefined, `${SCOPES} write:blocks`)).toEqual(['push', 'write:blocks']);
+    expect(missingScopes(undefined)).toEqual(['write:conversations', 'push']);
+    expect(missingScopes(undefined, `${SCOPES} write:blocks`)).toEqual(['write:conversations', 'push', 'write:blocks']);
   });
 
   it('lists the scopes a change of the app has added, and only those', () => {

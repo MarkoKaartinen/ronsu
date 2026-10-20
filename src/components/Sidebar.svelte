@@ -1,12 +1,14 @@
 <script lang="ts">
     import House from '@lucide/svelte/icons/house';
+  import Mail from '@lucide/svelte/icons/mail';
   import Plus from '@lucide/svelte/icons/plus';
   import Settings from '@lucide/svelte/icons/settings';
   import { accountStore } from '../lib/stores/accounts.svelte';
   import { composer } from '../lib/stores/composer.svelte';
   import { t } from '../lib/stores/i18n.svelte';
+  import { messages } from '../lib/stores/messages.svelte';
 
-  let { homeActive, onHome, onSettings }: { homeActive: boolean; onHome: () => void; onSettings: () => void } = $props();
+  let { homeActive, messagesActive, onHome, onMessages, onSettings }: { homeActive: boolean; messagesActive: boolean; onHome: () => void; onMessages: () => void; onSettings: () => void } = $props();
 
   const account = $derived(accountStore.active);
 </script>
@@ -22,6 +24,13 @@
     <button class="link" class:on={homeActive} aria-current={homeActive ? 'page' : undefined} onclick={onHome} title={t('nav.home')}>
       <House size={22} aria-hidden="true" />
       <span class="label">{t('nav.home')}</span>
+    </button>
+    <button class="link" class:on={messagesActive} aria-current={messagesActive ? 'page' : undefined} aria-label={messages.hasNew ? t('nav.messagesNew') : t('nav.messages')} onclick={onMessages} title={t('nav.messages')}>
+      <span class="mail">
+        <Mail size={22} aria-hidden="true" />
+        {#if messages.hasNew}<span class="dot" aria-hidden="true"></span>{/if}
+      </span>
+      <span class="label">{t('nav.messages')}</span>
     </button>
   </div>
 
@@ -61,6 +70,9 @@
   .link:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--text); }
   .link.on { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--text); }
   .link.on :global(svg) { color: var(--accent); }
+  .mail { position: relative; display: inline-flex; }
+  /* A red ball on the envelope: a private mention has not been read */
+  .dot { position: absolute; top: -0.15rem; right: -0.3rem; width: 0.65rem; height: 0.65rem; border-radius: 50%; background: var(--danger); border: 2px solid var(--header); box-sizing: content-box; }
   .post { display: flex; align-items: center; justify-content: center; gap: 0.5rem; align-self: flex-start; min-height: 3rem; margin-top: 1rem; padding: 0 1.2rem; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-weight: 700; box-shadow: 0 2px 8px rgb(0 0 0 / 0.25); }
   /* Pushed to the bottom by the free space above it */
   .account { display: flex; align-items: center; gap: 0.65rem; margin-top: auto; padding: 0.5rem; border-radius: 1rem; min-width: 0; }

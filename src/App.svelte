@@ -10,6 +10,7 @@
   import BottomBar from './components/BottomBar.svelte';
   import Sidebar from './components/Sidebar.svelte';
   import Feed from './components/Feed.svelte';
+  import Messages from './components/Messages.svelte';
   import Notifications from './components/Notifications.svelte';
   import Profile from './components/Profile.svelte';
   import Thread from './components/Thread.svelte';
@@ -19,6 +20,7 @@
   import { router } from './lib/router.svelte';
   import { composer } from './lib/stores/composer.svelte';
   import { push } from './lib/stores/push.svelte';
+  import { messages } from './lib/stores/messages.svelte';
   import { unread } from './lib/stores/unread.svelte';
   import { t } from './lib/stores/i18n.svelte';
   import { toast } from './lib/stores/toast.svelte';
@@ -51,13 +53,16 @@
   // A link to the notifications view opens the feed on a wide screen, where they are beside it anyway
   const onHome = $derived(router.route.name === 'home' || (wide && router.route.name === 'notifications'));
   const onNotifications = $derived(!wide && router.route.name === 'notifications');
-  /** One of the two main views (with the bottom bar), as opposed to a thread or a profile */
-  const tab = $derived(onHome ? 'home' : onNotifications ? 'notifications' : null);
+  const onMessages = $derived(router.route.name === 'messages');
+  /** One of the main views (with the bottom bar), as opposed to a thread or a profile */
+  const tab = $derived(onHome ? 'home' : onNotifications ? 'notifications' : onMessages ? 'messages' : null);
 
-  // The notifications are only fetched once they have been opened; after that the view stays mounted, hidden
+  // The notifications and the private mentions are only fetched once they have been opened; after that the view stays mounted, hidden
   let notificationsOpened = $state(false);
+  let messagesOpened = $state(false);
   $effect(() => {
     if (onNotifications) notificationsOpened = true;
+    if (onMessages) messagesOpened = true;
   });
 
   // Back to a main view (from a thread, a profile or the other view): restore its scroll position (both stay
@@ -88,14 +93,28 @@
     if (!client || ((onNotifications || wide) && document.visibilityState === 'visible')) return;
     void unread.check(client);
   }
+  /** The same for the private mentions, which have a flag of their own on the server */
+  function checkMessages() {
+    const client = accountStore.client();
+    if (!client || (onMessages && document.visibilityState === 'visible')) return;
+    void messages.check(client);
+  }
   $effect(() => {
     accountStore.activeKey;
+    accountStore.session;
     push.signal;
-    untrack(checkUnread);
+    untrack(() => {
+      checkUnread();
+      checkMessages();
+    });
   });
   onMount(() => {
-    document.addEventListener('visibilitychange', checkUnread);
-    return () => document.removeEventListener('visibilitychange', checkUnread);
+    const check = () => {
+      checkUnread();
+      checkMessages();
+    };
+    document.addEventListener('visibilitychange', check);
+    return () => document.removeEventListener('visibilitychange', check);
   });
 
   onMount(async () => {
@@ -134,18 +153,10 @@
     </header>
   {/snippet}
 
-  {#if needsReauth && !reauthDismissed}
-    <div class="reauth" class:wide role="status">
-      <span>{t('scopes.banner')}</span>
-      <button class="primary" onclick={reauth}>{t('profile.reauthButton')}</button>
-      <button onclick={() => (reauthDismissed = true)}>{t('feed.notNow')}</button>
-    </div>
-  {/if}
-
   <div class="page" class:wide class:fixedbars={!wide && tab !== null}>
   <div class="cols">
   {#if wide}
-    <Sidebar homeActive={onHome} onHome={goHome} onSettings={() => (showSettings = true)} />
+    <Sidebar homeActive={onHome} messagesActive={onMessages} onHome={goHome} onMessages={() => router.openTab('messages')} onSettings={() => (showSettings = true)} />
   {/if}
   <div class="shell" class:home={tab !== null} class:wide>
     {#if !tab}
@@ -157,11 +168,24 @@
       {@render brandBar()}
     {/if}
 
+    {#if needsReauth && !reauthDismissed}
+      <div class="reauth" role="status">
+        <span>{t('scopes.banner')}</span>
+        <button class="primary" onclick={reauth}>{t('profile.reauthButton')}</button>
+        <button onclick={() => (reauthDismissed = true)}>{t('feed.notNow')}</button>
+      </div>
+    {/if}
+
     <!-- A new Feed per account: its own reading position and state. The Feed stays mounted, hidden, while a thread is open. -->
-    {#key accountStore.activeKey}
+    {#key `${accountStore.activeKey}|${accountStore.session}`}
       <div hidden={!onHome}>
         <Feed client={accountStore.client()!} storageKey={accountStore.activeKey!} active={onHome} />
       </div>
+      {#if messagesOpened}
+        <div hidden={!onMessages}>
+          <Messages client={accountStore.client()!} active={onMessages} />
+        </div>
+      {/if}
       {#if notificationsOpened && !wide}
         <div hidden={!onNotifications}>
           <Notifications client={accountStore.client()!} active={onNotifications} />
@@ -181,7 +205,7 @@
 
   {#if wide}
     <aside class="aside" aria-label={t('nav.notifications')}>
-      {#key accountStore.activeKey}
+      {#key `${accountStore.activeKey}|${accountStore.session}`}
         <Notifications client={accountStore.client()!} active />
       {/key}
     </aside>
@@ -242,9 +266,8 @@
   .toast { position: fixed; left: 50%; bottom: calc(1.2rem + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 30; display: flex; gap: 0.8rem; align-items: center; max-width: min(32rem, calc(100vw - 2rem)); padding: 0.7rem 1rem; border-radius: 0.6rem; background: var(--danger-bg); color: var(--on-danger-bg); box-shadow: 0 4px 16px rgb(0 0 0 / 0.3); }
   .toast.info { background: var(--accent); color: var(--on-accent); }
   .toast button { display: inline-flex; background: none; border: 0; color: inherit; padding: 0.2rem; }
-  /* As wide as the page below it (one column, or the two columns on a wide screen), with the same side lines */
-  .reauth { display: flex; gap: 0.5rem 0.75rem; align-items: center; flex-wrap: wrap; max-width: 40rem; margin: 0 auto; padding: 0.7rem 1rem; background: color-mix(in srgb, var(--accent) 16%, var(--bg)); border-inline: 1px solid var(--border); border-bottom: 1px solid var(--accent); font-size: 0.9rem; font-weight: 600; box-sizing: border-box; }
-  .reauth.wide { max-width: 64rem; }
+  /* In the reading column, under its top bar */
+  .reauth { display: flex; gap: 0.5rem 0.75rem; align-items: center; flex-wrap: wrap; padding: 0.7rem 1rem; background: color-mix(in srgb, var(--accent) 16%, var(--bg)); border-bottom: 1px solid var(--accent); font-size: 0.9rem; font-weight: 600; }
   .reauth span { flex: 1; min-width: 14rem; }
   .reauth button { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 0.4rem; padding: 0.4rem 0.9rem; min-height: 2.5rem; }
   .reauth .primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }

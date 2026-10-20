@@ -44,6 +44,8 @@ Source code and issues: <https://github.com/MarkoKaartinen/ronsu>
   something you have not seen; it follows the server's notifications marker, so it is the same on every device
 - Phone: the top and bottom bars stay in place (home, a plus for a new post, notifications). Wide screen: a sidebar
   with the navigation and your account, the feed and the notifications side by side
+- Private mentions (Mastodon's conversations) in the sidebar and the bottom bar, with a mark when one is unread. They
+  need the `write:conversations` OAuth scope (to mark them read), so older logins are asked to log in again
 - Installable as a PWA, works offline for the app shell
 
 ## Push notifications

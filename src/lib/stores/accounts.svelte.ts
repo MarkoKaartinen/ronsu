@@ -23,6 +23,8 @@ class AccountStore {
   accounts = $state<StoredAccount[]>([]);
   activeKey = $state<string | null>(null);
   ready = $state(false);
+  /** Counts the logins: logging in again to the same account gives it a new token, and the views holding the old client must be rebuilt */
+  session = $state(0);
 
   active = $derived(this.accounts.find((a) => a.key === this.activeKey) ?? null);
 
@@ -48,6 +50,7 @@ class AccountStore {
       this.accounts[i] = account;
     } else this.accounts.push(account);
     this.activeKey = account.key;
+    this.session++;
     await this.persist();
   }
 

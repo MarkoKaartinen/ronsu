@@ -144,6 +144,14 @@ export interface Status {
   card?: PreviewCard | null;
 }
 
+/** A private mention thread (GET /conversations): who is in it and its newest post */
+export interface Conversation {
+  id: string;
+  unread: boolean;
+  accounts: Account[];
+  last_status: Status | null;
+}
+
 export interface Context {
   ancestors: Status[];
   descendants: Status[];

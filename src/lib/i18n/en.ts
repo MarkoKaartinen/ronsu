@@ -30,6 +30,11 @@ export const en = {
   'nav.home': 'Home',
   'nav.notifications': 'Notifications',
   'nav.notificationsNew': 'Notifications, new',
+  'nav.messages': 'Private mentions', // mastodon: navigation_bar.direct
+  'nav.messagesNew': 'Private mentions, new',
+  'status.private': 'Private mention', // mastodon: status.direct_indicator
+  'messages.with': 'With {names}', // mastodon: conversation.with
+  'messages.empty': "You don't have any private mentions yet. When you send or receive one, it will show up here.", // mastodon: empty_column.direct
   'notif.empty': 'No notifications yet',
   'notif.more': 'Load more',
   'notif.and': '{a} and {b}',
