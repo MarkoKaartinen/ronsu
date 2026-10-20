@@ -195,7 +195,7 @@
   {/if}
   <div class="list">
     {#each statuses as status (status.id)}
-      <StatusCard {status} />
+      <StatusCard {status} filterContext="account" />
     {/each}
   </div>
 

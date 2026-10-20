@@ -105,6 +105,7 @@
           chain={row.hasChild}
           replyTo={row.replyTo}
           compact={!row.focused}
+          filterContext="thread"
         />
       </div>
     {/each}

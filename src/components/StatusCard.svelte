@@ -1,5 +1,6 @@
 <script lang="ts">
-  import type { Status } from '../lib/api/types';
+  import type { FilterContext, Status } from '../lib/api/types';
+  import { filterVerdict } from '../lib/filters';
   import { mediaAspect } from '../lib/media';
   import Check from '@lucide/svelte/icons/check';
   import Repeat2 from '@lucide/svelte/icons/repeat-2';
@@ -22,7 +23,8 @@
    * (no data-id). joined: the reply under such a post (the rail reaches its avatar). replyTo: the handle of the
    * author it answers, shown as "Replying to". quoted: the post inside a quote post (a framed, light card; it is
    * not a reading position either, and a tap opens the quoted post, not the one that quotes it). actions: such a
-   * card keeps its buttons (the original post inside a boost).
+   * card keeps its buttons (the original post inside a boost). filterContext: the view the card is in, which
+   * decides which of the user's server-side filters apply (none without it; the selected post is never filtered).
    */
   let {
     status,
@@ -37,6 +39,7 @@
     replyTo,
     quoted = false,
     actions = false,
+    filterContext,
   }: {
     status: Status;
     focused?: boolean;
@@ -50,6 +53,7 @@
     replyTo?: string;
     quoted?: boolean;
     actions?: boolean;
+    filterContext?: FilterContext;
   } = $props();
 
   // A boost shows the original; the wrapper's id is still the reading-position key (data-id)
@@ -61,9 +65,14 @@
   let cwOpen = $state(false);
   let mediaOpen = $state(false);
 
+  let filterOpen = $state(false);
+  const verdict = $derived(filterContext && !focused ? filterVerdict(status, filterContext) : null);
+  const filterTitles = $derived(verdict?.titles.join(', ') ?? '');
+  const warned = $derived(verdict?.action === 'warn' && !filterOpen);
+
   const hasCw = $derived(s.spoiler_text.trim() !== '');
-  const showBody = $derived(!hasCw || cwOpen);
-  const hideMedia = $derived(s.sensitive && !mediaOpen);
+  const showBody = $derived((!hasCw || cwOpen) && !warned);
+  const hideMedia = $derived((s.sensitive || verdict?.action === 'blur') && !mediaOpen);
   const single = $derived(s.media_attachments.length === 1);
   // The quoted post is shown one level deep; the "RE: link" line that servers put in the text is then redundant
   const quotedStatus = $derived((!quoted || actions) && s.quote?.state === 'accepted' ? s.quote.quoted_status : null);
@@ -144,6 +153,7 @@
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
+{#if verdict?.action !== 'hide'}
 <article data-id={context || quoted ? undefined : status.id} class:tappable={!focused} class:focused class:reply class:chained={chain} class:compact={compact || context || quoted} class:quoted class:framed={quoted && actions} class:railed={rail || context} class:context class:joined onclick={onCardClick}>
   {#if boostFrame && booster}
     <!-- A boost, like a quote: who boosted on top, the original post in a frame below it (with its own buttons) -->
@@ -202,7 +212,14 @@
         <p class="replyto">{t('status.replyingTo')} <span>@{replyTo}</span></p>
       {/if}
 
-      {#if hasCw}
+      {#if verdict?.action === 'warn'}
+        <div class="cw">
+          <span class="cw-text">{t('status.filterMatches', { title: filterTitles })}</span>
+          <button onclick={() => (filterOpen = !filterOpen)} aria-expanded={filterOpen}><TriangleAlert size={16} aria-hidden="true" />{filterOpen ? t('status.cwHide') : t('status.cwShow')}</button>
+        </div>
+      {/if}
+
+      {#if hasCw && !warned}
         <div class="cw">
           <span class="cw-text">{@html sanitizeText(s.spoiler_text, s.emojis)}</span>
           <!-- The label is short (the box is narrow); the full phrase is the accessible name -->
@@ -268,13 +285,13 @@
                 {/if}
             {/each}
             {#if hideMedia}
-              <button class="reveal" onclick={() => (mediaOpen = true)} title={t('status.showMedia')}><TriangleAlert size={16} aria-hidden="true" />{t('status.sensitive')}</button>
+              <button class="reveal" onclick={() => (mediaOpen = true)} title={t('status.showMedia')}><TriangleAlert size={16} aria-hidden="true" />{verdict?.action === 'blur' ? t('status.filterMatches', { title: filterTitles }) : t('status.sensitive')}</button>
             {/if}
           </div>
         {/if}
 
         {#if quotedStatus}
-          <StatusCard status={quotedStatus} quoted />
+          <StatusCard status={quotedStatus} quoted {filterContext} />
         {/if}
       {/if}
 
@@ -301,6 +318,7 @@
   </div>
   {/if}
 </article>
+{/if}
 
 <style>
   article { position: relative; padding: 1rem 1rem 0.15rem; border-bottom: 1px solid var(--border); }

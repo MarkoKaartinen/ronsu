@@ -84,6 +84,20 @@ export interface Poll {
   own_votes?: number[];
 }
 
+/** Where a server-side filter applies (`profile` is what the docs call a profile view; the API value is `account`) */
+export type FilterContext = 'home' | 'notifications' | 'public' | 'thread' | 'account';
+
+/** A server-side keyword filter that matched a status (Mastodon 4.0+; `blur` is 4.4+, other values count as `warn`) */
+export interface FilterResult {
+  filter: {
+    id: string;
+    title: string;
+    context: FilterContext[];
+    expires_at: string | null;
+    filter_action: 'warn' | 'hide' | 'blur' | string;
+  };
+}
+
 export interface Status {
   id: string;
   uri: string;
@@ -112,6 +126,8 @@ export interface Status {
   favourited?: boolean;
   reblogged?: boolean;
   bookmarked?: boolean;
+  /** The user's filters that matched the post; only there for a signed-in account */
+  filtered?: FilterResult[];
 }
 
 export interface Context {
