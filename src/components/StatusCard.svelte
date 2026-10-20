@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { FilterContext, Status } from '../lib/api/types';
+  import { linkPreview } from '../lib/card';
   import { filterVerdict } from '../lib/filters';
   import { mediaAspect } from '../lib/media';
   import Check from '@lucide/svelte/icons/check';
@@ -73,6 +74,8 @@
   const hasCw = $derived(s.spoiler_text.trim() !== '');
   const showBody = $derived((!hasCw || cwOpen) && !warned);
   const hideMedia = $derived((s.sensitive || verdict?.action === 'blur') && !mediaOpen);
+  // Not in the light rows (thread replies, the post a reply answers) or the framed quote; the boosted post keeps it
+  const preview = $derived(compact || context || (quoted && !actions) ? null : linkPreview(s));
   const single = $derived(s.media_attachments.length === 1);
   // The quoted post is shown one level deep; the "RE: link" line that servers put in the text is then redundant
   const quotedStatus = $derived((!quoted || actions) && s.quote?.state === 'accepted' ? s.quote.quoted_status : null);
@@ -290,6 +293,18 @@
           </div>
         {/if}
 
+        {#if preview}
+          <a class="preview" href={preview.url} target="_blank" rel="noopener noreferrer">
+            <!-- Like the pictures of the post: not while they are covered (sensitive post or a blur filter) -->
+            {#if preview.image && !hideMedia}<img src={preview.image} alt={preview.imageAlt} loading="lazy" />{/if}
+            <span class="ptext">
+              <small>{preview.provider}</small>
+              <strong>{preview.title}</strong>
+              {#if preview.description}<span class="pdesc">{preview.description}</span>{/if}
+            </span>
+          </a>
+        {/if}
+
         {#if quotedStatus}
           <StatusCard status={quotedStatus} quoted {filterContext} />
         {/if}
@@ -373,6 +388,17 @@
   .content :global(.invisible) { display: none; }
   .content :global(.ellipsis)::after { content: '…'; }
   .content :global(img.emoji), header :global(img.emoji), .fhead :global(img.emoji) { height: 1.2em; width: 1.2em; object-fit: contain; vertical-align: middle; }
+  .preview { display: block; margin-top: 0.6rem; border: 1px solid var(--border); border-radius: 0.9rem; overflow: hidden; color: inherit; text-decoration: none; }
+  .preview:hover { border-color: var(--muted); }
+  .preview img { display: block; width: 100%; aspect-ratio: 1.91 / 1; object-fit: cover; background: var(--surface); }
+  .ptext { display: block; padding: 0.55rem 0.75rem 0.65rem; background: var(--surface); }
+  /* On a framed or selected post, which are the surface colour already, the preview takes the page colour instead */
+  .quoted .ptext, .quoted .preview img, .focused .ptext, .focused .preview img { background: var(--bg); }
+  .focused :global(.quoted .ptext), .focused :global(.quoted .preview img) { background: var(--surface); }
+  .ptext small { display: block; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ptext strong, .pdesc { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+  .ptext strong { -webkit-line-clamp: 2; line-clamp: 2; }
+  .pdesc { -webkit-line-clamp: 2; line-clamp: 2; color: var(--muted); font-size: 0.9rem; margin-top: 0.1rem; }
   .media { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin-top: 0.6rem; border-radius: 0.9rem; overflow: hidden; }
   .media a { display: block; overflow: hidden; background: var(--surface); }
   .media a img { width: 100%; height: 100%; object-fit: cover; display: block; }

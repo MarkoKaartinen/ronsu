@@ -16,8 +16,8 @@ Scopes noted per item are the extra OAuth scopes the item needs. Adding one mean
   (`GET /api/v1/polls/:id`) and show a poll's voters count while it is open
 - [x] **Server-side filters** (`filtered`, filter actions `warn`, `hide` and `blur`) are honored in the home timeline,
   notifications, threads and profiles. Needs no scope; the filter list itself (`read:filters`) is not shown
-- [ ] **No link previews.** The `card` of a status (title, description, image, provider) is not shown. Also
-  `card.authors` (fediverse creator attribution) if wanted
+- [x] **Link previews**: the `card` of a status (title, description, image, provider). Left: `card.authors` (fediverse
+  creator attribution) if wanted
 - [x] **Emoji picker** in the compose box: frequently used, the server's custom emoji (`GET /api/v1/custom_emojis`) and
   Unicode emoji from `emojibase-data`. Left: skin tones, autocomplete while typing `:name:`
 - [ ] **Edited posts are not marked.** `edited_at` is not shown, and history is not viewable
