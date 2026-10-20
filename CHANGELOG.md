@@ -1,3 +1,7 @@
+### Unreleased
+
+* Fix an occasionally failing login browser test
+
 ### 0.1.3: 2026-10-20
 
 * Add installation and update instructions to the README

@@ -59,10 +59,17 @@ test('logging in registers the app as "Ronsu" and ignores an older registration 
 
   // The login in progress waits in this tab only (sessionStorage), with its start time, not in localStorage
   await page.goBack(); // from the server's page back to the app, in the same tab
-  const stored = await page.evaluate(() => ({ session: sessionStorage.getItem('oauth-pending'), local: localStorage.getItem('oauth-pending') }));
-  expect(stored.local).toBeNull();
-  expect(JSON.parse(stored.session!)).toMatchObject({ state: params.get('state'), instance: 'mock.test' });
-  expect(JSON.parse(stored.session!).startedAt).toBeGreaterThan(Date.now() - 60_000);
+  // The page may still be navigating (the service worker can reload it), so read again until the context is stable
+  let stored: { session: string | null; local: string | null } | null = null;
+  await expect
+    .poll(async () => {
+      stored = await page.evaluate(() => ({ session: sessionStorage.getItem('oauth-pending'), local: localStorage.getItem('oauth-pending') })).catch(() => null);
+      return stored;
+    })
+    .not.toBeNull();
+  expect(stored!.local).toBeNull();
+  expect(JSON.parse(stored!.session!)).toMatchObject({ state: params.get('state'), instance: 'mock.test' });
+  expect(JSON.parse(stored!.session!).startedAt).toBeGreaterThan(Date.now() - 60_000);
 });
 
 test.describe('the return from the server', () => {
