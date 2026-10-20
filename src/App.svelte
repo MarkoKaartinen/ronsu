@@ -90,6 +90,7 @@
   }
   $effect(() => {
     accountStore.activeKey;
+    accountStore.session;
     push.signal;
     untrack(checkUnread);
   });
@@ -158,7 +159,7 @@
     {/if}
 
     <!-- A new Feed per account: its own reading position and state. The Feed stays mounted, hidden, while a thread is open. -->
-    {#key accountStore.activeKey}
+    {#key `${accountStore.activeKey}|${accountStore.session}`}
       <div hidden={!onHome}>
         <Feed client={accountStore.client()!} storageKey={accountStore.activeKey!} active={onHome} />
       </div>
@@ -181,7 +182,7 @@
 
   {#if wide}
     <aside class="aside" aria-label={t('nav.notifications')}>
-      {#key accountStore.activeKey}
+      {#key `${accountStore.activeKey}|${accountStore.session}`}
         <Notifications client={accountStore.client()!} active />
       {/key}
     </aside>
