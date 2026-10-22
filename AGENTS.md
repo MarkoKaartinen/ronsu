@@ -65,12 +65,14 @@ Before committing, scan the staged diff for these.
   <the bullets of this version from CHANGELOG.md>
 
   Update:
+
       git fetch
       git checkout vx.y.z
       npm ci
       npm run build
 
   Notes:
+
   * Log in again: yes/no (OAuth scopes changed)
   * Other steps: none
   ```
