@@ -244,3 +244,47 @@ for (const order of ['oldest-first', 'newest-first']) {
     await expect(banner(page)).toBeVisible();
   });
 }
+
+test('leaving the app while the question about the other device is open never overwrites its position', async ({ page }) => {
+  const server = fresh();
+  await open(page, server);
+  await touch(page);
+  movedByAnotherDevice(server, 150);
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect(banner(page)).toBeVisible();
+
+  await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  await page.waitForTimeout(500);
+  expect(server.posts).toHaveLength(0);
+  expect(server.marker?.last_read_id).toBe(idOf(150));
+});
+
+test('leaving the app without having read anything sends nothing', async ({ page }) => {
+  const server = fresh();
+  await open(page, server);
+  movedByAnotherDevice(server, 150); // moved after we looked, not noticed yet
+  await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  await page.waitForTimeout(500);
+  expect(server.posts).toHaveLength(0);
+});
+
+test('a local position that is behind the server\'s is not sent when the app is left at once, even if its clock is ahead', async ({ page }) => {
+  const server = fresh();
+  await mockMastodon(page, server);
+  await seedAccount(page);
+  // Left from an earlier visit, stamped by a clock that is ahead of the server's
+  await page.evaluate(
+    (id) => {
+      Object.keys(localStorage).filter((k) => k.startsWith('read-marker')).forEach((k) => localStorage.removeItem(k));
+      localStorage.setItem('read-marker|mock.test|1', JSON.stringify({ id, at: Date.now() + 3_600_000 }));
+    },
+    idOf(50),
+  );
+  await page.reload();
+  await page.waitForSelector('article[data-id]');
+  await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  await page.waitForTimeout(500);
+  expect(server.posts).toHaveLength(0);
+  expect(server.marker?.last_read_id).toBe(idOf(100));
+  await expect(page.locator('article[data-id]').first()).toHaveAttribute('data-id', idOf(100));
+});

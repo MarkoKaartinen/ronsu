@@ -1,5 +1,6 @@
 ### Unreleased
 
+* Fix an old reading position overwriting a newer one from another device when the app is left or opened from a notification
 * A post that is a private mention says so
 * Fix the feed showing "token revoked" after logging in again until the page was reloaded
 * Add private mentions (conversations) in the sidebar and the bottom bar, with a mark when one is unread; log in again for the new `write:conversations` permission
