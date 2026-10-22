@@ -135,6 +135,8 @@ export const en = {
   'compose.titleNew': 'New post', // mastodon: compose.post.title.new
   'compose.titleQuote': 'Quote',
   'compose.quotePending': 'Published. The quote shows once its author approves it',
+  'compose.quoteMore': 'Show more', // mastodon: status.show_more
+  'compose.quoteLess': 'Show less', // mastodon: status.show_less
   'compose.titleReply': 'Reply', // mastodon: compose_form.reply
   'compose.publish': 'Post', // mastodon: compose_form.publish
   'compose.publishing': 'Posting…',
