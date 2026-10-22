@@ -42,10 +42,13 @@ Source code and issues: <https://github.com/MarkoKaartinen/ronsu>
   a choice of whom they come from (see [Push notifications](#push-notifications))
 - A red ball on the bell in the bottom bar (and a mark in the page title and on the app icon) when there is
   something you have not seen; it follows the server's notifications marker, so it is the same on every device
-- Phone: the top and bottom bars stay in place (home, a plus for a new post, notifications). Wide screen: a sidebar
-  with the navigation and your account, the feed and the notifications side by side
+- Phone: the top and bottom bars stay in place (home, private mentions, a plus for a new post, notifications and a
+  menu that opens a drawer with all the places). Wide screen: a sidebar with the navigation and your account, the
+  feed and the notifications side by side
 - Private mentions (Mastodon's conversations) in the sidebar and the bottom bar, with a mark when one is unread. They
   need the `write:conversations` OAuth scope (to mark them read), so older logins are asked to log in again
+- Your bookmarks and favorites as lists of their own (the sidebar on a wide screen, the menu drawer on a phone).
+  They need the `read:bookmarks` and `read:favourites` OAuth scopes, so older logins are asked to log in again
 - Installable as a PWA, works offline for the app shell
 
 ## Push notifications

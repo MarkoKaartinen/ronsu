@@ -1,6 +1,8 @@
 /** `handle` of a profile: "@user@server" (the usual form) or a numeric account id (older links). */
 export type MainView = 'home' | 'notifications' | 'messages';
-export type Route = { name: MainView } | { name: 'thread'; id: string } | { name: 'profile'; handle: string };
+/** A list of the posts the reader has saved: a page of its own, like a thread, opened from the settings or the sidebar */
+export type SavedView = 'bookmarks' | 'favourites';
+export type Route = { name: MainView } | { name: SavedView } | { name: 'settings' } | { name: 'thread'; id: string } | { name: 'profile'; handle: string };
 
 /** Link to a profile, e.g. `#/user/@magdalenahai@mstdn.social`. */
 export const profileHref = (acct: string) => `#/user/@${encodeURI(acct)}`;
@@ -8,6 +10,9 @@ export const profileHref = (acct: string) => `#/user/@${encodeURI(acct)}`;
 function parse(hash: string): Route {
   if (hash === '#/notifications') return { name: 'notifications' };
   if (hash === '#/messages') return { name: 'messages' };
+  if (hash === '#/settings') return { name: 'settings' };
+  if (hash === '#/bookmarks') return { name: 'bookmarks' };
+  if (hash === '#/favourites') return { name: 'favourites' };
   const t = hash.match(/^#\/thread\/(\d+)$/);
   if (t) return { name: 'thread', id: t[1] };
   const byId = hash.match(/^#\/user\/(\d+)$/);
@@ -29,8 +34,8 @@ function parse(hash: string): Route {
  */
 class Router {
   route = $state<Route>(parse(location.hash));
-  /** The scroll position of each of the two main views, kept while a thread or a profile is open (or the other view) */
-  tabScroll: Record<string, number> = { home: 0, notifications: 0, messages: 0 };
+  /** The scroll position of each of the main views, kept while a thread or a profile is open (or another view) */
+  tabScroll: Record<string, number> = { home: 0, notifications: 0, messages: 0, bookmarks: 0, favourites: 0, settings: 0 };
 
   constructor() {
     // Restoring the scroll position is the app's job; the browser's own would compete with it
@@ -42,7 +47,7 @@ class Router {
 
   private set(next: Route) {
     if (JSON.stringify(next) === JSON.stringify(this.route)) return;
-    if (this.route.name === 'home' || this.route.name === 'notifications' || this.route.name === 'messages') this.tabScroll[this.route.name] = window.scrollY;
+    if (this.route.name in this.tabScroll) this.tabScroll[this.route.name] = window.scrollY;
     this.route = next;
   }
 
@@ -50,6 +55,19 @@ class Router {
   openTab(name: MainView) {
     if (this.route.name === name) return;
     history.pushState({ inApp: true }, '', name === 'home' ? location.pathname + location.search : `#/${name}`);
+    this.set({ name });
+  }
+
+  /** The account and settings page: beside the sidebar on a wide screen, over everything on a phone */
+  openSettings() {
+    if (this.route.name === 'settings') return;
+    history.pushState({ inApp: true }, '', '#/settings');
+    this.set({ name: 'settings' });
+  }
+
+  openSaved(name: SavedView) {
+    if (this.route.name === name) return;
+    history.pushState({ inApp: true }, '', `#/${name}`);
     this.set({ name });
   }
 

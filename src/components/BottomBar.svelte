@@ -2,19 +2,27 @@
   import Bell from '@lucide/svelte/icons/bell';
   import House from '@lucide/svelte/icons/house';
   import Mail from '@lucide/svelte/icons/mail';
+  import Menu from '@lucide/svelte/icons/menu';
   import Plus from '@lucide/svelte/icons/plus';
-  import { router, type MainView } from '../lib/router.svelte';
+  import { router, type MainView, type SavedView } from '../lib/router.svelte';
   import { composer } from '../lib/stores/composer.svelte';
   import { t } from '../lib/stores/i18n.svelte';
   import { messages } from '../lib/stores/messages.svelte';
   import { unread } from '../lib/stores/unread.svelte';
 
-  let { current }: { current: MainView } = $props();
+  // onMenu: opens the drawer with the places that have no room on the bar
+  let { current, onMenu }: { current: MainView | SavedView | 'settings'; onMenu: () => void } = $props();
 </script>
 
 <nav class="bar" aria-label={t('nav.main')}>
   <button class:on={current === 'home'} aria-current={current === 'home' ? 'page' : undefined} aria-label={t('nav.home')} title={t('nav.home')} onclick={() => router.openTab('home')}>
     <House size={24} aria-hidden="true" />
+  </button>
+  <button class:on={current === 'messages'} aria-current={current === 'messages' ? 'page' : undefined} aria-label={messages.hasNew ? t('nav.messagesNew') : t('nav.messages')} title={t('nav.messages')} onclick={() => router.openTab('messages')}>
+    <span class="badge">
+      <Mail size={24} aria-hidden="true" />
+      {#if messages.hasNew}<span class="dot" aria-hidden="true"></span>{/if}
+    </span>
   </button>
   <button class="compose" onclick={() => composer.show()} aria-label={t('nav.newPost')} title={t('nav.newPost')}>
     <Plus size={28} aria-hidden="true" />
@@ -25,11 +33,8 @@
       {#if unread.hasNew}<span class="dot" aria-hidden="true"></span>{/if}
     </span>
   </button>
-  <button class:on={current === 'messages'} aria-current={current === 'messages' ? 'page' : undefined} aria-label={messages.hasNew ? t('nav.messagesNew') : t('nav.messages')} title={t('nav.messages')} onclick={() => router.openTab('messages')}>
-    <span class="badge">
-      <Mail size={24} aria-hidden="true" />
-      {#if messages.hasNew}<span class="dot" aria-hidden="true"></span>{/if}
-    </span>
+  <button aria-label={t('nav.menu')} title={t('nav.menu')} onclick={onMenu}>
+    <Menu size={24} aria-hidden="true" />
   </button>
 </nav>
 

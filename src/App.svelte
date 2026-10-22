@@ -5,6 +5,7 @@
   import { finishLogin, hasOAuthCallback, missingScopes, startLogin } from './lib/api/oauth';
   import { accountStore } from './lib/stores/accounts.svelte';
   import Login from './components/Login.svelte';
+  import Drawer from './components/Drawer.svelte';
   import Compose from './components/Compose.svelte';
   import Lightbox from './components/Lightbox.svelte';
   import BottomBar from './components/BottomBar.svelte';
@@ -14,6 +15,7 @@
   import Notifications from './components/Notifications.svelte';
   import Profile from './components/Profile.svelte';
   import Thread from './components/Thread.svelte';
+  import SavedPosts from './components/SavedPosts.svelte';
   import Settings from './components/Settings.svelte';
   import { fontStore } from './lib/stores/font.svelte';
   import { themeStore } from './lib/stores/theme.svelte';
@@ -27,7 +29,7 @@
 
   let loginError = $state('');
   let adding = $state(false);
-  let showSettings = $state(false);
+  let showMenu = $state(false);
 
   /** The app wants permissions the login does not have (they were added after it): once per start the reader is asked to log in again */
   let reauthDismissed = $state(false);
@@ -35,6 +37,8 @@
   const reauth = () => accountStore.active && startLogin(accountStore.active.instance).catch((e) => toast.show(e instanceof Error ? e.message : String(e)));
 
   const threadId = $derived(router.route.name === 'thread' ? router.route.id : null);
+  const onSettings = $derived(router.route.name === 'settings');
+  const savedKind = $derived(router.route.name === 'bookmarks' || router.route.name === 'favourites' ? router.route.name : null);
   const profileHandle = $derived(router.route.name === 'profile' ? router.route.handle : null);
   /**
    * On a wide screen there is a sidebar with the navigation, and the notifications are a second column beside the feed
@@ -54,15 +58,17 @@
   const onHome = $derived(router.route.name === 'home' || (wide && router.route.name === 'notifications'));
   const onNotifications = $derived(!wide && router.route.name === 'notifications');
   const onMessages = $derived(router.route.name === 'messages');
-  /** One of the main views (with the bottom bar), as opposed to a thread or a profile */
-  const tab = $derived(onHome ? 'home' : onNotifications ? 'notifications' : onMessages ? 'messages' : null);
+  /** One of the main views (with the top and the bottom bar), as opposed to a thread, a profile or the settings */
+  const tab = $derived(onHome ? 'home' : onNotifications ? 'notifications' : onMessages ? 'messages' : onSettings ? 'settings' : savedKind);
 
   // The notifications and the private mentions are only fetched once they have been opened; after that the view stays mounted, hidden
   let notificationsOpened = $state(false);
   let messagesOpened = $state(false);
+  let savedOpened = $state({ bookmarks: false, favourites: false });
   $effect(() => {
     if (onNotifications) notificationsOpened = true;
     if (onMessages) messagesOpened = true;
+    if (savedKind) savedOpened[savedKind] = true;
   });
 
   // Back to a main view (from a thread, a profile or the other view): restore its scroll position (both stay
@@ -90,7 +96,7 @@
    */
   function checkUnread() {
     const client = accountStore.client();
-    if (!client || ((onNotifications || wide) && document.visibilityState === 'visible')) return;
+    if (!client || ((onNotifications || (wide && !onSettings)) && document.visibilityState === 'visible')) return;
     void unread.check(client);
   }
   /** The same for the private mentions, which have a flag of their own on the server */
@@ -143,7 +149,7 @@
         <img src="/icon-192.png" alt="" width="32" height="32" />
         <strong>Ronsu</strong>
       </button>
-      <button class="avatar" onclick={() => (showSettings = true)} aria-label={t('nav.account', { acct: accountStore.active?.acct ?? '' })} title={t('settings.title')}>
+      <button class="avatar" onclick={() => router.openSettings()} aria-label={t('nav.account', { acct: accountStore.active?.acct ?? '' })} title={t('settings.title')}>
         {#if accountStore.active?.avatar}
           <img src={accountStore.active.avatar} alt="" width="36" height="36" />
         {:else}
@@ -156,7 +162,7 @@
   <div class="page" class:wide class:fixedbars={!wide && tab !== null}>
   <div class="cols">
   {#if wide}
-    <Sidebar homeActive={onHome} messagesActive={onMessages} onHome={goHome} onMessages={() => router.openTab('messages')} onSettings={() => (showSettings = true)} />
+    <Sidebar homeActive={onHome} messagesActive={onMessages} onHome={goHome} onMessages={() => router.openTab('messages')} onSettings={() => router.openSettings()} />
   {/if}
   <div class="shell" class:home={tab !== null} class:wide>
     {#if !tab}
@@ -191,6 +197,13 @@
           <Notifications client={accountStore.client()!} active={onNotifications} />
         </div>
       {/if}
+      {#each ['bookmarks', 'favourites'] as const as kind (kind)}
+        {#if savedOpened[kind]}
+          <div hidden={savedKind !== kind}>
+            <SavedPosts client={accountStore.client()!} {kind} active={savedKind === kind} />
+          </div>
+        {/if}
+      {/each}
       {#if threadId}
         {#key threadId}
           <Thread client={accountStore.client()!} id={threadId} />
@@ -201,12 +214,17 @@
         {/key}
       {/if}
     {/key}
+
+    {#if onSettings}
+      <Settings onAdd={() => { loginError = ''; adding = true; }} />
+    {/if}
   </div>
 
   {#if wide}
-    <aside class="aside" aria-label={t('nav.notifications')}>
+    <!-- Not needed beside the settings: hidden, not unmounted, so the list stays; it does not count as seen meanwhile -->
+    <aside class="aside" aria-label={t('nav.notifications')} hidden={onSettings}>
       {#key `${accountStore.activeKey}|${accountStore.session}`}
-        <Notifications client={accountStore.client()!} active />
+        <Notifications client={accountStore.client()!} active={!onSettings} />
       {/key}
     </aside>
   {/if}
@@ -214,14 +232,11 @@
   </div>
 
   {#if tab && !wide}
-    <BottomBar current={tab} />
+    <BottomBar current={tab} onMenu={() => (showMenu = true)} />
   {/if}
 
-  {#if showSettings}
-    <Settings
-      onClose={() => (showSettings = false)}
-      onAdd={() => { loginError = ''; adding = true; showSettings = false; }}
-    />
+  {#if showMenu}
+    <Drawer onClose={() => (showMenu = false)} onSettings={() => router.openSettings()} />
   {/if}
 
   <Compose />
@@ -254,13 +269,13 @@
   .top { display: flex; justify-content: space-between; align-items: center; padding: 0.7rem 1rem; background: var(--header); border-bottom: 1px solid var(--border); }
   /* The narrow top bar: slim, and in place while scrolling */
   .fixedbars .shell > .top:not(.sticky) { position: sticky; top: 0; z-index: 4; height: var(--sticky-top); padding-block: 0; }
-  .top.sticky { justify-content: flex-start; gap: 0.5rem; padding: 0.6rem 0.5rem; position: sticky; top: var(--sticky-top, 0); z-index: 3; background: var(--header); border-bottom: 1px solid var(--border); padding-bottom: 0.7rem; }
+  .top.sticky { justify-content: flex-start; gap: 0.5rem; padding: var(--bar-pt) 0.5rem var(--bar-pb); position: sticky; top: var(--sticky-top, 0); z-index: 3; background: var(--bg); border-bottom: 1px solid var(--border); }
   .top button.brand { display: flex; align-items: center; gap: 0.65rem; padding: 0; background: none; border-radius: 0; color: inherit; font: inherit; }
   .brand img { border-radius: var(--radius-avatar); display: block; }
   .brand strong { font-size: 1.3rem; letter-spacing: -0.01em; }
   .top button { border: 0; background: var(--bg); color: var(--text); border-radius: 0.75rem; }
   .top button.icon { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; padding: 0; }
-  .top.sticky button.icon { background: none; }
+  .top.sticky button.icon { background: none; height: var(--bar-row); }
   .top button.avatar { display: inline-flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; padding: 0; border-radius: var(--radius-avatar); background: var(--accent); color: var(--on-accent); font-size: 1rem; font-weight: 700; overflow: hidden; }
   .top button.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; border: var(--avatar-border); border-radius: var(--radius-avatar); }
   .toast { position: fixed; left: 50%; bottom: calc(1.2rem + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 30; display: flex; gap: 0.8rem; align-items: center; max-width: min(32rem, calc(100vw - 2rem)); padding: 0.7rem 1rem; border-radius: 0.6rem; background: var(--danger-bg); color: var(--on-danger-bg); box-shadow: 0 4px 16px rgb(0 0 0 / 0.3); }
