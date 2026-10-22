@@ -70,3 +70,22 @@ test('favoriting the post a reply answers (shown above it) updates it at once', 
   await expect(fav).toHaveAttribute('aria-pressed', 'true');
   await expect(fav).toContainText('1');
 });
+
+test('a long post being answered is shortened and Show more opens all of it', async ({ page }) => {
+  await mockMastodon(page, { marker: null, posts: [] });
+  await seedAccount(page);
+  await page.reload();
+  await page.waitForSelector('article[data-id]');
+  await page.locator('article[data-id]').first().getByRole('button', { name: 'Reply' }).click();
+
+  const quote = page.locator('dialog .quote');
+  const short = (await quote.innerText()).length;
+  await expect(quote).toContainText('…');
+  await quote.getByRole('button', { name: 'Show more' }).click();
+  await expect(quote.getByRole('button', { name: 'Show less' })).toHaveAttribute('aria-expanded', 'true');
+  await expect(quote).not.toContainText('…');
+  expect((await quote.innerText()).length).toBeGreaterThan(short);
+  await page.screenshot({ path: 'test-results/reply-expanded.png' });
+  await quote.getByRole('button', { name: 'Show less' }).click();
+  await expect(quote).toContainText('…');
+});

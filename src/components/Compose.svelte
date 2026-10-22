@@ -101,7 +101,12 @@
   const left = $derived(remaining(draft));
   const sendable = $derived(canSend(draft, prefix, attachments.length) && !busy && attachments.every((a) => a.state === 'ready'));
   const target = $derived(composer.replyTo ?? composer.quoting);
-  const quote = $derived(target ? htmlToText(target.content).slice(0, 160) : '');
+  const targetText = $derived(target ? htmlToText(target.content) : '');
+  /** The post being answered is shortened to this many characters (a decision: the form stays mostly editor); Show more opens it */
+  const QUOTE_PREVIEW_CHARS = 160;
+  let quoteOpen = $state(false);
+  const quoteLong = $derived(targetText.length > QUOTE_PREVIEW_CHARS);
+  const quote = $derived(quoteLong && !quoteOpen ? `${targetText.slice(0, QUOTE_PREVIEW_CHARS).trimEnd()}…` : targetText);
 
   function readSavedLanguage(): string | null {
     try {
@@ -117,6 +122,7 @@
     text = prefix;
     cwOn = false;
     cw = '';
+    quoteOpen = false;
     const account = accountStore.active;
     visibility = defaultVisibility(composer.replyTo ?? composer.quoting, account?.defaultPrivacy ?? null);
     visibilityTouched = false;
@@ -469,6 +475,11 @@
       <p class="quote">
         <strong>@{target.account.acct}</strong>
         {quote}
+        {#if quoteLong}
+          <button type="button" class="more" aria-expanded={quoteOpen} onclick={() => (quoteOpen = !quoteOpen)}>
+            {quoteOpen ? t('compose.quoteLess') : t('compose.quoteMore')}
+          </button>
+        {/if}
       </p>
     {/if}
 
@@ -719,8 +730,9 @@
   .cancel { min-height: 2.75rem; padding: 0 0.6rem; border: 0; background: none; color: var(--muted); font-weight: 500; font-size: 1rem; margin-left: -0.6rem; }
   .send { height: 2.75rem; padding: 0 1.3rem; border: 0; border-radius: 1.4rem; background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 1rem; }
   .send:disabled { opacity: 0.5; cursor: default; }
-  .quote { margin: 0; padding: 0.5rem 0.7rem; border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0.3rem; color: var(--muted); font-size: 0.9rem; overflow-wrap: anywhere; }
+  .quote { margin: 0; max-height: 30dvh; overflow-y: auto; padding: 0.5rem 0.7rem; border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0.3rem; color: var(--muted); font-size: 0.9rem; overflow-wrap: anywhere; }
   .quote strong { color: var(--text); }
+  .quote .more { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; cursor: pointer; }
   .editor { flex: 1; min-height: 0; display: flex; gap: 0.75rem; }
   .me { width: 2.75rem; height: 2.75rem; border-radius: var(--radius-avatar); flex: none; }
   img.me { border: var(--avatar-border); }

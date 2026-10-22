@@ -1,5 +1,6 @@
 ### Unreleased
 
+* Show more and Show less open the whole post being answered in the post form
 * Fix an old reading position overwriting a newer one from another device when the app is left or opened from a notification
 * A post that is a private mention says so
 * Fix the feed showing "token revoked" after logging in again until the page was reloaded

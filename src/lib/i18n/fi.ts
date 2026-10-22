@@ -133,6 +133,8 @@ export const fi: Record<keyof typeof en, string> = {
   'compose.titleNew': 'Uusi julkaisu',
   'compose.titleQuote': 'Lainaa',
   'compose.quotePending': 'Julkaistu. Lainaus näkyy, kun kirjoittaja hyväksyy sen',
+  'compose.quoteMore': 'Näytä lisää',
+  'compose.quoteLess': 'Näytä vähemmän',
   'compose.titleReply': 'Vastaa',
   'compose.publish': 'Julkaise',
   'compose.publishing': 'Julkaistaan…',
