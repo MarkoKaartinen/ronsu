@@ -1,5 +1,4 @@
 <script lang="ts">
-  import ArrowLeft from '@lucide/svelte/icons/arrow-left';
   import { REPO_URL } from '../lib/app';
   import { accountStore } from '../lib/stores/accounts.svelte';
   import { t } from '../lib/stores/i18n.svelte';
@@ -7,10 +6,11 @@
   import AccountSwitcher from './AccountSwitcher.svelte';
   import FontSettings from './FontSettings.svelte';
   import LanguageSettings from './LanguageSettings.svelte';
+  import TitleBar from './TitleBar.svelte';
   import PushSettings from './PushSettings.svelte';
   import ThemeSettings from './ThemeSettings.svelte';
 
-  let { onAdd, onClose }: { onAdd: () => void; onClose: () => void } = $props();
+  let { onAdd }: { onAdd: () => void } = $props();
 
   /** Logs out here for certain; says whether the server confirmed the revoking, and how to do it by hand if it did not */
   async function logout() {
@@ -27,10 +27,7 @@
 </script>
 
 <div class="settings" role="region" aria-label={t('settings.title')}>
-  <header>
-    <button class="back" onclick={onClose} aria-label={t('common.back')}><ArrowLeft size={22} /></button>
-    <strong>{t('settings.title')}</strong>
-  </header>
+  <TitleBar title={t('settings.title')} />
 
   <div class="content">
     <AccountSwitcher {onAdd} />
@@ -52,12 +49,8 @@
 </div>
 
 <style>
-  .settings { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; background: var(--bg); overflow-y: auto; overscroll-behavior: contain; }
-  /* The whole overlay is the scroll container (not just the column in the middle), so the wheel over the empty sides scrolls the settings and not the feed underneath */
-  header { flex: none; position: sticky; top: 0; z-index: 1; background: var(--bg); display: flex; align-items: center; gap: 0.25rem; padding: 0.6rem 0.5rem; border-bottom: 1px solid var(--border); max-width: 40rem; width: 100%; margin: 0 auto; box-sizing: border-box; }
-  header strong { font-size: 1.1rem; }
-  .back { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; border: 0; background: none; color: var(--text); }
-  .content { flex: 1; padding: 1.2rem 1rem calc(2rem + env(safe-area-inset-bottom)); max-width: 40rem; width: 100%; margin: 0 auto; box-sizing: border-box; display: flex; flex-direction: column; gap: 1.8rem; }
+  .settings { display: flex; flex-direction: column; }
+  .content { flex: 1; padding: 1.2rem 1rem 2rem; box-sizing: border-box; display: flex; flex-direction: column; gap: 1.8rem; }
   .foot { margin-top: auto; }
   .logout { width: 100%; min-height: 3rem; border: 1px solid var(--border); border-radius: 0.9rem; background: none; color: var(--danger); font-weight: 700; }
   .about { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin: 1.3rem 0 0; color: var(--muted); font-size: 0.85rem; }

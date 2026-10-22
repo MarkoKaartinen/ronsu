@@ -319,20 +319,15 @@
 
 
 <style>
-  .bar { position: sticky; top: var(--sticky-top, 0); z-index: 2; background: var(--bg); border-bottom: 1px solid var(--border); padding: 0.4rem 1rem 0.2rem; }
-  .row { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; font-size: 0.9rem; color: var(--muted); min-height: 2.75rem; }
+  .bar { position: sticky; top: var(--sticky-top, 0); z-index: 2; background: var(--bg); border-bottom: 1px solid var(--border); padding: var(--bar-pt) 1rem var(--bar-pb); }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; font-size: 0.9rem; color: var(--muted); min-height: var(--bar-row); }
   .status { flex: 1; }
-  /* Slimmer on a phone, where the bars take room from the reading; the wide screen keeps the height of the notifications' bar beside it */
-  @media (max-width: 799px) {
-    .bar { padding-block: 0.1rem; }
-    .row, .order select { min-height: 2.25rem; }
-  }
   .sync { display: inline-flex; color: var(--muted); }
   .sync.pending { color: var(--accent); }
   .sync.error { color: var(--danger); }
   .status strong { color: var(--text); }
   .order { position: relative; display: inline-flex; align-items: center; color: var(--accent); margin-right: -0.5rem; }
-  .order select { appearance: none; min-height: 2.75rem; padding: 0 1.6rem 0 0.5rem; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
+  .order select { appearance: none; min-height: var(--bar-row); padding: 0 1.6rem 0 0.5rem; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
   .order :global(svg) { position: absolute; right: 0.3rem; pointer-events: none; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .banner { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin: 0.3rem 0 0.2rem; padding: 0.6rem 0.8rem; background: color-mix(in srgb, var(--accent) 16%, var(--bg)); border: 1px solid var(--accent); border-radius: 0.6rem; color: var(--text); font-weight: 600; }

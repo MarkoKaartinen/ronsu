@@ -1,11 +1,14 @@
 <script lang="ts">
-    import House from '@lucide/svelte/icons/house';
+  import Bookmark from '@lucide/svelte/icons/bookmark';
+  import Heart from '@lucide/svelte/icons/heart';
+  import House from '@lucide/svelte/icons/house';
   import Mail from '@lucide/svelte/icons/mail';
   import Plus from '@lucide/svelte/icons/plus';
   import Settings from '@lucide/svelte/icons/settings';
   import { accountStore } from '../lib/stores/accounts.svelte';
   import { composer } from '../lib/stores/composer.svelte';
   import { t } from '../lib/stores/i18n.svelte';
+  import { router } from '../lib/router.svelte';
   import { messages } from '../lib/stores/messages.svelte';
 
   let { homeActive, messagesActive, onHome, onMessages, onSettings }: { homeActive: boolean; messagesActive: boolean; onHome: () => void; onMessages: () => void; onSettings: () => void } = $props();
@@ -31,6 +34,14 @@
         {#if messages.hasNew}<span class="dot" aria-hidden="true"></span>{/if}
       </span>
       <span class="label">{t('nav.messages')}</span>
+    </button>
+    <button class="link" class:on={router.route.name === 'bookmarks'} aria-current={router.route.name === 'bookmarks' ? 'page' : undefined} onclick={() => router.openSaved('bookmarks')} title={t('nav.bookmarks')}>
+      <Bookmark size={22} aria-hidden="true" />
+      <span class="label">{t('nav.bookmarks')}</span>
+    </button>
+    <button class="link" class:on={router.route.name === 'favourites'} aria-current={router.route.name === 'favourites' ? 'page' : undefined} onclick={() => router.openSaved('favourites')} title={t('nav.favourites')}>
+      <Heart size={22} aria-hidden="true" />
+      <span class="label">{t('nav.favourites')}</span>
     </button>
   </div>
 

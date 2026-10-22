@@ -8,6 +8,7 @@
   import { messages } from '../lib/stores/messages.svelte';
   import { push } from '../lib/stores/push.svelte';
   import StatusCard from './StatusCard.svelte';
+  import TitleBar from './TitleBar.svelte';
 
   // active=false: stays mounted, hidden, while another view or a thread is open
   let { client, active = true }: { client: MastodonClient; active?: boolean } = $props();
@@ -85,6 +86,7 @@
 </script>
 
 <div class="messages">
+  <TitleBar title={t('nav.messages')} />
   <div class="list">
     {#each items as c (c.id)}
       <div class="item">

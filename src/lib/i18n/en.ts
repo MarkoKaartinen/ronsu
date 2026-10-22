@@ -33,6 +33,12 @@ export const en = {
   'nav.messages': 'Private mentions', // mastodon: navigation_bar.direct
   'nav.messagesNew': 'Private mentions, new',
   'status.private': 'Private mention', // mastodon: status.direct_indicator
+  'nav.menu': 'Menu',
+  'nav.settings': 'Settings', // mastodon: navigation_bar.preferences
+  'nav.bookmarks': 'Bookmarks', // mastodon: navigation_bar.bookmarks
+  'nav.favourites': 'Favorites', // mastodon: navigation_bar.favourites
+  'saved.emptyBookmarks': "You don't have any bookmarked posts yet. When you bookmark one, it will show up here.", // mastodon: empty_column.bookmarked_statuses
+  'saved.emptyFavourites': "You don't have any favorite posts yet. When you favorite one, it will show up here.", // mastodon: empty_column.favourited_statuses
   'messages.with': 'With {names}', // mastodon: conversation.with
   'messages.empty': "You don't have any private mentions yet. When you send or receive one, it will show up here.", // mastodon: empty_column.direct
   'notif.empty': 'No notifications yet',

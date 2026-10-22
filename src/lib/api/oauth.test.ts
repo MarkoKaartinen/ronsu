@@ -72,6 +72,11 @@ describe('missingScopes', () => {
     expect(missingScopes(undefined, `${SCOPES} write:blocks`)).toEqual(['write:conversations', 'push', 'write:blocks']);
   });
 
+  it('a login made before the lists of bookmarks and favourites lacks only their two read scopes', () => {
+    const before = 'read:accounts read:statuses read:notifications read:follows write:favourites write:statuses write:media write:bookmarks write:follows write:conversations push';
+    expect(missingScopes(before)).toEqual(['read:bookmarks', 'read:favourites']);
+  });
+
   it('lists the scopes a change of the app has added, and only those', () => {
     const wanted = `${SCOPES} write:blocks read:lists`;
     expect(missingScopes(SCOPES, wanted)).toEqual(['write:blocks', 'read:lists']);

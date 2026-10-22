@@ -1,5 +1,7 @@
 ### Unreleased
 
+* Add the bookmarks and the favorites as lists, in the sidebar and in a menu drawer that a new menu button in the bottom bar opens; log in again for the new `read:bookmarks` and `read:favourites` permissions
+* On a wide screen the account and settings page opens in the middle column, beside the sidebar and the notifications, and it is a page of its own (`#/settings`)
 * Show more and Show less open the whole post being answered in the post form
 * Fix an old reading position overwriting a newer one from another device when the app is left or opened from a notification
 * A post that is a private mention says so

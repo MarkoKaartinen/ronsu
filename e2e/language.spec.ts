@@ -47,6 +47,9 @@ test('the language is chosen in the settings, applies immediately and is remembe
 
   // Survives a reload even though the browser language is English
   await page.reload();
+  // The settings are a page of their own (#/settings): a reload stays on it
+  await expect(page.getByRole('region', { name: 'Tili ja asetukset' })).toBeVisible();
+  await page.getByRole('navigation', { name: 'Päävalikko' }).getByRole('button', { name: 'Koti' }).click();
   await page.waitForSelector('article[data-id]');
   await expect(page.locator('html')).toHaveAttribute('lang', 'fi');
   await expect(page.getByRole('button', { name: 'Lataa vanhemmat' })).toBeVisible();

@@ -36,6 +36,9 @@ html { background: var(--header); }
  * 0 until the first scroll; the largest value it will have (Chrome 135 and later) does not change, so the bar does not
  * start low and move.
  */
+/* The bar at the top of a view (the feed's, a title bar): the same height everywhere. Slimmer on a phone, where the bars take room from the reading; the wide screen keeps the height of the notifications' bar beside it */
+:root { --bar-pt: 0.4rem; --bar-pb: 0.2rem; --bar-row: 2.75rem; }
+@media (max-width: 799px) { :root { --bar-pt: 0.1rem; --bar-pb: 0.1rem; --bar-row: 2.25rem; } }
 :root { --inset-bottom: env(safe-area-max-inset-bottom, env(safe-area-inset-bottom, 0px)); }
 
 /* Beside the reading column (a wide screen) the page is a shade darker, so the column stands out */

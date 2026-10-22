@@ -7,11 +7,11 @@ import type { AccountCredentials, StoredAccount } from './types';
 /**
  * Only what the app uses, so a token that leaks can do no more than that (the broad `read` is not asked for):
  * read:accounts (own account, profiles), read:statuses (timeline, threads, reading position), read:notifications,
- * read:follows (the relationship on a profile), and the writes for posting, uploading, favourites, boosts
- * (write:statuses), bookmarks and following.
+ * read:follows (the relationship on a profile), read:bookmarks and read:favourites (the lists of them), and the
+ * writes for posting, uploading, favourites, boosts (write:statuses), bookmarks and following.
  */
 export const SCOPES =
-  'read:accounts read:statuses read:notifications read:follows write:favourites write:statuses write:media write:bookmarks write:follows write:conversations push';
+  'read:accounts read:statuses read:notifications read:follows read:bookmarks read:favourites write:favourites write:statuses write:media write:bookmarks write:follows write:conversations push';
 /** What every login asked for before the granted scopes were stored: the scopes of an account without `scopes` */
 const LEGACY_SCOPES = 'read write:favourites write:statuses write:media write:bookmarks write:follows';
 
