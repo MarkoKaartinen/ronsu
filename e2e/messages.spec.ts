@@ -13,8 +13,11 @@ const conversation = (n: number, unread: boolean) => ({
   },
 });
 
-/** `list` is what the server has; the ids of the conversations that were marked read are collected in `read` */
-async function open(page: Page, list: ReturnType<typeof conversation>[]) {
+/**
+ * `list` is what the server has; the ids of the conversations that were marked read are collected in `read`.
+ * `firstPage`: the server gives that many conversations first and the rest after `max_id=555` (the cursor of its Link header).
+ */
+async function open(page: Page, list: ReturnType<typeof conversation>[], firstPage = list.length) {
   const read: string[] = [];
   await mockMastodon(page, { marker: null, posts: [] });
   // Registered after the general mock, so it answers first
@@ -26,10 +29,15 @@ async function open(page: Page, list: ReturnType<typeof conversation>[]) {
       const c = list.find((x) => x.id === mark[1]);
       if (c) c.unread = false;
     }
+    const paged = !mark && firstPage < list.length;
+    const older = !!url.searchParams.get('max_id');
     await route.fulfill({
       status: 200,
-      headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'content-type': 'application/json' },
-      body: JSON.stringify(mark ? (list.find((x) => x.id === mark[1]) ?? {}) : list),
+      headers: {
+        'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-expose-headers': 'Link', 'content-type': 'application/json',
+        ...(paged && !older ? { link: '<https://mock.test/api/v1/conversations?limit=20&max_id=555>; rel="next"' } : {}),
+      },
+      body: JSON.stringify(mark ? (list.find((x) => x.id === mark[1]) ?? {}) : paged ? (older ? list.slice(firstPage) : list.slice(0, firstPage)) : list),
     });
   });
   await seedAccount(page);
@@ -81,4 +89,14 @@ test('no private mentions yet: the empty state says so', async ({ page }) => {
   await open(page, []);
   await page.getByRole('button', { name: 'Private mentions' }).click();
   await expect(page.getByText("You don't have any private mentions yet.")).toBeVisible();
+});
+
+test('more conversations than one page: Load older fetches the rest by the cursor of the Link header', async ({ page }) => {
+  await open(page, [conversation(1, false), conversation(2, false), conversation(3, false)], 2);
+  await page.getByRole('button', { name: 'Private mentions' }).click();
+  await expect(page.getByText('Private 2')).toBeVisible();
+  await expect(page.getByText('Private 3')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Load older' }).click();
+  await expect(page.getByText('Private 3')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Load older' })).toHaveCount(0);
 });

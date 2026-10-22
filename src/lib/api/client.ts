@@ -22,6 +22,16 @@ export function parseLinkHeader(header: string | null): { next: string | null; p
   return result;
 }
 
+/** The `max_id` of a Link header's next page (a full URL), or undefined when there is none: where the next page of older items starts */
+export function cursorOf(next: string | null): string | undefined {
+  if (!next) return undefined;
+  try {
+    return new URL(next).searchParams.get('max_id') ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export interface ClientOptions {
   instance: string;
   token?: string;

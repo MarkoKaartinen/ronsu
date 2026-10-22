@@ -1,6 +1,6 @@
 <script lang="ts">
   import { setContext, untrack } from 'svelte';
-  import type { MastodonClient } from '../lib/api/client';
+  import { cursorOf, type MastodonClient } from '../lib/api/client';
   import { getConversations, markConversationRead } from '../lib/api/conversations';
   import type { Account, Conversation } from '../lib/api/types';
   import { sanitizeText } from '../lib/html';
@@ -36,7 +36,7 @@
     try {
       const page = await getConversations(client);
       items = shown(page.items);
-      cursor = page.next ? (new URLSearchParams(page.next).get('max_id') ?? undefined) : undefined;
+      cursor = cursorOf(page.next);
       end = !cursor;
       loaded = true;
       await markRead();
@@ -55,7 +55,7 @@
       const page = await getConversations(client, cursor);
       const known = new Set(items.map((c) => c.id));
       items.push(...shown(page.items).filter((c) => !known.has(c.id)));
-      cursor = page.next ? (new URLSearchParams(page.next).get('max_id') ?? undefined) : undefined;
+      cursor = cursorOf(page.next);
       end = !cursor;
     } catch (e) {
       error = errorText(e);
