@@ -190,7 +190,7 @@ export class FeedStore {
     this.markerAt = start?.at ?? 0;
     this.continuedFromRemote = !!start && start === this.remote && start.id !== readLocal(this.storageKey)?.id;
     // Local is ahead (e.g. the page closed before syncing): send it to the server
-    if (this.marker && this.marker !== this.remote?.id) {
+    if (this.marker && (!this.remote || compareIds(this.marker, this.remote.id) > 0)) {
       this.dirty = true;
       this.scheduleSync();
     }
@@ -522,12 +522,15 @@ export class FeedStore {
   /**
    * Sends the reading position to Mastodon right away. keepalive = while the page is closing (no time to ask
    * the server first). force = the position is meant to go back (Undo).
+   * A closing page sends only a position the reader has moved, and not while the question about another device's
+   * further position is open: leaving the app must never overwrite what another device has read.
    */
   async flush(keepalive = false, force = false): Promise<void> {
     clearTimeout(this.timer);
     this.timer = undefined;
     const id = this.marker;
     if (!id) return;
+    if (keepalive && (!this.dirty || this.remoteAhead)) return;
     if (!keepalive && !force && (await this.serverIsAhead(id))) return;
     return saveHomeMarker(this.client, id, this.remote?.id ?? null, keepalive)
       .then((saved) => {

@@ -1,3 +1,5 @@
+import { compareIds } from './api/markers';
+
 /** A reading position plus the time it was set. The newer time wins (last-write-wins). */
 export interface Pos {
   id: string;
@@ -18,10 +20,15 @@ export function parsePos(raw: string | null): Pos | null {
   return /^\d+$/.test(raw) ? { id: raw, at: 0 } : null;
 }
 
-/** On start-up: whichever was set more recently wins, even when it is further back. */
+/**
+ * On start-up: whichever was set more recently wins. A local position that is behind the server's never does:
+ * the position only moves back through Undo, which is sent at once, so that is a clock that is ahead or a
+ * position another device has read past.
+ */
 export function pickStart(local: Pos | null, remote: Pos | null): Pos | null {
   if (!local) return remote;
   if (!remote) return local;
+  if (compareIds(local.id, remote.id) < 0) return remote;
   return local.at > remote.at ? local : remote;
 }
 

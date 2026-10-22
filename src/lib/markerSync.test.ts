@@ -11,9 +11,12 @@ describe('parsePos', () => {
 });
 
 describe('pickStart', () => {
-  it('the newer time wins, even for an older id', () => {
-    expect(pickStart({ id: '50', at: 200 }, { id: '90', at: 100 })).toEqual({ id: '50', at: 200 });
-    expect(pickStart({ id: '50', at: 100 }, { id: '90', at: 200 })).toEqual({ id: '90', at: 200 });
+  it('the newer time wins', () => {
+    expect(pickStart({ id: '95', at: 200 }, { id: '90', at: 100 })).toEqual({ id: '95', at: 200 });
+    expect(pickStart({ id: '95', at: 100 }, { id: '90', at: 200 })).toEqual({ id: '90', at: 200 });
+  });
+  it('a local position behind the server\'s never wins, whatever the clocks say', () => {
+    expect(pickStart({ id: '50', at: 200 }, { id: '90', at: 100 })).toEqual({ id: '90', at: 100 });
   });
   it('uses whichever exists', () => {
     expect(pickStart(null, { id: '1', at: 1 })).toEqual({ id: '1', at: 1 });
