@@ -34,6 +34,9 @@ export interface Relationship {
   followed_by: boolean;
   blocking: boolean;
   muting: boolean;
+  /** Whether a mute also hides the notifications of the account */
+  muting_notifications?: boolean;
+  domain_blocking?: boolean;
 }
 
 export interface MediaMeta {
@@ -121,6 +124,9 @@ export interface Status {
   sensitive: boolean;
   visibility: Visibility;
   in_reply_to_id: string | null;
+  in_reply_to_account_id?: string | null;
+  /** The conversation is muted (only there for a signed-in account) */
+  muted?: boolean;
   reblog: Status | null;
   /** A quote post (Mastodon 4.5+); the quoted post is only there when its author has accepted the quote */
   quote?: { state: string; quoted_status: Status | null } | null;

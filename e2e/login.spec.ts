@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 /** The scopes of an older version, to test that its registration is not reused */
 const OLD_SCOPES = 'read write:favourites write:statuses write:media write:bookmarks write:follows';
-const SCOPES = 'read:accounts read:statuses read:notifications read:follows read:bookmarks read:favourites write:favourites write:statuses write:media write:bookmarks write:follows write:conversations push';
+const SCOPES = 'read:accounts read:statuses read:notifications read:follows read:bookmarks read:favourites write:favourites write:statuses write:media write:bookmarks write:follows write:mutes write:blocks write:conversations push';
 const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'content-type': 'application/json' };
 
 test('logging in registers the app as "Ronsu" and ignores an older registration made under another name', async ({ page }) => {

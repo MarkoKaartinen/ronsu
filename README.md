@@ -33,7 +33,8 @@ Source code and issues: <https://github.com/MarkoKaartinen/ronsu>
 - Link previews (provider, title, description and picture) under posts that have a link; the picture stays covered on sensitive posts
 - The keyword filters you have set on your server are honored: a filtered post is hidden, covered with a warning that names the filter, or has its pictures blurred, as the filter says
 - Several accounts, threads, profiles, replying and posting (content warnings, visibility, language, account suggestions after `@`, an emoji picker with the frequently used, the server's custom and the Unicode emoji)
-- Favorite, boost and bookmark; follow and unfollow
+- Favorite, boost and bookmark; follow and unfollow; a menu on every post (open the original page, copy the link, mute the conversation) and mute (for a time of your choice), block and block a server from it or from a profile (they need the
+  `write:mutes` and `write:blocks` OAuth scopes, so older logins are asked to log in again)
 - An in-app image viewer: swipe or use the arrow keys between a post's pictures, tap to zoom, Esc or back to close
 - Light and dark themes that follow the system or your own choice: Nord (dark/light) and Dracula (dark) / Alucard (light)
 - English and Finnish, switchable in the settings

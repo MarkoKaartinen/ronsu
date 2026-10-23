@@ -130,6 +130,30 @@ export const en = {
   'action.unfavorite': 'Remove from favorites',
   'action.bookmark': 'Bookmark', // mastodon: status.bookmark
   'action.removeBookmark': 'Remove bookmark', // mastodon: status.remove_bookmark
+  'menu.muteConversation': 'Mute conversation', // mastodon: status.mute_conversation
+  'menu.unmuteConversation': 'Unmute conversation', // mastodon: status.unmute_conversation
+  'menu.blockDomain': 'Block domain {domain}', // mastodon: account.block_domain
+  'menu.unblockDomain': 'Unblock domain {domain}', // mastodon: account.unblock_domain
+  'moderation.muteTitle': 'Mute @{name}',
+  'moderation.duration': 'Duration', // mastodon: mute_modal.duration
+  'moderation.hideNotifications': 'Hide notifications from this user', // mastodon: mute_modal.hide_notifications
+  'moderation.duration.0': 'Indefinite', // mastodon: duration_modal.indefinite
+  'moderation.duration.1800': '30 minutes',
+  'moderation.duration.3600': '1 hour',
+  'moderation.duration.21600': '6 hours',
+  'moderation.duration.86400': '1 day',
+  'moderation.duration.259200': '3 days',
+  'moderation.duration.604800': '7 days',
+  'moderation.mute': 'Mute',
+  'moderation.blockTitle': 'Block @{name}',
+  'moderation.blockText': 'Are you sure you want to block {name}?', // mastodon: confirmations.block.message
+  'moderation.block': 'Block',
+  'moderation.domainTitle': 'Block domain {domain}',
+  'moderation.domainText': 'Are you sure you want to block the entire {domain}? In most cases a few targeted blocks or mutes are sufficient and preferable. You will not see content from that domain in any public timelines or your notifications. Your followers from that domain will be removed.', // mastodon: confirmations.domain_block.message
+  'moderation.domainBlock': 'Block domain',
+  'menu.openOriginal': 'Open original page', // mastodon: status.open_original_page
+  'menu.copyLink': 'Copy link to post', // mastodon: status.copy
+  'menu.copied': 'Link copied',
   'action.failed': 'Something went wrong: {message}',
 
   'lightbox.previous': 'Previous', // mastodon: lightbox.previous
@@ -237,6 +261,15 @@ export const en = {
   'profile.reauth': 'Following needs a new permission. Log in again to follow users.',
   'profile.reauthButton': 'Log in again',
   'scopes.banner': 'Ronsu has been updated and needs new permissions for some features. Log in again to use them.',
+  'menu.more': 'More', // mastodon: status.more
+  'menu.mute': 'Mute @{name}', // mastodon: account.mute
+  'menu.unmute': 'Unmute @{name}', // mastodon: account.unmute
+  'menu.block': 'Block @{name}', // mastodon: account.block
+  'menu.unblock': 'Unblock @{name}', // mastodon: account.unblock
+  'profile.muted': 'Muted', // mastodon: account.muted
+  'profile.blocked': 'Blocked', // mastodon: account.blocked
+  'menu.reauthModeration': 'Muting and blocking need a new permission. Log in again to mute and block users.',
+  'menu.moderationFailed': 'The action failed: {message}',
   'profile.followFailed': 'Following failed: {message}',
   'push.title': 'Push notifications', // mastodon: notifications.column_settings.push
   'push.enable': 'Push notifications on this device',
