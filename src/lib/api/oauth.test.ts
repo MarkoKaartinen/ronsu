@@ -62,24 +62,29 @@ describe('missingScopes', () => {
 
   it('a broad scope covers its narrow ones, so an older login lacks only the scopes no broad scope covers', () => {
     expect(missingScopes('read write')).toEqual(['push']);
-    expect(missingScopes('read write:favourites write:statuses write:media write:bookmarks write:follows')).toEqual(['write:conversations', 'push']);
+    expect(missingScopes('read write:favourites write:statuses write:media write:bookmarks write:follows')).toEqual(['write:mutes', 'write:blocks', 'write:conversations', 'push']);
     expect(missingScopes('read follow write:favourites write:statuses write:media write:bookmarks')).toEqual(['write:conversations', 'push']);
     expect(missingScopes('read write push')).toEqual([]);
   });
 
   it('an account without a stored list is taken to have the first versions\' scopes', () => {
-    expect(missingScopes(undefined)).toEqual(['write:conversations', 'push']);
-    expect(missingScopes(undefined, `${SCOPES} write:blocks`)).toEqual(['write:conversations', 'push', 'write:blocks']);
+    expect(missingScopes(undefined)).toEqual(['write:mutes', 'write:blocks', 'write:conversations', 'push']);
+    expect(missingScopes(undefined, `${SCOPES} write:lists`)).toEqual(['write:mutes', 'write:blocks', 'write:conversations', 'push', 'write:lists']);
   });
 
   it('a login made before the lists of bookmarks and favourites lacks only their two read scopes', () => {
-    const before = 'read:accounts read:statuses read:notifications read:follows write:favourites write:statuses write:media write:bookmarks write:follows write:conversations push';
+    const before = 'read:accounts read:statuses read:notifications read:follows write:favourites write:statuses write:media write:bookmarks write:follows write:mutes write:blocks write:conversations push';
     expect(missingScopes(before)).toEqual(['read:bookmarks', 'read:favourites']);
   });
 
+  it('a login made before muting and blocking lacks only their two write scopes', () => {
+    const before = 'read:accounts read:statuses read:notifications read:follows read:bookmarks read:favourites write:favourites write:statuses write:media write:bookmarks write:follows write:conversations push';
+    expect(missingScopes(before)).toEqual(['write:mutes', 'write:blocks']);
+  });
+
   it('lists the scopes a change of the app has added, and only those', () => {
-    const wanted = `${SCOPES} write:blocks read:lists`;
-    expect(missingScopes(SCOPES, wanted)).toEqual(['write:blocks', 'read:lists']);
+    const wanted = `${SCOPES} write:lists read:lists`;
+    expect(missingScopes(SCOPES, wanted)).toEqual(['write:lists', 'read:lists']);
     expect(missingScopes('read:accounts', 'read:accounts read:statuses')).toEqual(['read:statuses']);
     expect(missingScopes('write', 'write:statuses read:statuses')).toEqual(['read:statuses']); // write does not cover read
   });

@@ -1,3 +1,9 @@
+### Unreleased
+
+* Add a menu to a post to open the original page, copy its link, mute its conversation, mute or block its author and block the author's server
+* Muting asks how long and whether to hide the notifications, and blocking asks for a confirmation
+* Mute and block an account from the menu on its profile; log in again for the new `write:mutes` and `write:blocks` permissions
+
 ### 0.2.0: 2026-10-22
 
 * Add the bookmarks and the favorites as lists, in the sidebar and in a menu drawer that a new menu button in the bottom bar opens; log in again for the new `read:bookmarks` and `read:favourites` permissions

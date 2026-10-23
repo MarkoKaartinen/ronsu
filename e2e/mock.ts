@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test';
 const HOST = 'https://mock.test';
 /** What the app asks a login for (src/lib/api/oauth.ts); a seeded account has been given all of it, or the app would ask to log in again */
 export const SCOPES =
-  'read:accounts read:statuses read:notifications read:follows read:bookmarks read:favourites write:favourites write:statuses write:media write:bookmarks write:follows write:conversations push';
+  'read:accounts read:statuses read:notifications read:follows read:bookmarks read:favourites write:favourites write:statuses write:media write:bookmarks write:follows write:mutes write:blocks write:conversations push';
 export const COUNT = 200;
 const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
@@ -30,6 +30,10 @@ let sensitiveMedia = false;
 let formatted = false;
 /** Whether every post quotes another one (set from Server.quoteAll) */
 let quoteAll = false;
+/** Whether the posts answer the signed-in account, so their conversation can be muted (set from Server.muteThread) */
+let muteThread = false;
+/** Whether the conversations are muted (set from Server.threadMuted) */
+let threadMuted = false;
 /** The server-side filter that matches posts with i % 6 === 4 (set from Server.filter; a blur filter matches i % 6 === 0, posts that have a picture) */
 let filter: Server['filter'];
 /** Whether posts with i % 8 === 5 carry a link preview (set from Server.cards) */
@@ -50,6 +54,8 @@ function status(i: number, withQuote = true) {
     sensitive: sensitiveMedia,
     visibility: 'public',
     in_reply_to_id: null,
+    in_reply_to_account_id: muteThread ? '1' : null,
+    muted: threadMuted,
     reblog: null,
     media_attachments:
       i % 3 === 0
@@ -95,6 +101,17 @@ export interface Server {
   locked?: boolean; // the profile is locked: following is a request
   noFollowScope?: boolean; // 403: a token without the write:follows scope
   follows?: string[];
+  noModerationScope?: boolean; // 403: a token without the write:mutes and write:blocks scopes
+  moderations?: string[]; // mute, unmute, block, unblock
+  muted?: boolean;
+  blocked?: boolean;
+  domainBlocked?: boolean;
+  remoteAccount?: boolean; // the profile belongs to an account of another server
+  muteThread?: boolean; // the posts answer the signed-in account
+  threadMuted?: boolean; // the conversations are muted
+  muteBodies?: Record<string, unknown>[]; // the bodies of the mute requests
+  domainBlocks?: string[]; // block:domain and unblock:domain
+  conversationMutes?: string[]; // mute and unmute of a conversation
   created?: { body: Record<string, unknown>; key: string | undefined }[]; // successful POST /statuses
   attempts?: (string | undefined)[]; // all attempts (Idempotency-Key)
   failPost?: boolean;
@@ -129,6 +146,8 @@ export async function mockMastodon(page: Page, server: Server) {
   sensitiveMedia = !!server.sensitive;
   formatted = !!server.formatted;
   quoteAll = !!server.quoteAll;
+  muteThread = !!server.muteThread;
+  threadMuted = !!server.threadMuted;
   filter = server.filter;
   withCards = !!server.cards;
   await page.route(`${HOST}/**`, async (route) => {
@@ -193,7 +212,7 @@ export async function mockMastodon(page: Page, server: Server) {
       return json(page);
     }
     const rel = () => ({
-      id: '2', following: !!server.following, requested: !!server.requested, followed_by: true, blocking: false, muting: false,
+      id: '2', following: !!server.following, requested: !!server.requested, followed_by: true, blocking: !!server.blocked, muting: !!server.muted, domain_blocking: !!server.domainBlocked,
     });
     if (url.pathname === '/api/v1/custom_emojis') {
       server.emojiRequests = (server.emojiRequests ?? 0) + 1;
@@ -221,13 +240,39 @@ export async function mockMastodon(page: Page, server: Server) {
       server.requested = on && !!server.locked;
       return json(rel());
     }
+    const moderate = url.pathname.match(/^\/api\/v1\/accounts\/2\/(mute|unmute|block|unblock)$/);
+    if (moderate && req.method() === 'POST') {
+      if (server.noModerationScope) {
+        return route.fulfill({ status: 403, headers: { ...cors, 'content-type': 'application/json' }, body: '{"error":"This action is outside the authorized scopes"}' });
+      }
+      (server.moderations ??= []).push(moderate[1]);
+      if (moderate[1] === 'mute') (server.muteBodies ??= []).push(req.postDataJSON() ?? {});
+      if (moderate[1].endsWith('mute')) server.muted = moderate[1] === 'mute';
+      else {
+        server.blocked = moderate[1] === 'block';
+        if (server.blocked) server.following = false;
+      }
+      return json(rel());
+    }
+    if (url.pathname === '/api/v1/domain_blocks') {
+      const on = req.method() === 'POST';
+      (server.domainBlocks ??= []).push(`${on ? 'block' : 'unblock'}:${on ? req.postDataJSON().domain : url.searchParams.get('domain')}`);
+      server.domainBlocked = on;
+      return json({});
+    }
+    const threadMute = url.pathname.match(/^\/api\/v1\/statuses\/(\d+)\/(mute|unmute)$/);
+    if (threadMute && req.method() === 'POST') {
+      (server.conversationMutes ??= []).push(threadMute[2]);
+      threadMuted = threadMute[2] === 'mute';
+      return json({ ...status(0), id: threadMute[1], muted: threadMuted });
+    }
     if (url.pathname === '/api/v1/accounts/2/statuses') {
       if (url.searchParams.get('max_id')) return json([]);
       return json([14, 13, 12, 11, 10].map(status));
     }
     if (url.pathname === '/api/v1/accounts/2' || url.pathname === '/api/v1/accounts/lookup') {
       return json({
-        id: '2', username: 'u', acct: 'u', display_name: 'U', avatar: '', header: '', url: 'https://mock.test/@u', emojis: [],
+        id: '2', username: 'u', acct: server.remoteAccount ? 'u@mastodon.example' : 'u', display_name: 'U', avatar: '', header: '', url: 'https://mock.test/@u', emojis: [],
         note: '<p>About me</p>',
         fields: server.dupFields ? [
           { name: 'Link', value: '<a href="https://example.org" target="_blank">example.org</a>', verified_at: null },

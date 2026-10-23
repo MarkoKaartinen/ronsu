@@ -40,7 +40,7 @@ the reading position (markers) only exists for `home` and `notifications`, so th
 - [ ] **Local and federated timelines** (`/api/v1/timelines/public`, `local=true`). Optional: the home timeline stays the main view
 - [ ] **Search** (`GET /api/v2/search`, `read:search`): accounts, hashtags, posts. Includes resolving a
   pasted `@user@server` or post URL (`resolve=true`)
-- [ ] **Bookmarks** and **favorites** views (`GET /api/v1/bookmarks`, `/api/v1/favourites`, `read:bookmarks`,
+- [x] **Bookmarks** and **favorites** views (`GET /api/v1/bookmarks`, `/api/v1/favourites`, `read:bookmarks`,
   `read:favourites`). Bookmarks can be set but never opened again, which makes them write-only today
 - [x] **Direct messages / conversations** (`GET /api/v1/conversations`, `read:statuses`; `write:conversations`
   to mark read). Shown as Mastodon's "Private mentions": the newest post of each conversation, read when the view is opened. Left: delete a conversation, mark one as unread
@@ -79,15 +79,17 @@ the reading position (markers) only exists for `home` and `notifications`, so th
 Ronsu asks for none of the mute and block scopes, so a user has to open the web UI of their server for any of this.
 For a reader this matters more than most features, because it decides what is in the timeline.
 
-- [ ] **Mute and unmute an account** (`write:mutes`), with a duration and the "hide notifications" choice
-- [ ] **Block and unblock an account** (`write:blocks`)
-- [ ] **Mute a conversation** (`POST /api/v1/statuses/:id/mute`, `write:mutes`): useful when a thread keeps
+- [x] **Mute and unmute an account** (`write:mutes`), from the menu on a profile and on a post, with a duration and the "hide notifications" choice
+- [x] **Block and unblock an account** (`write:blocks`), from the menu on a profile and on a post
+- [x] **Mute a conversation** (`POST /api/v1/statuses/:id/mute`, `write:mutes`): useful when a thread keeps
   producing notifications
-- [ ] **Block a domain** (`POST /api/v1/domain_blocks`, `write:blocks`)
+- [x] **Block a domain** (`POST /api/v1/domain_blocks`, `write:blocks`)
 - [ ] **Hide boosts from an account** (`POST /api/v1/accounts/:id/follow` with `reblogs=false`) and
   **notify on new posts** (`notify=true`). Both belong in the follow button's menu
 - [ ] **Keyword filters** management (`/api/v2/filters`, `read:filters`, `write:filters`). Only if the server
   filters are honored (see above); the settings of the web UI can stay the place to edit them
+- [ ] **Filter a single post** ("Filter this post" in the web UI): a filter with a status rule (`POST /api/v2/filters`,
+  `POST /api/v2/filters/:id/statuses`, `write:filters`). Low priority; goes with the keyword filters above
 - [ ] **Report a post or account** (`POST /api/v1/reports`, `write:reports`)
 - [ ] **Follow requests**: approve or reject (`/api/v1/follow_requests`, `read:follows`, `write:follows`).
   Notifications show the request, but it can only be answered elsewhere

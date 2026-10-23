@@ -1,8 +1,9 @@
 <script lang="ts">
   import BadgeCheck from '@lucide/svelte/icons/badge-check';
+  import Ellipsis from '@lucide/svelte/icons/ellipsis';
   import ExternalLink from '@lucide/svelte/icons/external-link';
   import { onMount, setContext, untrack } from 'svelte';
-  import { getAccount, getRelationship, lookupAccount } from '../lib/api/accounts';
+  import { getAccount, getRelationship, lookupAccount, blockDomain, moderationEndpoint, muteAccount, type Moderation } from '../lib/api/accounts';
   import { ApiError, type MastodonClient } from '../lib/api/client';
   import { startLogin } from '../lib/api/oauth';
   import type { AccountFull, Relationship, Status } from '../lib/api/types';
@@ -13,6 +14,8 @@
   import { i18n, t } from '../lib/stores/i18n.svelte';
   import { toast } from '../lib/stores/toast.svelte';
   import { safeHttpUrl } from '../lib/url';
+  import { remoteDomain } from '../lib/moderation';
+  import ModerationDialog, { type Ask } from './ModerationDialog.svelte';
   import StatusCard from './StatusCard.svelte';
 
   // handle: "@user@server" (or a numeric account id from an older link)
@@ -34,8 +37,14 @@
   let busy = $state(false);
   /** Following needs the write:follows scope, which an old login does not have */
   let needsReauth = $state(false);
+  /** Muting and blocking need write:mutes and write:blocks, which an older login does not have */
+  let needsModerationReauth = $state(false);
+  let menuOpen = $state(false);
+  /** The question being asked before a mute, a block or a domain block */
+  let ask = $state<Ask | null>(null);
   let sentinel: HTMLElement | undefined = $state();
 
+  const domain = $derived(account ? remoteDomain(account.acct) : null);
   const isSelf = $derived(account?.id === accountStore.active?.accountId);
   const following = $derived(rel ? isFollowing(rel) : false);
   /** The profile page on the account's own server, e.g. https://mstdn.social/@magdalenahai */
@@ -88,6 +97,31 @@
     }
   }
 
+  /** Runs a moderation request; a 403 means the login lacks the scope */
+  async function moderate(request: () => Promise<unknown>) {
+    if (busy) return;
+    menuOpen = false;
+    ask = null;
+    busy = true;
+    try {
+      await request();
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 403) needsModerationReauth = true;
+      else toast.show(t('menu.moderationFailed', { message: errorText(e) }));
+    } finally {
+      busy = false;
+    }
+  }
+
+  const onModerate = (action: Moderation) =>
+    moderate(async () => Object.assign(rel!, await client.post<Relationship>(moderationEndpoint(account!.id, action))));
+  const onMute = (duration: number, notifications: boolean) =>
+    moderate(async () => Object.assign(rel!, await muteAccount(client, account!.id, duration, notifications)));
+  const onDomain = (on: boolean) => moderate(async () => {
+    await blockDomain(client, domain!, on);
+    rel!.domain_blocking = on;
+  });
+
   const reauth = () => accountStore.active && startLogin(accountStore.active.instance);
   const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -110,6 +144,12 @@
   });
 </script>
 
+<svelte:window onkeydown={(e) => e.key === 'Escape' && (menuOpen = false)} />
+
+{#if ask}
+  <ModerationDialog {ask} {onMute} onConfirm={() => (ask?.kind === 'domain' ? onDomain(true) : onModerate('block'))} onCancel={() => (ask = null)} />
+{/if}
+
 {#if error}
   <p class="msg error" role="alert">{error}</p>
 {:else if !account}
@@ -130,6 +170,33 @@
           <button class="follow" class:secondary={following} disabled={busy} onclick={onFollow}>
             {rel.following || rel.requested ? (rel.requested ? t('profile.cancelRequest') : t('profile.unfollow')) : account.locked ? t('profile.followRequest') : t('profile.follow')}
           </button>
+          <div class="menu">
+            <button class="more" aria-label={t('menu.more')} aria-haspopup="menu" aria-expanded={menuOpen} onclick={() => (menuOpen = !menuOpen)}>
+              <Ellipsis size={20} aria-hidden="true" />
+            </button>
+            {#if menuOpen}
+              <ul role="menu">
+                <li role="none">
+                  <button role="menuitem" onclick={() => (rel!.muting ? onModerate('unmute') : ((menuOpen = false), (ask = { kind: 'mute', name: account!.acct })))}>
+                    {t(rel.muting ? 'menu.unmute' : 'menu.mute', { name: account.acct })}
+                  </button>
+                </li>
+                <li role="none">
+                  <button role="menuitem" onclick={() => (rel!.blocking ? onModerate('unblock') : ((menuOpen = false), (ask = { kind: 'block', name: account!.acct })))}>
+                    {t(rel.blocking ? 'menu.unblock' : 'menu.block', { name: account.acct })}
+                  </button>
+                </li>
+                {#if domain}
+                  <li role="separator"></li>
+                  <li role="none">
+                    <button role="menuitem" onclick={() => (rel!.domain_blocking ? onDomain(false) : ((menuOpen = false), (ask = { kind: 'domain', domain: domain! })))}>
+                      {t(rel.domain_blocking ? 'menu.unblockDomain' : 'menu.blockDomain', { domain })}
+                    </button>
+                  </li>
+                {/if}
+              </ul>
+            {/if}
+          </div>
         {/if}
       </div>
     </div>
@@ -145,6 +212,13 @@
       </div>
     {/if}
 
+    {#if needsModerationReauth}
+      <div class="notice" role="alert">
+        <span>{t('menu.reauthModeration')}</span>
+        <button onclick={reauth}>{t('profile.reauthButton')}</button>
+      </div>
+    {/if}
+
     <h2>{@html sanitizeText(account.display_name || account.username, account.emojis)}</h2>
     <p class="acct">
       {#if origin}
@@ -156,6 +230,8 @@
         @{account.acct}
       {/if}
       {#if rel?.followed_by}<span class="badge">{t('profile.followsYou')}</span>{/if}
+      {#if rel?.muting}<span class="badge">{t('profile.muted')}</span>{/if}
+      {#if rel?.blocking}<span class="badge">{t('profile.blocked')}</span>{/if}
       {#if account.locked}<span class="badge">{t('profile.locked')}</span>{/if}
       {#if account.bot}<span class="badge">{t('profile.bot')}</span>{/if}
     </p>
@@ -213,13 +289,19 @@
   .profile { padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
   .cover { display: block; width: 100%; aspect-ratio: 3 / 1; object-fit: cover; background: var(--surface); }
   .banner { position: relative; }
-  .action { position: absolute; top: 0.75rem; right: 1rem; }
+  .action { position: absolute; top: 0.75rem; right: 1rem; display: flex; gap: 0.5rem; align-items: center; }
   .top { padding: 0 1rem; margin-top: -2.75rem; position: relative; }
   /* The thick ring in the page colour separates the avatar from the banner; the faint edge is drawn inside it */
   .avatar { width: 5.5rem; height: 5.5rem; object-fit: cover; border-radius: var(--radius-avatar); border: 4px solid var(--bg); outline: var(--avatar-border); outline-offset: -4px; background: var(--surface); }
   .self { display: inline-block; color: var(--text); font-size: 0.9rem; font-weight: 600; padding: 0.5rem 0.9rem; border-radius: 999px; background: color-mix(in srgb, var(--bg) 75%, transparent); backdrop-filter: blur(6px); }
   .follow { min-height: 2.75rem; padding: 0 1.4rem; border: 0; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 1rem; }
   .follow.secondary { background: color-mix(in srgb, var(--bg) 75%, transparent); backdrop-filter: blur(6px); color: var(--text); }
+  .menu { position: relative; }
+  .more { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; padding: 0; border: 0; border-radius: 999px; background: color-mix(in srgb, var(--bg) 75%, transparent); backdrop-filter: blur(6px); color: var(--text); }
+  .menu ul { position: absolute; right: 0; top: 3.25rem; z-index: 5; width: max-content; min-width: 14rem; max-width: calc(100vw - 2rem); margin: 0; padding: 0.3rem; list-style: none; border-radius: 0.9rem; background: var(--surface); border: 1px solid color-mix(in srgb, var(--text) 28%, var(--border)); box-shadow: 0 6px 20px rgb(0 0 0 / 0.35); }
+  .menu li button { display: block; width: 100%; padding: 0.75rem 0.8rem; font: inherit; line-height: 1.3; border: 0; border-radius: 0.6rem; background: none; color: var(--text); font-size: 1rem; text-align: left; overflow-wrap: anywhere; }
+  .menu li button:hover { background: var(--bg); }
+  .menu li[role='separator'] { height: 1px; margin: 0.3rem 0.4rem; background: var(--border); }
   .follow:disabled { opacity: 0.6; cursor: default; }
   .notice { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; margin: 0.8rem 1rem 0; padding: 0.7rem 0.9rem; border-radius: 0.9rem; background: var(--surface); border: 1px solid var(--border); }
   .notice span { flex: 1; min-width: 12rem; }

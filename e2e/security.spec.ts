@@ -379,7 +379,7 @@ test.describe('new permissions', () => {
   const banner = (page: Page) => page.getByRole('status').filter({ hasText: 'needs new permissions' });
 
   test('a login with all the permissions is not bothered', async ({ page }) => {
-    await withScopes(page, 'read:accounts read:statuses read:notifications read:follows read:bookmarks read:favourites write:favourites write:statuses write:media write:bookmarks write:follows write:conversations push', newServer());
+    await withScopes(page, 'read:accounts read:statuses read:notifications read:follows read:bookmarks read:favourites write:favourites write:statuses write:media write:bookmarks write:follows write:mutes write:blocks write:conversations push', newServer());
     await expect(banner(page)).toHaveCount(0);
     await withScopes(page, 'read write push', newServer());
     await expect(banner(page)).toHaveCount(0);

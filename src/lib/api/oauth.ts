@@ -11,7 +11,7 @@ import type { AccountCredentials, StoredAccount } from './types';
  * writes for posting, uploading, favourites, boosts (write:statuses), bookmarks and following.
  */
 export const SCOPES =
-  'read:accounts read:statuses read:notifications read:follows read:bookmarks read:favourites write:favourites write:statuses write:media write:bookmarks write:follows write:conversations push';
+  'read:accounts read:statuses read:notifications read:follows read:bookmarks read:favourites write:favourites write:statuses write:media write:bookmarks write:follows write:mutes write:blocks write:conversations push';
 /** What every login asked for before the granted scopes were stored: the scopes of an account without `scopes` */
 const LEGACY_SCOPES = 'read write:favourites write:statuses write:media write:bookmarks write:follows';
 

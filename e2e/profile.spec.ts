@@ -131,3 +131,97 @@ test('two profile fields with the same name do not crash the page', async ({ pag
   await expect(page.locator('dl.fields')).toContainText('example.net');
   expect(errors).toEqual([]);
 });
+
+test('muting and blocking from the menu update the profile', async ({ page }) => {
+  const server: Server = { marker: null, posts: [] };
+  await open(page, server);
+  await openProfile(page);
+
+  await page.locator('.action').getByRole('button', { name: 'More' }).click();
+  await page.getByRole('menuitem', { name: 'Mute @u' }).click();
+  await page.getByLabel('Duration').selectOption({ label: '1 day' });
+  await page.getByLabel('Hide notifications from this user').uncheck();
+  await page.getByRole('dialog').getByRole('button', { name: 'Mute', exact: true }).click();
+  await expect(page.locator('.acct .badge', { hasText: 'Muted' })).toBeVisible();
+
+  await page.locator('.action').getByRole('button', { name: 'More' }).click();
+  await page.getByRole('menuitem', { name: 'Unmute @u' }).click();
+  await expect(page.locator('.acct .badge', { hasText: 'Muted' })).toHaveCount(0);
+
+  await page.locator('.action').getByRole('button', { name: 'More' }).click();
+  await page.getByRole('menuitem', { name: 'Block @u' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click();
+  expect(server.moderations).toEqual(['mute', 'unmute']);
+  await page.locator('.action').getByRole('button', { name: 'More' }).click();
+  await page.getByRole('menuitem', { name: 'Block @u' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Block', exact: true }).click();
+  await expect(page.locator('.acct .badge', { hasText: 'Blocked' })).toBeVisible();
+
+  await page.locator('.action').getByRole('button', { name: 'More' }).click();
+  await page.getByRole('menuitem', { name: 'Unblock @u' }).click();
+  await expect(page.locator('.acct .badge', { hasText: 'Blocked' })).toHaveCount(0);
+  expect(server.moderations).toEqual(['mute', 'unmute', 'block', 'unblock']);
+  expect(server.muteBodies).toEqual([{ duration: 86400, notifications: false }]);
+});
+
+test('muting without the scope offers a new login', async ({ page }) => {
+  await open(page, { marker: null, posts: [], noModerationScope: true });
+  await openProfile(page);
+  await page.locator('.action').getByRole('button', { name: 'More' }).click();
+  await page.getByRole('menuitem', { name: 'Mute @u' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Mute', exact: true }).click();
+  await expect(page.getByText('Muting and blocking need a new permission')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Log in again' })).toBeVisible();
+});
+
+test('the menu of a post opens the original, copies the link and mutes and blocks the author', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const server: Server = { marker: null, posts: [] };
+  await open(page, server);
+  const post = page.locator('article[data-id]').first();
+
+  await post.getByRole('button', { name: 'More' }).click();
+  await expect(post.getByRole('menuitem', { name: 'Open original page' })).toHaveAttribute('href', /^https:\/\/mock\.test\//);
+  await post.getByRole('menuitem', { name: 'Copy link to post' }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^https:\/\/mock\.test\//);
+
+  await post.getByRole('button', { name: 'More' }).click();
+  await post.getByRole('menuitem', { name: /^Mute @/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Mute', exact: true }).click();
+  await post.getByRole('button', { name: 'More' }).click();
+  await expect(post.getByRole('menuitem', { name: /^Unmute @/ })).toBeVisible();
+  await post.getByRole('menuitem', { name: /^Block @/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Block', exact: true }).click();
+  expect(server.moderations).toEqual(['mute', 'block']);
+});
+
+test('the menu of a post can mute its conversation when the user is in it', async ({ page }) => {
+  const server: Server = { marker: null, posts: [], muteThread: true };
+  await open(page, server);
+  const post = page.locator('article[data-id]').first();
+  await post.getByRole('button', { name: 'More' }).click();
+  await post.getByRole('menuitem', { name: 'Mute conversation' }).click();
+  await post.getByRole('button', { name: 'More' }).click();
+  await expect(post.getByRole('menuitem', { name: 'Unmute conversation' })).toBeVisible();
+  expect(server.conversationMutes).toEqual(['mute']);
+});
+
+test('a conversation the user is not in has no mute item', async ({ page }) => {
+  await open(page, { marker: null, posts: [] });
+  const post = page.locator('article[data-id]').first();
+  await post.getByRole('button', { name: 'More' }).click();
+  await expect(post.getByRole('menuitem', { name: /^Mute @/ })).toBeVisible();
+  await expect(post.getByRole('menuitem', { name: /conversation/ })).toHaveCount(0);
+});
+
+test('a remote account\'s server can be blocked after a confirmation, from the profile', async ({ page }) => {
+  const server: Server = { marker: null, posts: [], remoteAccount: true };
+  await open(page, server);
+  await page.goto('/#/user/@u@mastodon.example');
+  await page.locator('.action').getByRole('button', { name: 'More' }).click();
+  await page.getByRole('menuitem', { name: 'Block domain mastodon.example' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Block domain' }).click();
+  await page.locator('.action').getByRole('button', { name: 'More' }).click();
+  await expect(page.getByRole('menuitem', { name: 'Unblock domain mastodon.example' })).toBeVisible();
+  expect(server.domainBlocks).toEqual(['block:mastodon.example']);
+});
