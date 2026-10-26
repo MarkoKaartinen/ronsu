@@ -37,6 +37,7 @@ export const en = {
   'nav.settings': 'Settings', // mastodon: navigation_bar.preferences
   'nav.bookmarks': 'Bookmarks', // mastodon: navigation_bar.bookmarks
   'nav.favourites': 'Favorites', // mastodon: navigation_bar.favourites
+  'nav.profile': 'Profile', // mastodon: navigation_bar.profile
   'saved.emptyBookmarks': "You don't have any bookmarked posts yet. When you bookmark one, it will show up here.", // mastodon: empty_column.bookmarked_statuses
   'saved.emptyFavourites': "You don't have any favorite posts yet. When you favorite one, it will show up here.", // mastodon: empty_column.favourited_statuses
   'messages.with': 'With {names}', // mastodon: conversation.with

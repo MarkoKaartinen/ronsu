@@ -35,6 +35,7 @@ export const fi: Record<keyof typeof en, string> = {
   'nav.settings': 'Asetukset',
   'nav.bookmarks': 'Kirjanmerkit',
   'nav.favourites': 'Suosikit',
+  'nav.profile': 'Profiili',
   'saved.emptyBookmarks': 'Sinulla ei ole vielä yhtään kirjanmerkkiä. Kun lisäät sellaisen, se näkyy tässä.',
   'saved.emptyFavourites': 'Sinulla ei ole vielä yhtään suosikkijulkaisua. Kun lisäät sellaisen, se näkyy tässä.',
   'messages.with': '{names} kanssa',
