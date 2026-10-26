@@ -86,3 +86,42 @@ test('a refresh the server refuses shows a notice', async ({ page }) => {
 
   await expect(page.getByRole('alert')).toContainText('Something went wrong');
 });
+
+test('the results of an open poll can be looked at without voting', async ({ page }) => {
+  const server: Server = { marker: null, posts: [], poll: {} };
+  const card = await open(page, server);
+
+  await expect(card.locator('li')).toHaveCount(0);
+  await card.getByRole('button', { name: 'See results' }).click();
+
+  await expect(card.locator('li', { hasText: 'Tea' })).toContainText('50%'); // 2 of 4 votes
+  await expect(card.getByRole('button', { name: 'Vote' })).toHaveCount(0);
+  await expect(card.getByRole('button', { name: 'Refresh' })).toBeVisible();
+  expect(server.votes).toBeUndefined(); // nothing was sent
+
+  await card.getByRole('button', { name: 'Refresh' }).click();
+  await expect(card.locator('li', { hasText: 'Tea' })).toContainText('60%'); // the refresh answer, and still no vote button
+  await expect(card.getByRole('button', { name: 'Vote' })).toHaveCount(0);
+});
+
+test('from the results of an open poll the way leads back to voting, with the choices kept', async ({ page }) => {
+  const server: Server = { marker: null, posts: [], poll: {} };
+  const card = await open(page, server);
+
+  await card.getByLabel('Coffee').check();
+  await card.getByRole('button', { name: 'See results' }).click();
+  await expect(card.locator('li')).toHaveCount(3);
+  await card.getByRole('button', { name: 'Back to voting' }).click();
+
+  await expect(card.getByLabel('Coffee')).toBeChecked();
+  await card.getByRole('button', { name: 'Vote' }).click();
+  expect(server.votes).toEqual([[1]]);
+  await expect(card.getByRole('button', { name: 'Back to voting' })).toHaveCount(0); // a poll voted in has no way back
+});
+
+test('a poll that hides its totals has no results to look at', async ({ page }) => {
+  const card = await open(page, { marker: null, posts: [], poll: { hideTotals: true } });
+
+  await expect(card.getByRole('button', { name: 'Vote' })).toBeVisible();
+  await expect(card.getByRole('button', { name: 'See results' })).toHaveCount(0);
+});

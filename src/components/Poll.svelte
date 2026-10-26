@@ -1,6 +1,5 @@
 <script lang="ts">
   import Check from '@lucide/svelte/icons/check';
-  import RefreshCw from '@lucide/svelte/icons/refresh-cw';
   import { getContext } from 'svelte';
   import type { MastodonClient } from '../lib/api/client';
   import { getPoll, votePoll } from '../lib/api/polls';
@@ -19,10 +18,15 @@
   let choices = $state<number[]>([]);
   let busy = $state(false);
   let refreshing = $state(false);
+  /** The results of an open poll are looked at without voting (Mastodon's "See results"; Ronsu also leads back to voting, the choices made are kept) */
+  let revealed = $state(false);
 
   // A multiple-choice poll's percentages are of the people who voted, a single-choice poll's of the votes
   const total = $derived(poll.multiple ? (poll.voters_count ?? 0) : poll.votes_count);
   const open = $derived(canVote(poll));
+  const showResults = $derived(!open || revealed);
+  // A poll whose author hides the totals until it ends has no counts to show
+  const hasTotals = $derived(poll.options.some((o) => o.votes_count !== null));
 
   /** The end of a poll: "Closed", "Ends in 3h" or, within the last minute, "Ends soon" */
   function end(): string {
@@ -59,22 +63,7 @@
   }
 </script>
 
-{#if open}
-  <form class="poll" onsubmit={vote}>
-    {#each poll.options as o, i}
-      <label class="choice" class:picked={choices.includes(i)}>
-        <input
-          type={poll.multiple ? 'checkbox' : 'radio'}
-          name="poll-{poll.id}"
-          checked={choices.includes(i)}
-          onchange={() => (choices = pick(choices, i, poll.multiple))}
-        />
-        <span class="ptitle">{@html sanitizeText(o.title, poll.emojis)}</span>
-      </label>
-    {/each}
-    <button class="vote" type="submit" disabled={busy || !choices.length}>{t('poll.vote')}</button>
-  </form>
-{:else}
+{#if showResults}
   <ul class="poll">
     {#each poll.options as o, i}
       {@const pct = o.votes_count === null || !total ? null : Math.round((o.votes_count * 100) / total)}
@@ -88,13 +77,31 @@
       </li>
     {/each}
   </ul>
+{:else}
+  <form class="poll" id="poll-{poll.id}" onsubmit={vote}>
+    {#each poll.options as o, i}
+      <label class="choice" class:picked={choices.includes(i)}>
+        <input
+          type={poll.multiple ? 'checkbox' : 'radio'}
+          name="poll-{poll.id}"
+          checked={choices.includes(i)}
+          onchange={() => (choices = pick(choices, i, poll.multiple))}
+        />
+        <span class="ptitle">{@html sanitizeText(o.title, poll.emojis)}</span>
+      </label>
+    {/each}
+  </form>
 {/if}
-<p class="pmeta">
-  {[t('poll.votes', { count: poll.voters_count ?? poll.votes_count }), end()].filter(Boolean).join(' · ')}
-  {#if !open && !poll.expired}
-    <button class="refresh" type="button" disabled={refreshing} aria-label={t('poll.refresh')} title={t('poll.refresh')} onclick={refresh}><RefreshCw size={14} /></button>
+<div class="pmeta">
+  {#if !showResults}
+    <button class="vote" type="submit" form="poll-{poll.id}" disabled={busy || !choices.length}>{t('poll.vote')}</button>
+    {#if hasTotals}<button class="link" type="button" onclick={() => (revealed = true)}>{t('poll.reveal')}</button><span aria-hidden="true">·</span>{/if}
+  {:else}
+    {#if open}<button class="link" type="button" onclick={() => (revealed = false)}>{t('poll.back')}</button><span aria-hidden="true">·</span>{/if}
+    {#if !poll.expired}<button class="link" type="button" disabled={refreshing} onclick={refresh}>{t('poll.refresh')}</button><span aria-hidden="true">·</span>{/if}
   {/if}
-</p>
+  <span>{[t('poll.votes', { count: poll.voters_count ?? poll.votes_count }), end()].filter(Boolean).join(' · ')}</span>
+</div>
 
 <style>
   .poll { list-style: none; margin: 0.6rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
@@ -114,10 +121,12 @@
   .ptitle { display: flex; gap: 0.35rem; align-items: center; min-width: 0; overflow-wrap: anywhere; }
   .ptitle :global(svg) { flex: none; color: var(--accent); }
   .ppct { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .vote { align-self: flex-start; min-height: 2.5rem; padding: 0 1.1rem; border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); border-radius: 0.4rem; font-weight: 600; }
+  .vote { min-height: 2.5rem; padding: 0 1.1rem; border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); border-radius: 0.4rem; font-weight: 600; }
   .vote:disabled { opacity: 0.5; }
-  .pmeta { display: flex; gap: 0.4rem; align-items: center; margin: 0.4rem 0 0; color: var(--muted); font-size: 0.85rem; }
-  .refresh { display: inline-flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; margin: -0.5rem 0; border: 0; background: none; color: var(--muted); border-radius: 0.4rem; }
-  .refresh:hover { color: var(--text); }
-  .refresh:disabled { opacity: 0.5; }
+  /* The button, the link and the numbers share one line, and wrap when the column is narrow */
+  .pmeta { display: flex; flex-wrap: wrap; gap: 0.2rem 0.5rem; align-items: center; margin: 0.4rem 0 0; color: var(--muted); font-size: 0.85rem; }
+  .pmeta .vote { margin-right: 0.3rem; font-size: 1rem; }
+  .link { min-height: 2.25rem; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; text-decoration: underline; }
+  .link:hover { color: var(--text); }
+  .link:disabled { opacity: 0.5; }
 </style>
