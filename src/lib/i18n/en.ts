@@ -115,7 +115,11 @@ export const en = {
   'status.filterMatches': 'Matches filter “{title}”', // mastodon: filter_warning.matches_filter
   'status.showMedia': 'Show media', // mastodon: content_warning.media.show_short
   'status.attachment': 'Attachment',
-  'status.edited': 'Edited {date}', // mastodon: status.edited
+  'status.edited': 'Last edited {date}', // mastodon: status.edited
+  'status.versions': 'Version history', // mastodon: status.version_history
+  'status.showVersions': 'Show version history', // mastodon: status.edited_hint
+  'status.versionCreated': '{name} created {date}', // mastodon: status.history.created
+  'status.versionEdited': '{name} edited {date}', // mastodon: status.history.edited
   'status.openOriginal': 'Open original page', // mastodon: account.open_original_page
   'status.replies.one': '{counter} reply', // mastodon: status.replies_count
   'status.replies.other': '{counter} replies',

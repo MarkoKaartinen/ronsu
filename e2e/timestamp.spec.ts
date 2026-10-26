@@ -30,9 +30,44 @@ test('an edited post has a mark with the time of the edit, a post that was not e
   await page.reload();
   await page.waitForSelector('article[data-id]');
   const mark = page.locator(`article[data-id="${idOf(190)}"] .edited`);
-  await expect(mark).toHaveAttribute('title', /^Edited /);
+  await expect(mark).toHaveAttribute('title', /^Last edited /);
 
   // The selected post of a thread says it in words
   await page.evaluate((i) => (location.hash = `/thread/${i}`), idOf(190));
-  await expect(page.locator('article.focused')).toContainText('Edited');
+  await expect(page.locator('article.focused')).toContainText('Last edited');
+});
+
+test('the mark of an edited post opens the version history, the newest version first', async ({ page }) => {
+  await mockMastodon(page, { marker: null, posts: [], edited: true });
+  await seedAccount(page);
+  await page.reload();
+  await page.waitForSelector('article[data-id]');
+  await page.locator(`article[data-id="${idOf(190)}"] .edited`).click();
+
+  const dialog = page.getByRole('dialog', { name: 'Version history' });
+  await expect(dialog).toBeVisible();
+  await expect(page).not.toHaveURL(/#\/thread/); // the card behind it did not open
+  const versions = dialog.getByRole('listitem').filter({ has: page.getByRole('heading', { level: 3 }) });
+  await expect(versions.nth(0).getByRole('heading')).toContainText('U edited');
+  await expect(versions.nth(0)).toContainText('Version 2');
+  await expect(versions.nth(0)).toContainText('Tea');
+  await expect(versions.nth(1)).toContainText('food talk');
+  await expect(versions.nth(1).getByRole('img', { name: 'a picture' })).toBeVisible();
+  await expect(versions.nth(2).getByRole('heading')).toContainText('U created');
+  await dialog.getByRole('button', { name: 'Close' }).click();
+  await expect(dialog).toBeHidden();
+
+  // The selected post of a thread has it as a line of text
+  await page.evaluate((i) => (location.hash = `/thread/${i}`), idOf(190));
+  await page.locator('article.focused').getByRole('button', { name: /Last edited/ }).click();
+  await expect(dialog).toBeVisible();
+});
+
+test('a history that cannot be fetched says so', async ({ page }) => {
+  await mockMastodon(page, { marker: null, posts: [], edited: true, failHistory: true });
+  await seedAccount(page);
+  await page.reload();
+  await page.waitForSelector('article[data-id]');
+  await page.locator(`article[data-id="${idOf(190)}"] .edited`).click();
+  await expect(page.getByRole('dialog', { name: 'Version history' }).getByRole('alert')).toContainText('Something went wrong');
 });

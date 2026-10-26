@@ -113,7 +113,11 @@ export const fi: Record<keyof typeof en, string> = {
   'status.filterMatches': 'Vastaa suodatinta ”{title}”', // mastodon: filter_warning.matches_filter
   'status.showMedia': 'Näytä media',
   'status.attachment': 'Liite',
-  'status.edited': 'Muokattu {date}',
+  'status.edited': 'Viimeksi muokattu {date}',
+  'status.versions': 'Versiohistoria',
+  'status.showVersions': 'Näytä versiohistoria',
+  'status.versionCreated': '{name} loi {date}',
+  'status.versionEdited': '{name} muokkasi {date}',
   'status.openOriginal': 'Avaa alkuperäinen sivu',
   'status.replies.one': '{counter} vastaus',
   'status.replies.other': '{counter} vastausta',

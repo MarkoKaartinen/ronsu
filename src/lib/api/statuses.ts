@@ -1,5 +1,5 @@
 import type { MastodonClient } from './client';
-import type { Context, CustomEmoji, Status, Visibility } from './types';
+import type { Context, CustomEmoji, Status, StatusVersion, Visibility } from './types';
 
 /** Deletes a post of your own (`write:statuses`). The server also removes the boosts of it. */
 export const deleteStatus = (client: MastodonClient, id: string) => client.delete<unknown>(`/api/v1/statuses/${id}`);
@@ -43,6 +43,9 @@ export interface StatusSource {
 }
 
 export const getStatusSource = (client: MastodonClient, id: string) => client.get<StatusSource>(`/api/v1/statuses/${id}/source`);
+
+/** The versions of an edited post, the oldest (as it was first written) first */
+export const getStatusHistory = (client: MastodonClient, id: string) => client.get<StatusVersion[]>(`/api/v1/statuses/${id}/history`);
 
 /** Edits a post of your own (`write:statuses`); the answer is the post with its `edited_at` */
 export const editStatus = (client: MastodonClient, id: string, body: EditedStatus) => client.put<Status>(`/api/v1/statuses/${id}`, body);
