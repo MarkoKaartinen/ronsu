@@ -168,7 +168,9 @@ For a reader this matters more than most features, because it decides what is in
 
 - [ ] **Mastodon version feature detection.** Several items above (quotes, grouped notifications, push
   standardization) depend on the server version. One place that reads `/api/v2/instance` (`api_versions`,
-  `configuration`) and exposes capabilities would replace the scattered checks
+  `configuration`) and exposes capabilities would replace the scattered checks. Kept per account, because accounts
+  can be on different servers: store the capabilities and the time of the fetch with the account, refresh them at
+  login and at start when they are over a day old, and keep the old ones if a refresh fails
 - [ ] **Compatible servers**: test against Pleroma/Akkoma, GoToSocial, Pixelfed and Firefish forks that implement the
   Mastodon client API. Markers, quotes and push differ; decide what is supported and write it in the README
 - [ ] **Rate limits**: handle `429` and the `X-RateLimit-*` headers (300 requests per 5 minutes per account by
