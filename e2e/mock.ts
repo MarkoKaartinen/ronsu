@@ -80,7 +80,7 @@ function status(i: number, withQuote = true) {
           multiple: !!withPoll.multiple,
           votes_count: 4,
           voters_count: 4,
-          options: ['Tea', 'Coffee', 'Water'].map((title, k) => ({ title, votes_count: withPoll!.voted || withPoll!.expired ? [2, 1, 1][k] : null })),
+          options: ['Tea', 'Coffee', 'Water'].map((title, k) => ({ title, votes_count: withPoll!.hideTotals && !withPoll!.expired ? null : [2, 1, 1][k] })),
           emojis: [],
           voted: !!withPoll.voted,
           own_votes: withPoll.voted ? [0] : [],
@@ -109,7 +109,7 @@ export interface Server {
   cwLong?: boolean; // with `cw`: the warning text is long
   cw?: boolean; // some posts have a content warning
   cards?: boolean; // some posts (i % 8 === 5) have a link preview
-  poll?: { multiple?: boolean; expired?: boolean; voted?: boolean }; // every post has a poll
+  poll?: { multiple?: boolean; expired?: boolean; voted?: boolean; hideTotals?: boolean }; // every post has a poll (hideTotals: no counts until it has ended)
   votes?: number[][]; // the choices of the votes on a poll
   pollRefreshes?: number; // GET /polls/:id calls; the answer has more votes than the post had
   filter?: { title: string; action: string; context?: string[] }; // a server-side filter matches some posts

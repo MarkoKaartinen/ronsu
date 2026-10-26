@@ -7,6 +7,7 @@
 * The browser tests use Playwright's own Chromium instead of Google Chrome, so they also run on ARM64 and in CI without a preinstalled browser
 * Vote in polls, with one option or several
 * Refresh a poll to see the votes of others while it is open
+* See the results of a poll without voting and go back to voting, with refresh and vote buttons in the style of Mastodon
 
 ### 0.2.0: 2026-10-22
 
