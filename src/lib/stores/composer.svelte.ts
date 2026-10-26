@@ -6,18 +6,29 @@ class Composer {
   replyTo = $state<Status | null>(null);
   /** The post being quoted (a quote post, not a reply) */
   quoting = $state<Status | null>(null);
+  /** The post of your own being edited (not a new post) */
+  editing = $state<Status | null>(null);
   /** Increases on every successful post; the thread view refreshes based on it */
   postedTick = $state(0);
 
   show(replyTo: Status | null = null) {
     this.replyTo = replyTo;
     this.quoting = null;
+    this.editing = null;
     this.open = true;
   }
 
   showQuote(quoting: Status) {
     this.replyTo = null;
     this.quoting = quoting;
+    this.editing = null;
+    this.open = true;
+  }
+
+  showEdit(editing: Status) {
+    this.replyTo = null;
+    this.quoting = null;
+    this.editing = editing;
     this.open = true;
   }
 

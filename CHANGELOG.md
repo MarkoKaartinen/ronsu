@@ -12,6 +12,7 @@
 * Write a poll in the post form, with options, a duration and a style within the limits of your server, also together with pictures
 * Delete a post of your own from its menu, after a confirmation
 * Open your own profile from the sidebar and the menu
+* Edit a post of your own from its menu, with its text, content warning, pictures and alt texts, and poll
 * The arrow of a selection list has room from the edge
 
 ### 0.2.0: 2026-10-22

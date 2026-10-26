@@ -123,6 +123,8 @@ export interface Status {
   spoiler_text: string;
   sensitive: boolean;
   visibility: Visibility;
+  /** ISO 639-1 code of the post's language; null when the server does not know it */
+  language?: string | null;
   in_reply_to_id: string | null;
   in_reply_to_account_id?: string | null;
   /** The conversation is muted (only there for a signed-in account) */

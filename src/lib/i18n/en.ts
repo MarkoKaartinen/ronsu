@@ -175,6 +175,10 @@ export const en = {
   'compose.titleReply': 'Reply', // mastodon: compose_form.reply
   'compose.publish': 'Post', // mastodon: compose_form.publish
   'compose.publishing': 'Posting…',
+  'compose.titleEdit': 'Edit post', // mastodon: status.edit
+  'compose.save': 'Save changes', // mastodon: compose_form.save_changes
+  'compose.saving': 'Saving…',
+  'compose.saved': 'Post saved.', // mastodon: compose.saved.body
   'compose.placeholder': "What's on your mind?", // mastodon: compose_form.placeholder
   'compose.mentions': 'Suggested accounts',
   'compose.emoji': 'Insert emoji', // mastodon: emoji_button.label
@@ -278,6 +282,7 @@ export const en = {
   'menu.mute': 'Mute @{name}', // mastodon: account.mute
   'menu.unmute': 'Unmute @{name}', // mastodon: account.unmute
   'menu.block': 'Block @{name}', // mastodon: account.block
+  'menu.edit': 'Edit', // mastodon: status.edit
   'menu.delete': 'Delete', // mastodon: status.delete
   'delete.title': 'Delete post?', // mastodon: confirmations.delete.title
   'delete.text': 'Are you sure you want to delete this post?', // mastodon: confirmations.delete.message
