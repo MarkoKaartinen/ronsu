@@ -5,6 +5,7 @@
   import Mail from '@lucide/svelte/icons/mail';
   import Plus from '@lucide/svelte/icons/plus';
   import Settings from '@lucide/svelte/icons/settings';
+  import User from '@lucide/svelte/icons/user';
   import { accountStore } from '../lib/stores/accounts.svelte';
   import { composer } from '../lib/stores/composer.svelte';
   import { t } from '../lib/stores/i18n.svelte';
@@ -14,6 +15,7 @@
   let { homeActive, messagesActive, onHome, onMessages, onSettings }: { homeActive: boolean; messagesActive: boolean; onHome: () => void; onMessages: () => void; onSettings: () => void } = $props();
 
   const account = $derived(accountStore.active);
+  const profileActive = $derived(!!account && router.route.name === 'profile' && router.route.handle === `@${account.acct}`);
 </script>
 
 <!-- The wide screen's navigation: the brand and the places on top, the post button, the account at the bottom -->
@@ -42,6 +44,10 @@
     <button class="link" class:on={router.route.name === 'favourites'} aria-current={router.route.name === 'favourites' ? 'page' : undefined} onclick={() => router.openSaved('favourites')} title={t('nav.favourites')}>
       <Heart size={22} aria-hidden="true" />
       <span class="label">{t('nav.favourites')}</span>
+    </button>
+    <button class="link" class:on={profileActive} aria-current={profileActive ? 'page' : undefined} onclick={() => account && router.openProfile(account)} title={t('nav.profile')}>
+      <User size={22} aria-hidden="true" />
+      <span class="label">{t('nav.profile')}</span>
     </button>
   </div>
 

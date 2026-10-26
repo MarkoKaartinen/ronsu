@@ -7,6 +7,7 @@
   import Mail from '@lucide/svelte/icons/mail';
   import Plus from '@lucide/svelte/icons/plus';
   import Settings from '@lucide/svelte/icons/settings';
+  import User from '@lucide/svelte/icons/user';
   import { router, type MainView, type SavedView } from '../lib/router.svelte';
   import { accountStore } from '../lib/stores/accounts.svelte';
   import { composer } from '../lib/stores/composer.svelte';
@@ -71,6 +72,9 @@
       </li>
       <li>
         <button onclick={go(() => router.openSaved('bookmarks' satisfies SavedView))}><Bookmark size={24} aria-hidden="true" />{t('nav.bookmarks')}</button>
+      </li>
+      <li>
+        <button onclick={go(() => account && router.openProfile(account))}><User size={24} aria-hidden="true" />{t('nav.profile')}</button>
       </li>
       <li>
         <button onclick={go(onSettings)}><Settings size={24} aria-hidden="true" />{t('nav.settings')}</button>
