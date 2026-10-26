@@ -13,6 +13,7 @@
 * Delete a post of your own from its menu, after a confirmation
 * Open your own profile from the sidebar and the menu
 * Mark an edited post with the time of the edit
+* Edit a post of your own from its menu, with its text, content warning, pictures and alt texts, and poll
 * The arrow of a selection list has room from the edge
 
 ### 0.2.0: 2026-10-22

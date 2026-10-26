@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { canSend, countChars, newPoll, pollDurations, pollOptions, pollValid, removePollOption, setPollOption, insertMention, mentionQueryAt, defaultLanguage, defaultVisibility, hasMention, mentionPrefix, missingAltText, parseDefaultPrivacy, pickImages, remaining } from './composeLogic';
+import { canSend, countChars, newPoll, pollDurations, pollFromStatus, pollOptions, pollValid, removePollOption, setPollOption, insertMention, mentionQueryAt, defaultLanguage, defaultVisibility, hasMention, mentionPrefix, missingAltText, parseDefaultPrivacy, pickImages, remaining } from './composeLogic';
 import type { PollLimits } from './api/statuses';
-import type { Status } from './api/types';
+import type { Poll, Status } from './api/types';
 
 const limits: PollLimits = { maxOptions: 4, maxChars: 50, minExpiration: 300, maxExpiration: 2_629_746 };
 
@@ -198,6 +198,24 @@ describe('newPoll', () => {
   });
   it('starts with the longest duration when the server does not allow a day', () => {
     expect(newPoll({ ...limits, maxExpiration: 43_200 }).expiresIn).toBe(43_200);
+  });
+});
+
+describe('pollFromStatus', () => {
+  const now = Date.UTC(2026, 9, 4, 12, 0, 0);
+  const poll = (over: Partial<Poll> = {}) =>
+    ({ expires_at: new Date(now + 50 * 60_000).toISOString(), multiple: true, options: [{ title: 'Tea' }, { title: 'Coffee' }] , ...over }) as Poll;
+  it('takes the options and the style, with an empty option to type the next one in', () => {
+    const draft = pollFromStatus(poll(), limits, now);
+    expect(draft.options).toEqual(['Tea', 'Coffee', '']);
+    expect(draft.multiple).toBe(true);
+  });
+  it('takes the shortest duration that reaches the end', () => {
+    expect(pollFromStatus(poll(), limits, now).expiresIn).toBe(3600);
+  });
+  it('takes the longest duration when the end is further away, and the shortest when it has passed', () => {
+    expect(pollFromStatus(poll({ expires_at: new Date(now + 30 * 86_400_000).toISOString() }), limits, now).expiresIn).toBe(604_800);
+    expect(pollFromStatus(poll({ expires_at: new Date(now - 1000).toISOString() }), limits, now).expiresIn).toBe(300);
   });
 });
 
