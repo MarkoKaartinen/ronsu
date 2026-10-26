@@ -225,3 +225,19 @@ test('a remote account\'s server can be blocked after a confirmation, from the p
   await expect(page.getByRole('menuitem', { name: 'Unblock domain mastodon.example' })).toBeVisible();
   expect(server.domainBlocks).toEqual(['block:mastodon.example']);
 });
+
+test('your own profile opens from the sidebar on a wide screen and from the menu on a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 900 });
+  await open(page, { marker: null, posts: [] });
+  const link = page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Profile' });
+  await link.click();
+  await expect(page).toHaveURL(/#\/user\/@me$/);
+  await expect(page.getByRole('heading', { name: 'U' })).toBeVisible();
+  await expect(link).toHaveAttribute('aria-current', 'page');
+
+  await page.setViewportSize({ width: 420, height: 800 });
+  await page.evaluate(() => (location.hash = '/'));
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Menu' }).click();
+  await page.getByRole('dialog', { name: 'Menu' }).getByRole('button', { name: 'Profile', exact: true }).click();
+  await expect(page).toHaveURL(/#\/user\/@me$/);
+});
