@@ -5,6 +5,7 @@
 * Mute and block an account from the menu on its profile; log in again for the new `write:mutes` and `write:blocks` permissions
 * Update dependencies (`@lucide/svelte`, `vite`, `svelte-check`) and fix the `npm audit` findings in `fast-uri` and `serialize-javascript`
 * The browser tests use Playwright's own Chromium instead of Google Chrome, so they also run on ARM64 and in CI without a preinstalled browser
+* The checks on GitHub run in Playwright's own container image, so a slow package mirror no longer holds them up
 * Vote in polls, with one option or several
 * Refresh a poll to see the votes of others while it is open
 * See the results of a poll without voting and go back to voting, with refresh and vote buttons in the style of Mastodon
