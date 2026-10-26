@@ -79,6 +79,9 @@ Before committing, scan the staged diff for these.
 * Sensible semver, chosen at release time from what has piled up: patch by default (a fix, a tweak or a small
   feature, also several of them together). Minor when something changes profoundly or the release collects a
   clearly larger set of changes, major only for something like a full redesign of the UI
+* After every merged PR, say whether a release is worth making now: what has piled up under `Unreleased`, the
+  version it would get (see above), whether users must log in again (OAuth scopes changed) and any other step. It is
+  only a suggestion: never bump the version, tag or release without being asked
 * A version is created per release, not per day: after a release the next change starts a new `Unreleased` section,
   even on the same day
 
