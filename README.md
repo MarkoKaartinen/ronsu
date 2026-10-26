@@ -53,6 +53,7 @@ Source code and issues: <https://github.com/MarkoKaartinen/ronsu>
   They need the `read:bookmarks` and `read:favourites` OAuth scopes, so older logins are asked to log in again
 - Delete your own posts from the post menu (it asks first)
 - Your own profile from the sidebar on a wide screen and the menu drawer on a phone
+- A mark on an edited post, with the time of the edit
 - Installable as a PWA, works offline for the app shell
 
 ## Push notifications

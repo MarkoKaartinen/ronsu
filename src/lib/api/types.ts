@@ -118,6 +118,8 @@ export interface Status {
   uri: string;
   url: string | null;
   created_at: string;
+  /** When the post was last edited; null (or not there) for a post that never was */
+  edited_at?: string | null;
   account: Account;
   content: string;
   spoiler_text: string;

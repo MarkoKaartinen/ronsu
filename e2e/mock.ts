@@ -41,6 +41,7 @@ let withCards = false;
 /** Every post has a poll (set from Server.poll) */
 let withPoll: Server['poll'];
 let ownPosts = false;
+let edited = false;
 /** Polls of each upload (the file is ready on the second one) */
 const polls: Record<string, number> = {};
 
@@ -50,6 +51,7 @@ function status(i: number, withQuote = true) {
     id: idOf(i),
     uri: `${HOST}/s/${i}`,
     url: `${HOST}/s/${i}`,
+    edited_at: edited ? new Date(Date.UTC(2026, 9, 4, 6, 0, 0) + i * 60_000).toISOString() : null,
     created_at: new Date(Date.UTC(2026, 9, 4, 5, 0, 0) + i * 60_000).toISOString(), // every post a minute after the previous
     account: { id: ownPosts ? '1' : '2', username: 'u', acct: 'u', display_name: 'U', avatar: '', url: '', emojis: [] },
     content: `<p>Post ${i}. ${i % 7 === 1 ? '<a class="u-url mention" href="https://mock.test/@maija" rel="nofollow" target="_blank">@<span>maija</span></a> ' : ''}${'Lorem ipsum dolor sit amet. '.repeat(6 + (i % 5))}</p>${formatted && i % 5 === 3 ? '<blockquote><p>A quoted line of text that is long enough to wrap onto a second line when the column is narrow.</p></blockquote><pre><code>const x = 1;</code></pre><p>Inline <code>code</code>.</p><ul><li>one</li><li>two</li></ul>' : ''}`,
@@ -143,6 +145,7 @@ export interface Server {
   noMediaScope?: boolean; // 403: a token without the write:media scope
   processing?: boolean; // uploads answer 202 and the file is ready on the second poll
   actions?: string[]; // POST /statuses/:id/<action>
+  edited?: boolean; // every post has been edited
   own?: boolean; // the posts are written by the signed-in account
   deleted?: string[]; // ids of DELETE /statuses/:id
   failDelete?: boolean;
@@ -175,6 +178,7 @@ export async function mockMastodon(page: Page, server: Server) {
   filter = server.filter;
   withCards = !!server.cards;
   withPoll = server.poll;
+  edited = !!server.edited;
   ownPosts = !!server.own || !!server.poll?.own;
   await page.route(`${HOST}/**`, async (route) => {
     const req = route.request();
