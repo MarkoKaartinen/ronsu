@@ -154,6 +154,19 @@ export interface Status {
   card?: PreviewCard | null;
 }
 
+/** One version of an edited post (GET /statuses/:id/history lists them, the oldest first) */
+export interface StatusVersion {
+  content: string;
+  spoiler_text: string;
+  sensitive: boolean;
+  /** When this version was written */
+  created_at: string;
+  account: Account;
+  media_attachments: MediaAttachment[];
+  emojis: CustomEmoji[];
+  poll?: { options: { title: string }[] } | null;
+}
+
 /** A private mention thread (GET /conversations): who is in it and its newest post */
 export interface Conversation {
   id: string;

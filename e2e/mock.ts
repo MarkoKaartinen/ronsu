@@ -151,6 +151,7 @@ export interface Server {
   failDelete?: boolean;
   sourceCw?: string; // the content warning in GET /statuses/:id/source
   failSource?: boolean;
+  failHistory?: boolean;
   edits?: { id: string; body: Record<string, any> }[]; // PUT /statuses/:id
   failEdit?: boolean;
   failActions?: boolean;
@@ -401,6 +402,21 @@ export async function mockMastodon(page: Page, server: Server) {
     if (source && req.method() === 'GET') {
       if (server.failSource) return route.fulfill({ status: 500, headers: { ...cors, 'content-type': 'application/json' }, body: '{"error":"Ei onnistu"}' });
       return json({ id: source[1], text: 'The text as written', spoiler_text: server.sourceCw ?? '' });
+    }
+    const history = url.pathname.match(/^\/api\/v1\/statuses\/(\d+)\/history$/);
+    if (history && req.method() === 'GET') {
+      if (server.failHistory) return route.fulfill({ status: 500, headers: { ...cors, 'content-type': 'application/json' }, body: '{"error":"Ei onnistu"}' });
+      const author = { id: '2', username: 'u', acct: 'u', display_name: 'U', avatar: '', url: '', emojis: [] };
+      const version = (n: number, over: Record<string, unknown>) => ({
+        content: `<p>Version ${n}</p>`, spoiler_text: '', sensitive: false, created_at: new Date(Date.UTC(2026, 9, 4, 5 + n, 0, 0)).toISOString(),
+        account: author, media_attachments: [], emojis: [], poll: null, ...over,
+      });
+      // The oldest first, as the server lists them
+      return json([
+        version(0, {}),
+        version(1, { spoiler_text: 'food talk', media_attachments: [{ id: 'h1', type: 'image', url: `${HOST}/img/h.png`, preview_url: `${HOST}/img/h.png`, description: 'a picture' }] }),
+        version(2, { poll: { options: [{ title: 'Tea' }, { title: 'Coffee' }] } }),
+      ]);
     }
     const put = url.pathname.match(/^\/api\/v1\/statuses\/(\d+)$/);
     if (put && req.method() === 'PUT') {

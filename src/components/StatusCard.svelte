@@ -8,6 +8,7 @@
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
   import { profileHref, router } from '../lib/router.svelte';
   import ActionBar from './ActionBar.svelte';
+  import EditHistory from './EditHistory.svelte';
   import Poll from './Poll.svelte';
   import StatusCard from './StatusCard.svelte';
   import { sanitizeContent, sanitizeText } from '../lib/html';
@@ -70,6 +71,7 @@
   startClock();
 
   let cwOpen = $state(false);
+  let historyOpen = $state(false);
   let mediaOpen = $state(false);
 
   let filterOpen = $state(false);
@@ -206,8 +208,9 @@
           </a>
           <!-- The timestamp links to the original post on its own server; the thread opens by tapping the card -->
           <svelte:element this={originalUrl ? 'a' : 'span'} class="time" href={originalUrl ?? undefined} target={originalUrl ? '_blank' : undefined} rel={originalUrl ? 'noopener noreferrer' : undefined} title="{t('status.openOriginal')} · {formatDateTime(s.created_at, i18n.locale)}">
-            {formatRelativeTime(s.created_at, i18n.locale, clock.now)}{#if s.edited_at}<abbr class="edited" title={editedTitle} aria-label={editedTitle}>*</abbr>{/if}
+            {formatRelativeTime(s.created_at, i18n.locale, clock.now)}
           </svelte:element>
+          {#if s.edited_at}<button type="button" class="edited" title="{editedTitle} · {t('status.showVersions')}" aria-label="{editedTitle} · {t('status.showVersions')}" onclick={() => (historyOpen = true)}>*</button>{/if}
         </header>
       {/if}
 
@@ -303,7 +306,7 @@
           <svelte:element this={originalUrl ? 'a' : 'span'} class="time" href={originalUrl ?? undefined} target={originalUrl ? '_blank' : undefined} rel={originalUrl ? 'noopener noreferrer' : undefined} title={t('status.openOriginal')}>
             {formatDateTime(s.created_at, i18n.locale)}
           </svelte:element>
-          {#if s.edited_at}<span class="time">· {editedTitle}</span>{/if}
+          {#if s.edited_at}<button type="button" class="time editedtext" title={t('status.showVersions')} onclick={() => (historyOpen = true)}>· {editedTitle}</button>{/if}
         </p>
         <p class="stats">
           {#each [['status.replies', s.replies_count], ['status.boosts', s.reblogs_count], ['status.quotes', s.quotes_count], ['status.favorites', s.favourites_count]] as const as [key, count] (key)}
@@ -322,6 +325,7 @@
   </div>
   {/if}
 </article>
+{#if historyOpen}<EditHistory id={s.id} onClose={() => (historyOpen = false)} />{/if}
 {/if}
 
 <style>
@@ -339,7 +343,10 @@
   .profile:hover strong { text-decoration: underline; }
   .time { color: var(--muted); font-size: 0.82rem; text-decoration: none; flex: none; }
   .time:hover { text-decoration: underline; }
-  .edited { text-decoration: none; margin-left: 0.15rem; cursor: help; }
+  /* The mark after the time and the line in the selected post both open the version history */
+  .edited, .editedtext { border: 0; background: none; padding: 0; font: inherit; color: var(--muted); cursor: pointer; }
+  .edited { font-size: 0.82rem; margin-left: -0.5rem; min-width: 1.5rem; min-height: 1.5rem; }
+  .edited:hover, .editedtext:hover { color: var(--text); text-decoration: underline; }
   article.tappable { cursor: pointer; }
   /* A content warning stands out in the warning colour (the same as the CW field when writing), and is tinted
      with it instead of a plain surface colour, so it is also visible on the selected post's band */

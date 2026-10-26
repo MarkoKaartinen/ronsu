@@ -14,6 +14,7 @@
 * Open your own profile from the sidebar and the menu
 * Mark an edited post with the time of the edit
 * Edit a post of your own from its menu, with its text, content warning, pictures and alt texts, and poll
+* Open the version history of an edited post from its mark
 * The arrow of a selection list has room from the edge
 
 ### 0.2.0: 2026-10-22
