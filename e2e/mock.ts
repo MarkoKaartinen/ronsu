@@ -50,7 +50,7 @@ function status(i: number, withQuote = true) {
     uri: `${HOST}/s/${i}`,
     url: `${HOST}/s/${i}`,
     created_at: new Date(Date.UTC(2026, 9, 4, 5, 0, 0) + i * 60_000).toISOString(), // every post a minute after the previous
-    account: { id: '2', username: 'u', acct: 'u', display_name: 'U', avatar: '', url: '', emojis: [] },
+    account: { id: withPoll?.own ? '1' : '2', username: 'u', acct: 'u', display_name: 'U', avatar: '', url: '', emojis: [] },
     content: `<p>Post ${i}. ${i % 7 === 1 ? '<a class="u-url mention" href="https://mock.test/@maija" rel="nofollow" target="_blank">@<span>maija</span></a> ' : ''}${'Lorem ipsum dolor sit amet. '.repeat(6 + (i % 5))}</p>${formatted && i % 5 === 3 ? '<blockquote><p>A quoted line of text that is long enough to wrap onto a second line when the column is narrow.</p></blockquote><pre><code>const x = 1;</code></pre><p>Inline <code>code</code>.</p><ul><li>one</li><li>two</li></ul>' : ''}`,
     spoiler_text: withCw && i % 4 === 2 ? (longCw ? 'food talk: a long warning that does not fit on one line next to the button, so it has to wrap onto several lines of text' : 'food talk') : '',
     sensitive: sensitiveMedia,
@@ -109,7 +109,7 @@ export interface Server {
   cwLong?: boolean; // with `cw`: the warning text is long
   cw?: boolean; // some posts have a content warning
   cards?: boolean; // some posts (i % 8 === 5) have a link preview
-  poll?: { multiple?: boolean; expired?: boolean; voted?: boolean; hideTotals?: boolean }; // every post has a poll (hideTotals: no counts until it has ended)
+  poll?: { multiple?: boolean; expired?: boolean; voted?: boolean; hideTotals?: boolean; own?: boolean }; // every post has a poll (hideTotals: no counts until it has ended)
   votes?: number[][]; // the choices of the votes on a poll
   pollRefreshes?: number; // GET /polls/:id calls; the answer has more votes than the post had
   filter?: { title: string; action: string; context?: string[] }; // a server-side filter matches some posts

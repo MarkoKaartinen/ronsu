@@ -8,6 +8,7 @@
 * Vote in polls, with one option or several
 * Refresh a poll to see the votes of others while it is open
 * See the results of a poll without voting and go back to voting, with refresh and vote buttons in the style of Mastodon
+* A poll of your own shows the results and not a vote button, because the server does not take a vote in it
 
 ### 0.2.0: 2026-10-22
 

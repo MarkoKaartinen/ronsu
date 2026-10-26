@@ -11,6 +11,7 @@
   import Poll from './Poll.svelte';
   import StatusCard from './StatusCard.svelte';
   import { sanitizeContent, sanitizeText } from '../lib/html';
+  import { accountStore } from '../lib/stores/accounts.svelte';
   import { clock, startClock } from '../lib/clock.svelte';
   import { formatDateTime, formatNumber, formatRelativeTime } from '../lib/i18n';
   import { i18n, t, tCounter } from '../lib/stores/i18n.svelte';
@@ -238,7 +239,7 @@
         {/if}
 
         {#if s.poll}
-          <Poll poll={s.poll} onchange={(p) => (s.poll = p)} />
+          <Poll poll={s.poll} own={s.account.id === accountStore.active?.accountId} onchange={(p) => (s.poll = p)} />
         {/if}
 
         {#if s.media_attachments.length}

@@ -9,6 +9,9 @@ describe('canVote', () => {
     expect(canVote(poll())).toBe(true);
     expect(canVote(poll({ voted: undefined }))).toBe(true); // a request without a token carries no `voted`
   });
+  it('the account\'s own poll does not', () => {
+    expect(canVote(poll(), true)).toBe(false);
+  });
   it('a closed poll or one already voted in does not', () => {
     expect(canVote(poll({ expired: true }))).toBe(false);
     expect(canVote(poll({ voted: true }))).toBe(false);
