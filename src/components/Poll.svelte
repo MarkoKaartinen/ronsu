@@ -1,8 +1,9 @@
 <script lang="ts">
   import Check from '@lucide/svelte/icons/check';
+  import RefreshCw from '@lucide/svelte/icons/refresh-cw';
   import { getContext } from 'svelte';
   import type { MastodonClient } from '../lib/api/client';
-  import { votePoll } from '../lib/api/polls';
+  import { getPoll, votePoll } from '../lib/api/polls';
   import type { Poll } from '../lib/api/types';
   import { sanitizeText } from '../lib/html';
   import { formatAge } from '../lib/i18n';
@@ -17,6 +18,7 @@
 
   let choices = $state<number[]>([]);
   let busy = $state(false);
+  let refreshing = $state(false);
 
   // A multiple-choice poll's percentages are of the people who voted, a single-choice poll's of the votes
   const total = $derived(poll.multiple ? (poll.voters_count ?? 0) : poll.votes_count);
@@ -28,6 +30,19 @@
     if (!poll.expires_at) return '';
     const age = formatAge(Date.parse(poll.expires_at) - Date.now(), i18n.locale);
     return age === null ? t('poll.endingSoon') : t('poll.endsIn', { age });
+  }
+
+  /** The results of an open poll show the votes of others as they were when the post was loaded; this fetches them again */
+  async function refresh() {
+    if (refreshing) return;
+    refreshing = true;
+    try {
+      onchange(await getPoll(client, poll.id));
+    } catch (err) {
+      toast.show(t('action.failed', { message: err instanceof Error ? err.message : String(err) }));
+    } finally {
+      refreshing = false;
+    }
   }
 
   async function vote(e: SubmitEvent) {
@@ -74,20 +89,35 @@
     {/each}
   </ul>
 {/if}
-<p class="pmeta">{[t('poll.votes', { count: poll.voters_count ?? poll.votes_count }), end()].filter(Boolean).join(' · ')}</p>
+<p class="pmeta">
+  {[t('poll.votes', { count: poll.voters_count ?? poll.votes_count }), end()].filter(Boolean).join(' · ')}
+  {#if !open && !poll.expired}
+    <button class="refresh" type="button" disabled={refreshing} aria-label={t('poll.refresh')} title={t('poll.refresh')} onclick={refresh}><RefreshCw size={14} /></button>
+  {/if}
+</p>
 
 <style>
   .poll { list-style: none; margin: 0.6rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
-  .poll li, .choice { position: relative; display: flex; gap: 0.6rem; align-items: center; justify-content: space-between; padding: 0.5rem 0.7rem; border: 1px solid var(--border); border-radius: 0.6rem; overflow: hidden; }
+  .poll li, .choice { position: relative; display: flex; gap: 0.6rem; align-items: center; justify-content: space-between; padding: 0.5rem 0.7rem; border: 1px solid color-mix(in srgb, var(--muted) 45%, var(--border)); border-radius: 0.6rem; overflow: hidden; }
   .poll li::before { content: ''; position: absolute; inset: 0 auto 0 0; width: var(--pct); background: color-mix(in srgb, var(--accent) 22%, transparent); }
-  .poll li.mine, .choice.picked { border-color: color-mix(in srgb, var(--accent) 60%, var(--border)); }
+  .poll li.mine { border-color: color-mix(in srgb, var(--accent) 60%, var(--border)); }
   .choice { justify-content: flex-start; min-height: 2.75rem; cursor: pointer; }
-  .choice input { flex: none; accent-color: var(--accent); }
+  .choice.picked { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  /* The browser's own radio buttons and checkboxes are dark on dark in a dark theme, so they are drawn here: a ring in the muted colour, filled with the accent when picked */
+  .choice input { appearance: none; flex: none; position: relative; width: 1.25rem; height: 1.25rem; margin: 0; border: 2px solid var(--muted); border-radius: 50%; background: transparent; }
+  .choice input[type='checkbox'] { border-radius: 0.3rem; }
+  .choice input:checked { border-color: var(--accent); background: var(--accent); }
+  .choice input[type='radio']:checked { background: radial-gradient(circle, var(--on-accent) 0 30%, var(--accent) 35%); }
+  .choice input[type='checkbox']:checked::after { content: ''; position: absolute; left: 0.3rem; top: 0.05rem; width: 0.3rem; height: 0.6rem; border: solid var(--on-accent); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+  .choice input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .ptitle, .ppct { position: relative; }
   .ptitle { display: flex; gap: 0.35rem; align-items: center; min-width: 0; overflow-wrap: anywhere; }
   .ptitle :global(svg) { flex: none; color: var(--accent); }
   .ppct { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .vote { align-self: flex-start; min-height: 2.5rem; padding: 0 1.1rem; border: 1px solid var(--accent); background: var(--accent); color: var(--bg); border-radius: 0.4rem; font-weight: 600; }
+  .vote { align-self: flex-start; min-height: 2.5rem; padding: 0 1.1rem; border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); border-radius: 0.4rem; font-weight: 600; }
   .vote:disabled { opacity: 0.5; }
-  .pmeta { margin: 0.4rem 0 0; color: var(--muted); font-size: 0.85rem; }
+  .pmeta { display: flex; gap: 0.4rem; align-items: center; margin: 0.4rem 0 0; color: var(--muted); font-size: 0.85rem; }
+  .refresh { display: inline-flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; margin: -0.5rem 0; border: 0; background: none; color: var(--muted); border-radius: 0.4rem; }
+  .refresh:hover { color: var(--text); }
+  .refresh:disabled { opacity: 0.5; }
 </style>

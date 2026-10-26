@@ -102,6 +102,7 @@ export const en = {
   'poll.endingSoon': 'Ends soon',
   'poll.yourVote': 'Your vote',
   'poll.vote': 'Vote', // mastodon: poll.vote
+  'poll.refresh': 'Refresh', // mastodon: poll.refresh
   'status.readMore': 'Read more',
   'status.cwShow': 'Show',
   'status.cwHide': 'Hide',
