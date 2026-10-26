@@ -38,6 +38,8 @@ let threadMuted = false;
 let filter: Server['filter'];
 /** Whether posts with i % 8 === 5 carry a link preview (set from Server.cards) */
 let withCards = false;
+/** Every post has a poll (set from Server.poll) */
+let withPoll: Server['poll'];
 /** Polls of each upload (the file is ready on the second one) */
 const polls: Record<string, number> = {};
 
@@ -70,6 +72,20 @@ function status(i: number, withQuote = true) {
     reblogs_count: 0,
     quotes_count: 1,
     favourites_count: 0,
+    poll: withPoll
+      ? {
+          id: `poll${i}`,
+          expires_at: withPoll.expired ? null : new Date(Date.UTC(2099, 0, 1)).toISOString(),
+          expired: !!withPoll.expired,
+          multiple: !!withPoll.multiple,
+          votes_count: 4,
+          voters_count: 4,
+          options: ['Tea', 'Coffee', 'Water'].map((title, k) => ({ title, votes_count: withPoll!.voted || withPoll!.expired ? [2, 1, 1][k] : null })),
+          emojis: [],
+          voted: !!withPoll.voted,
+          own_votes: withPoll.voted ? [0] : [],
+        }
+      : null,
     card: withCards && i % 8 === 5
       ? { url: `${HOST}/story/${i}`, title: `Story ${i}`, description: 'About the story', type: 'link', provider_name: 'Mock News', image: `${HOST}/img/card${i}.png`, image_description: 'A harbour' }
       : null,
@@ -93,6 +109,8 @@ export interface Server {
   cwLong?: boolean; // with `cw`: the warning text is long
   cw?: boolean; // some posts have a content warning
   cards?: boolean; // some posts (i % 8 === 5) have a link preview
+  poll?: { multiple?: boolean; expired?: boolean; voted?: boolean }; // every post has a poll
+  votes?: number[][]; // the choices of the votes on a poll
   filter?: { title: string; action: string; context?: string[] }; // a server-side filter matches some posts
   branched?: boolean; // the thread has a deep chain of replies and a second reply to the selected post and a late reply
   aspect?: number; // aspect ratio of the pictures (default 4/3)
@@ -150,6 +168,7 @@ export async function mockMastodon(page: Page, server: Server) {
   threadMuted = !!server.threadMuted;
   filter = server.filter;
   withCards = !!server.cards;
+  withPoll = server.poll;
   await page.route(`${HOST}/**`, async (route) => {
     const req = route.request();
     const cors = {
@@ -369,6 +388,22 @@ export async function mockMastodon(page: Page, server: Server) {
       }
       (server.actions ??= []).push(`${act[2]}:${act[1]}`);
       return json(status(Number(BigInt(act[1]) - BASE_ID)));
+    }
+    const vote = url.pathname.match(/^\/api\/v1\/polls\/poll(\d+)\/votes$/);
+    if (vote && req.method() === 'POST') {
+      if (server.failActions) {
+        return route.fulfill({ status: 422, headers: { ...cors, 'content-type': 'application/json' }, body: '{"error":"Ei onnistu"}' });
+      }
+      const choices: number[] = JSON.parse(req.postData() ?? '{}').choices;
+      (server.votes ??= []).push(choices);
+      return json({
+        ...status(Number(vote[1])).poll,
+        voted: true,
+        own_votes: choices,
+        votes_count: 5,
+        voters_count: 5,
+        options: ['Tea', 'Coffee', 'Water'].map((title, k) => ({ title, votes_count: [2, 1, 1][k] + (choices.includes(k) ? 1 : 0) })),
+      });
     }
     const m = url.pathname.match(/^\/api\/v1\/statuses\/(\d+)$/);
     if (m) {

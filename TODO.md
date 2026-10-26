@@ -11,9 +11,8 @@ Scopes noted per item are the extra OAuth scopes the item needs. Adding one mean
 
 ## Reading: gaps in the core experience
 
-- [ ] **Polls cannot be voted on.** They are shown with results, but there is no way to vote.
-  `POST /api/v1/polls/:id/votes` (`write:statuses`, already granted). Also refresh a poll
-  (`GET /api/v1/polls/:id`) and show a poll's voters count while it is open
+- [x] **Polls** are voted on (`POST /api/v1/polls/:id/votes`, `write:statuses`, already granted), with one option or
+  several. Left: refresh a poll (`GET /api/v1/polls/:id`) to see the votes of others while it is open
 - [x] **Server-side filters** (`filtered`, filter actions `warn`, `hide` and `blur`) are honored in the home timeline,
   notifications, threads and profiles. Needs no scope; the filter list itself (`read:filters`) is not shown
 - [x] **Link previews**: the `card` of a status (title, description, image, provider). Left: `card.authors` (fediverse
