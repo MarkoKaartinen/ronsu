@@ -54,6 +54,7 @@ Source code and issues: <https://github.com/MarkoKaartinen/ronsu>
 - Edit your own posts from the post menu, in the same form as a new post (the visibility cannot be changed, as on Mastodon)
 - Delete your own posts from the post menu (it asks first)
 - Your own profile from the sidebar on a wide screen and the menu drawer on a phone
+- A mark on an edited post, with the time of the edit
 - Installable as a PWA, works offline for the app shell
 
 ## Push notifications

@@ -77,6 +77,7 @@
   const filterTitles = $derived(verdict?.titles.join(', ') ?? '');
   const warned = $derived(verdict?.action === 'warn' && !filterOpen);
 
+  const editedTitle = $derived(s.edited_at ? t('status.edited', { date: formatDateTime(s.edited_at, i18n.locale) }) : '');
   const hasCw = $derived(s.spoiler_text.trim() !== '');
   const showBody = $derived((!hasCw || cwOpen) && !warned);
   const hideMedia = $derived((s.sensitive || verdict?.action === 'blur') && !mediaOpen);
@@ -205,7 +206,7 @@
           </a>
           <!-- The timestamp links to the original post on its own server; the thread opens by tapping the card -->
           <svelte:element this={originalUrl ? 'a' : 'span'} class="time" href={originalUrl ?? undefined} target={originalUrl ? '_blank' : undefined} rel={originalUrl ? 'noopener noreferrer' : undefined} title="{t('status.openOriginal')} · {formatDateTime(s.created_at, i18n.locale)}">
-            {formatRelativeTime(s.created_at, i18n.locale, clock.now)}
+            {formatRelativeTime(s.created_at, i18n.locale, clock.now)}{#if s.edited_at}<abbr class="edited" title={editedTitle} aria-label={editedTitle}>*</abbr>{/if}
           </svelte:element>
         </header>
       {/if}
@@ -302,6 +303,7 @@
           <svelte:element this={originalUrl ? 'a' : 'span'} class="time" href={originalUrl ?? undefined} target={originalUrl ? '_blank' : undefined} rel={originalUrl ? 'noopener noreferrer' : undefined} title={t('status.openOriginal')}>
             {formatDateTime(s.created_at, i18n.locale)}
           </svelte:element>
+          {#if s.edited_at}<span class="time">· {editedTitle}</span>{/if}
         </p>
         <p class="stats">
           {#each [['status.replies', s.replies_count], ['status.boosts', s.reblogs_count], ['status.quotes', s.quotes_count], ['status.favorites', s.favourites_count]] as const as [key, count] (key)}
@@ -337,6 +339,7 @@
   .profile:hover strong { text-decoration: underline; }
   .time { color: var(--muted); font-size: 0.82rem; text-decoration: none; flex: none; }
   .time:hover { text-decoration: underline; }
+  .edited { text-decoration: none; margin-left: 0.15rem; cursor: help; }
   article.tappable { cursor: pointer; }
   /* A content warning stands out in the warning colour (the same as the CW field when writing), and is tinted
      with it instead of a plain surface colour, so it is also visible on the selected post's band */
