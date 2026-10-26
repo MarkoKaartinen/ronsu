@@ -1,4 +1,4 @@
-### Unreleased
+### 0.3.0: 2026-10-26
 
 * Add a menu to a post to open the original page, copy its link, mute its conversation, mute or block its author and block the author's server
 * Muting asks how long and whether to hide the notifications, and blocking asks for a confirmation
