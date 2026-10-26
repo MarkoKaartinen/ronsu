@@ -100,6 +100,7 @@ export const fi: Record<keyof typeof en, string> = {
   'poll.endingSoon': 'Päättyy pian',
   'poll.yourVote': 'Äänesi',
   'poll.vote': 'Äänestä',
+  'poll.refresh': 'Päivitä',
   'status.readMore': 'Lue lisää',
   'status.cwShow': 'Näytä',
   'status.cwHide': 'Piilota',

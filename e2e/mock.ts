@@ -111,6 +111,7 @@ export interface Server {
   cards?: boolean; // some posts (i % 8 === 5) have a link preview
   poll?: { multiple?: boolean; expired?: boolean; voted?: boolean }; // every post has a poll
   votes?: number[][]; // the choices of the votes on a poll
+  pollRefreshes?: number; // GET /polls/:id calls; the answer has more votes than the post had
   filter?: { title: string; action: string; context?: string[] }; // a server-side filter matches some posts
   branched?: boolean; // the thread has a deep chain of replies and a second reply to the selected post and a late reply
   aspect?: number; // aspect ratio of the pictures (default 4/3)
@@ -388,6 +389,21 @@ export async function mockMastodon(page: Page, server: Server) {
       }
       (server.actions ??= []).push(`${act[2]}:${act[1]}`);
       return json(status(Number(BigInt(act[1]) - BASE_ID)));
+    }
+    const pollGet = url.pathname.match(/^\/api\/v1\/polls\/poll(\d+)$/);
+    if (pollGet && req.method() === 'GET') {
+      if (server.failActions) {
+        return route.fulfill({ status: 500, headers: { ...cors, 'content-type': 'application/json' }, body: '{"error":"Ei onnistu"}' });
+      }
+      server.pollRefreshes = (server.pollRefreshes ?? 0) + 1;
+      return json({
+        ...status(Number(pollGet[1])).poll,
+        voted: true,
+        own_votes: [0],
+        votes_count: 10,
+        voters_count: 10,
+        options: ['Tea', 'Coffee', 'Water'].map((title, k) => ({ title, votes_count: [6, 3, 1][k] })),
+      });
     }
     const vote = url.pathname.match(/^\/api\/v1\/polls\/poll(\d+)\/votes$/);
     if (vote && req.method() === 'POST') {

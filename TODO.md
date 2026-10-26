@@ -12,7 +12,7 @@ Scopes noted per item are the extra OAuth scopes the item needs. Adding one mean
 ## Reading: gaps in the core experience
 
 - [x] **Polls** are voted on (`POST /api/v1/polls/:id/votes`, `write:statuses`, already granted), with one option or
-  several. Left: refresh a poll (`GET /api/v1/polls/:id`) to see the votes of others while it is open
+  several, and an open poll is refreshed with a button (`GET /api/v1/polls/:id`) to see the votes of others
 - [x] **Server-side filters** (`filtered`, filter actions `warn`, `hide` and `blur`) are honored in the home timeline,
   notifications, threads and profiles. Needs no scope; the filter list itself (`read:filters`) is not shown
 - [x] **Link previews**: the `card` of a status (title, description, image, provider). Left: `card.authors` (fediverse

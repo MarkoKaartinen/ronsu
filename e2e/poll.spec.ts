@@ -59,3 +59,30 @@ test('a vote the server refuses shows a notice and the poll stays open', async (
   await expect(page.getByRole('alert')).toContainText('Something went wrong');
   await expect(card.getByRole('button', { name: 'Vote' })).toBeEnabled();
 });
+
+test('the votes of others are fetched again with the refresh button', async ({ page }) => {
+  const server: Server = { marker: null, posts: [], poll: { voted: true } };
+  const card = await open(page, server);
+  const tea = card.locator('li', { hasText: 'Tea' });
+
+  await expect(tea).toContainText('50%'); // 2 of 4 votes when the post was loaded
+  await card.getByRole('button', { name: 'Refresh' }).click();
+  await expect(tea).toContainText('60%'); // 6 of 10
+  await expect(card.getByText('10 votes')).toBeVisible();
+  expect(server.pollRefreshes).toBe(1);
+});
+
+test('an ended poll has no refresh button', async ({ page }) => {
+  const card = await open(page, { marker: null, posts: [], poll: { expired: true } });
+  await expect(card.locator('li').first()).toBeVisible();
+  await expect(card.getByRole('button', { name: 'Refresh' })).toHaveCount(0);
+});
+
+test('a refresh the server refuses shows a notice', async ({ page }) => {
+  const server: Server = { marker: null, posts: [], poll: { voted: true }, failActions: true };
+  const card = await open(page, server);
+
+  await card.getByRole('button', { name: 'Refresh' }).click();
+
+  await expect(page.getByRole('alert')).toContainText('Something went wrong');
+});

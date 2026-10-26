@@ -6,6 +6,7 @@
 * Update dependencies (`@lucide/svelte`, `vite`, `svelte-check`) and fix the `npm audit` findings in `fast-uri` and `serialize-javascript`
 * The browser tests use Playwright's own Chromium instead of Google Chrome, so they also run on ARM64 and in CI without a preinstalled browser
 * Vote in polls, with one option or several
+* Refresh a poll to see the votes of others while it is open
 
 ### 0.2.0: 2026-10-22
 
@@ -31,6 +32,7 @@
 * Update dependencies (`dompurify`, `@lucide/svelte`, `vitest`, `@playwright/test`)
 * The browser tests use Playwright's own Chromium instead of Google Chrome, so they also run on ARM64 and in CI without a preinstalled browser
 * Vote in polls, with one option or several
+* Refresh a poll to see the votes of others while it is open
 
 ### 0.1.2: 2026-10-18
 

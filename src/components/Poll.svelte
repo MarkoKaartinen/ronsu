@@ -1,8 +1,9 @@
 <script lang="ts">
   import Check from '@lucide/svelte/icons/check';
+  import RefreshCw from '@lucide/svelte/icons/refresh-cw';
   import { getContext } from 'svelte';
   import type { MastodonClient } from '../lib/api/client';
-  import { votePoll } from '../lib/api/polls';
+  import { getPoll, votePoll } from '../lib/api/polls';
   import type { Poll } from '../lib/api/types';
   import { sanitizeText } from '../lib/html';
   import { formatAge } from '../lib/i18n';
@@ -17,6 +18,7 @@
 
   let choices = $state<number[]>([]);
   let busy = $state(false);
+  let refreshing = $state(false);
 
   // A multiple-choice poll's percentages are of the people who voted, a single-choice poll's of the votes
   const total = $derived(poll.multiple ? (poll.voters_count ?? 0) : poll.votes_count);
@@ -28,6 +30,19 @@
     if (!poll.expires_at) return '';
     const age = formatAge(Date.parse(poll.expires_at) - Date.now(), i18n.locale);
     return age === null ? t('poll.endingSoon') : t('poll.endsIn', { age });
+  }
+
+  /** The results of an open poll show the votes of others as they were when the post was loaded; this fetches them again */
+  async function refresh() {
+    if (refreshing) return;
+    refreshing = true;
+    try {
+      onchange(await getPoll(client, poll.id));
+    } catch (err) {
+      toast.show(t('action.failed', { message: err instanceof Error ? err.message : String(err) }));
+    } finally {
+      refreshing = false;
+    }
   }
 
   async function vote(e: SubmitEvent) {
@@ -74,7 +89,12 @@
     {/each}
   </ul>
 {/if}
-<p class="pmeta">{[t('poll.votes', { count: poll.voters_count ?? poll.votes_count }), end()].filter(Boolean).join(' · ')}</p>
+<p class="pmeta">
+  {[t('poll.votes', { count: poll.voters_count ?? poll.votes_count }), end()].filter(Boolean).join(' · ')}
+  {#if !open && !poll.expired}
+    <button class="refresh" type="button" disabled={refreshing} aria-label={t('poll.refresh')} title={t('poll.refresh')} onclick={refresh}><RefreshCw size={14} /></button>
+  {/if}
+</p>
 
 <style>
   .poll { list-style: none; margin: 0.6rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
@@ -89,5 +109,8 @@
   .ppct { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
   .vote { align-self: flex-start; min-height: 2.5rem; padding: 0 1.1rem; border: 1px solid var(--accent); background: var(--accent); color: var(--bg); border-radius: 0.4rem; font-weight: 600; }
   .vote:disabled { opacity: 0.5; }
-  .pmeta { margin: 0.4rem 0 0; color: var(--muted); font-size: 0.85rem; }
+  .pmeta { display: flex; gap: 0.4rem; align-items: center; margin: 0.4rem 0 0; color: var(--muted); font-size: 0.85rem; }
+  .refresh { display: inline-flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; margin: -0.5rem 0; border: 0; background: none; color: var(--muted); border-radius: 0.4rem; }
+  .refresh:hover { color: var(--text); }
+  .refresh:disabled { opacity: 0.5; }
 </style>
