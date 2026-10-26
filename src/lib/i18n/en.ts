@@ -101,6 +101,7 @@ export const en = {
   'poll.endsIn': 'Ends in {age}',
   'poll.endingSoon': 'Ends soon',
   'poll.yourVote': 'Your vote',
+  'poll.vote': 'Vote', // mastodon: poll.vote
   'status.readMore': 'Read more',
   'status.cwShow': 'Show',
   'status.cwHide': 'Hide',
