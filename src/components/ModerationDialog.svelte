@@ -82,7 +82,7 @@
   p { margin: 0; line-height: 1.5; }
   .field { display: grid; gap: 0.3rem; }
   .field span { color: var(--muted); font-size: 0.85rem; font-weight: 600; }
-  select { min-height: 2.75rem; padding: 0 0.6rem; font: inherit; border: 1px solid var(--border); border-radius: 0.7rem; background: var(--surface); color: var(--text); }
+  select { min-height: 2.75rem; padding-left: 0.6rem; font: inherit; border: 1px solid var(--border); border-radius: 0.7rem; background-color: var(--surface); color: var(--text); }
   .check { display: flex; gap: 0.6rem; align-items: center; min-height: 2.75rem; }
   .check input { width: 1.2rem; height: 1.2rem; accent-color: var(--accent); }
   .buttons { display: flex; justify-content: flex-end; gap: 0.5rem; }

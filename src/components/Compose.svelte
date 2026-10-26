@@ -811,7 +811,7 @@
   .initial { display: inline-flex; align-items: center; justify-content: center; background: var(--accent); color: var(--on-accent); font-weight: 700; }
   .fields { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.6rem; }
   textarea, input.cw, select {
-    font: inherit; border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    font: inherit; border: 1px solid var(--border); background-color: var(--surface); color: var(--text);
   }
   input.cw { min-height: 2.75rem; padding: 0 0.9rem; border-radius: 0.7rem; border: 1px dashed var(--marker); }
   textarea { flex: 1; width: 100%; box-sizing: border-box; min-height: 6rem; padding: 0.2rem 0; border: 0; background: none; font-size: 1.15rem; line-height: 1.5; resize: none; outline: none; }
@@ -851,7 +851,7 @@
   .dropoption:hover { color: var(--text); }
   .pollsettings { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; }
   .pollsettings label { display: flex; flex-direction: column; gap: 0.2rem; color: var(--muted); font-size: 0.85rem; }
-  .pollsettings select { min-height: 2.5rem; padding: 0 0.6rem; border-radius: 0.5rem; background: var(--bg); font-size: 1rem; }
+  .pollsettings select { min-height: 2.5rem; padding-left: 0.6rem; border-radius: 0.5rem; background-color: var(--bg); font-size: 1rem; }
   .media { display: flex; gap: 0.5rem; margin: 0; padding: 0; list-style: none; overflow-x: auto; }
   .media li { position: relative; flex: none; width: 7rem; height: 7rem; }
   .media img { width: 100%; height: 100%; object-fit: cover; border-radius: 0.7rem; border: 1px solid var(--border); }
