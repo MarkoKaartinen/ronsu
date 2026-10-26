@@ -3,6 +3,8 @@
 * Add a menu to a post to open the original page, copy its link, mute its conversation, mute or block its author and block the author's server
 * Muting asks how long and whether to hide the notifications, and blocking asks for a confirmation
 * Mute and block an account from the menu on its profile; log in again for the new `write:mutes` and `write:blocks` permissions
+* Update dependencies (`@lucide/svelte`, `vite`, `svelte-check`) and fix the `npm audit` findings in `fast-uri` and `serialize-javascript`
+* The browser tests use Playwright's own Chromium instead of Google Chrome, so they also run on ARM64 and in CI without a preinstalled browser
 
 ### 0.2.0: 2026-10-22
 
@@ -26,6 +28,7 @@
 * Add installation and update instructions to the README
 * Add an emoji picker to the post form: frequently used, the server's custom emoji, then Unicode emoji by category with search
 * Update dependencies (`dompurify`, `@lucide/svelte`, `vitest`, `@playwright/test`)
+* The browser tests use Playwright's own Chromium instead of Google Chrome, so they also run on ARM64 and in CI without a preinstalled browser
 
 ### 0.1.2: 2026-10-18
 
