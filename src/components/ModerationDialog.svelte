@@ -1,6 +1,6 @@
 <script lang="ts" module>
   /** What the dialog asks about: how long to mute, or only whether to go through with a block */
-  export type Ask = { kind: 'mute'; name: string } | { kind: 'block'; name: string } | { kind: 'domain'; domain: string };
+  export type Ask = { kind: 'mute'; name: string } | { kind: 'block'; name: string } | { kind: 'domain'; domain: string } | { kind: 'delete' };
 </script>
 
 <script lang="ts">
@@ -36,8 +36,10 @@
     if (dialog && !dialog.open) dialog.showModal();
   });
 
-  const title = $derived(ask.kind === 'mute' ? t('moderation.muteTitle', { name: ask.name }) : ask.kind === 'block' ? t('moderation.blockTitle', { name: ask.name }) : t('moderation.domainTitle', { domain: ask.domain }));
-  const action = $derived(ask.kind === 'mute' ? t('moderation.mute') : ask.kind === 'block' ? t('moderation.block') : t('moderation.domainBlock'));
+  const title = $derived(
+    ask.kind === 'mute' ? t('moderation.muteTitle', { name: ask.name }) : ask.kind === 'block' ? t('moderation.blockTitle', { name: ask.name }) : ask.kind === 'delete' ? t('delete.title') : t('moderation.domainTitle', { domain: ask.domain }),
+  );
+  const action = $derived(ask.kind === 'mute' ? t('moderation.mute') : ask.kind === 'block' ? t('moderation.block') : ask.kind === 'delete' ? t('delete.confirm') : t('moderation.domainBlock'));
 
   function submit(e: Event) {
     e.preventDefault();
@@ -64,6 +66,8 @@
       </label>
     {:else if ask.kind === 'block'}
       <p>{t('moderation.blockText', { name: `@${ask.name}` })}</p>
+    {:else if ask.kind === 'delete'}
+      <p>{t('delete.text')}</p>
     {:else}
       <p>{t('moderation.domainText', { domain: ask.domain })}</p>
     {/if}

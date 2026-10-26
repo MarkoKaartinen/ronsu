@@ -1,6 +1,9 @@
 import type { MastodonClient } from './client';
 import type { Context, CustomEmoji, Status, Visibility } from './types';
 
+/** Deletes a post of your own (`write:statuses`). The server also removes the boosts of it. */
+export const deleteStatus = (client: MastodonClient, id: string) => client.delete<unknown>(`/api/v1/statuses/${id}`);
+
 export const getStatus = (client: MastodonClient, id: string) => client.get<Status>(`/api/v1/statuses/${id}`);
 
 export const getContext = (client: MastodonClient, id: string) =>

@@ -9,10 +9,13 @@
   import { blockDomain, getRelationship, moderationEndpoint, muteAccount, muteConversation, type Moderation } from '../lib/api/accounts';
   import { canQuote, canReblog, isOn, quoteSupported, toggle, type ActionKind } from '../lib/actions';
   import { ApiError, type MastodonClient } from '../lib/api/client';
+  import { deleteStatus } from '../lib/api/statuses';
   import type { Relationship, Status } from '../lib/api/types';
   import { accountStore } from '../lib/stores/accounts.svelte';
   import { canMuteConversation, remoteDomain } from '../lib/moderation';
   import { composer } from '../lib/stores/composer.svelte';
+  import { deletedIds } from '../lib/stores/deleted.svelte';
+  import { router } from '../lib/router.svelte';
   import { t } from '../lib/stores/i18n.svelte';
   import { toast } from '../lib/stores/toast.svelte';
   import { safeHttpUrl } from '../lib/url';
@@ -100,6 +103,18 @@
       await blockDomain(client, domain!, on);
       if (rel) rel.domain_blocking = on;
     });
+  /** The post goes from every view; if it is the open thread's own post, back out of it */
+  async function onDelete() {
+    ask = null;
+    try {
+      await deleteStatus(client, status.id);
+    } catch (e) {
+      toast.show(t('action.failed', { message: errorText(e) }));
+      return;
+    }
+    deletedIds.add(status.id);
+    if (router.route.name === 'thread' && router.route.id === status.id) router.back();
+  }
   const onThread = () =>
     moderate(async () => {
       status.muted = (await muteConversation(client, status.id, !status.muted)).muted;
@@ -177,7 +192,10 @@
           <li role="separator"></li>
           <li role="none"><button role="menuitem" onclick={onThread}>{t(status.muted ? 'menu.unmuteConversation' : 'menu.muteConversation')}</button></li>
         {/if}
-        {#if !isSelf}
+        {#if isSelf}
+          <li role="separator"></li>
+          <li role="none"><button role="menuitem" class="danger" onclick={() => askFirst({ kind: 'delete' })}>{t('menu.delete')}</button></li>
+        {:else}
           <!-- The rows are there from the start (disabled until the relationship is known) so the menu does not grow after it opens -->
           <li role="separator"></li>
           <li role="none"><button role="menuitem" disabled={!rel} onclick={() => (rel?.muting ? onModerate('unmute') : askFirst({ kind: 'mute', name: status.account.acct }))}>{t(rel?.muting ? 'menu.unmute' : 'menu.mute', { name: status.account.acct })}</button></li>
@@ -197,7 +215,7 @@
 </div>
 
 {#if ask}
-  <ModerationDialog {ask} {onMute} onConfirm={() => (ask?.kind === 'domain' ? onDomain(true) : onModerate('block'))} onCancel={() => (ask = null)} />
+  <ModerationDialog {ask} {onMute} onConfirm={() => (ask?.kind === 'delete' ? onDelete() : ask?.kind === 'domain' ? onDomain(true) : onModerate('block'))} onCancel={() => (ask = null)} />
 {/if}
 
 <style>
@@ -220,6 +238,7 @@
   .menu li button, .menu li a { display: block; width: 100%; padding: 0.75rem 0.8rem; border-radius: 0.6rem; color: var(--text); font: inherit; font-size: 1rem; line-height: 1.3; text-align: left; text-decoration: none; overflow-wrap: anywhere; box-sizing: border-box; }
   .menu ul.up { top: auto; bottom: 100%; }
   .menu li[role='separator'] { height: 1px; margin: 0.3rem 0.4rem; background: var(--border); }
+  .menu li button.danger { color: var(--danger); }
   .menu li a:hover, .menu li button:hover:not(:disabled) { background: var(--bg); }
   button:disabled { opacity: 0.4; cursor: default; }
 </style>

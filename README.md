@@ -51,6 +51,7 @@ Source code and issues: <https://github.com/MarkoKaartinen/ronsu>
   need the `write:conversations` OAuth scope (to mark them read), so older logins are asked to log in again
 - Your bookmarks and favorites as lists of their own (the sidebar on a wide screen, the menu drawer on a phone).
   They need the `read:bookmarks` and `read:favourites` OAuth scopes, so older logins are asked to log in again
+- Delete your own posts from the post menu (it asks first)
 - Your own profile from the sidebar on a wide screen and the menu drawer on a phone
 - Installable as a PWA, works offline for the app shell
 

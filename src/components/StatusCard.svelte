@@ -15,6 +15,7 @@
   import { clock, startClock } from '../lib/clock.svelte';
   import { formatDateTime, formatNumber, formatRelativeTime } from '../lib/i18n';
   import { i18n, t, tCounter } from '../lib/stores/i18n.svelte';
+  import { deletedIds } from '../lib/stores/deleted.svelte';
   import { lightbox } from '../lib/stores/lightbox.svelte';
   import { safeHttpUrl } from '../lib/url';
 
@@ -154,7 +155,7 @@
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-{#if verdict?.action !== 'hide'}
+{#if verdict?.action !== 'hide' && !deletedIds.has(status.id) && !deletedIds.has(s.id)}
 <article data-id={context || quoted ? undefined : status.id} class:tappable={!focused} class:focused class:reply class:chained={chain} class:compact={compact || context || quoted} class:quoted class:framed={quoted && actions} class:railed={rail || context} class:context class:joined onclick={onCardClick}>
   {#if boostFrame && booster}
     <!-- A boost, like a quote: who boosted on top, the original post in a frame below it (with its own buttons) -->
