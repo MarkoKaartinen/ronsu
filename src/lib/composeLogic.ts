@@ -1,3 +1,4 @@
+import type { PollLimits } from './api/statuses';
 import type { Status, Visibility } from './api/types';
 
 /** Mastodon counts every link as 23 characters and an @user@server mention as just the username. */
@@ -75,11 +76,68 @@ export function remaining({ text, cwOn, cw, maxChars }: Draft): number {
   return maxChars - countChars(text) - (cwOn ? countChars(cw) : 0);
 }
 
-/** A post needs text or at least one picture; a reply that only repeats the mentions does not count as text. */
-export function canSend(draft: Draft, prefix: string, mediaCount = 0): boolean {
+/** A poll being written: the texts of its options (the last one is usually empty, waiting to be filled), how long it is open (seconds) and whether it takes several choices */
+export interface PollDraft {
+  options: string[];
+  expiresIn: number;
+  multiple: boolean;
+}
+
+/** A poll needs at least two options (the server refuses one) */
+export const MIN_POLL_OPTIONS = 2;
+
+/** How long a poll is open: the choices Mastodon's own form offers, in seconds (5 minutes to 7 days) */
+const POLL_DURATIONS = [300, 1800, 3600, 21_600, 43_200, 86_400, 259_200, 604_800];
+/** The duration a new poll starts with (one day, like Mastodon's form) */
+const DEFAULT_POLL_DURATION = 86_400;
+
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+/** The durations to choose from: Mastodon's, less those the server does not allow. A server that allows none of them gets its nearest limit */
+export function pollDurations({ minExpiration, maxExpiration }: PollLimits): number[] {
+  const allowed = POLL_DURATIONS.filter((d) => d >= minExpiration && d <= maxExpiration);
+  return allowed.length ? allowed : [clamp(DEFAULT_POLL_DURATION, minExpiration, maxExpiration)];
+}
+
+export function newPoll(limits: PollLimits): PollDraft {
+  const durations = pollDurations(limits);
+  return {
+    options: Array<string>(MIN_POLL_OPTIONS).fill(''),
+    expiresIn: durations.includes(DEFAULT_POLL_DURATION) ? DEFAULT_POLL_DURATION : durations[durations.length - 1],
+    multiple: false,
+  };
+}
+
+/** Keeps one empty option at the end for the next one to be typed in, until the server's number of options is reached */
+function withRoomForNext(options: string[], max: number): string[] {
+  return options.length < max && options[options.length - 1].trim() !== '' ? [...options, ''] : options;
+}
+
+/** The options with the text of one changed (and a new empty one after the last, once it is filled) */
+export function setPollOption(options: string[], index: number, value: string, max: number): string[] {
+  return withRoomForNext(options.map((o, i) => (i === index ? value : o)), max);
+}
+
+/** The options without one (a poll never has fewer than the two it starts with) */
+export function removePollOption(options: string[], index: number, max: number): string[] {
+  if (options.length <= MIN_POLL_OPTIONS) return options;
+  return withRoomForNext(options.filter((_, i) => i !== index), max);
+}
+
+/** The options that have text, without the spaces around it: what is sent */
+export const pollOptions = (poll: PollDraft): string[] => poll.options.map((o) => o.trim()).filter((o) => o !== '');
+
+/** A poll can be sent with at least two options that differ from each other (the server refuses a repeated one) */
+export function pollValid(poll: PollDraft): boolean {
+  const options = pollOptions(poll);
+  return options.length >= MIN_POLL_OPTIONS && new Set(options).size === options.length;
+}
+
+/** A post needs text or at least one picture; a reply that only repeats the mentions does not count as text. A poll in it must be valid. */
+export function canSend(draft: Draft, prefix: string, mediaCount = 0, poll: PollDraft | null = null): boolean {
   const body = draft.text.trim();
   const hasContent = mediaCount > 0 || (body !== '' && body !== prefix.trim());
-  return hasContent && remaining(draft) >= 0 && (!draft.cwOn || draft.cw.trim() !== '');
+  return hasContent && remaining(draft) >= 0 && (!draft.cwOn || draft.cw.trim() !== '') && (!poll || pollValid(poll));
 }
 
 export interface Picked {

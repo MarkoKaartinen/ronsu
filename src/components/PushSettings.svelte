@@ -110,7 +110,7 @@
   .types { margin-top: 0.6rem; }
   .hint { margin: 0.5rem 0.2rem; color: var(--muted); font-size: 0.85rem; }
   .hint.warn { color: var(--danger); }
-  select { min-height: 2.5rem; border: 1px solid var(--border); border-radius: 0.6rem; background: var(--surface); color: var(--text); padding: 0 0.6rem; font: inherit; }
+  select { min-height: 2.5rem; border: 1px solid var(--border); border-radius: 0.6rem; background-color: var(--surface); color: var(--text); padding-left: 0.6rem; font: inherit; }
   .action { margin-top: 0.8rem; min-height: 2.75rem; padding: 0 1rem; border: 1px solid var(--border); border-radius: 0.7rem; background: var(--surface); color: var(--text); font-weight: 600; }
   .action:disabled { opacity: 0.5; }
 </style>

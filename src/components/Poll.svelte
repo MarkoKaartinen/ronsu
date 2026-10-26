@@ -10,8 +10,8 @@
   import { i18n, t } from '../lib/stores/i18n.svelte';
   import { toast } from '../lib/stores/toast.svelte';
 
-  /** onchange gets the poll the server answers a vote with (the new counts and the account's own votes) */
-  let { poll, onchange }: { poll: Poll; onchange: (poll: Poll) => void } = $props();
+  /** own: the poll belongs to the signed-in account, which cannot vote in it. onchange gets the poll the server answers a vote or a refresh with */
+  let { poll, own = false, onchange }: { poll: Poll; own?: boolean; onchange: (poll: Poll) => void } = $props();
 
   const client = getContext<MastodonClient>('mastodon-client');
 
@@ -23,7 +23,7 @@
 
   // A multiple-choice poll's percentages are of the people who voted, a single-choice poll's of the votes
   const total = $derived(poll.multiple ? (poll.voters_count ?? 0) : poll.votes_count);
-  const open = $derived(canVote(poll));
+  const open = $derived(canVote(poll, own));
   const showResults = $derived(!open || revealed);
   // A poll whose author hides the totals until it ends has no counts to show
   const hasTotals = $derived(poll.options.some((o) => o.votes_count !== null));

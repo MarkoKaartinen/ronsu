@@ -125,3 +125,12 @@ test('a poll that hides its totals has no results to look at', async ({ page }) 
   await expect(card.getByRole('button', { name: 'Vote' })).toBeVisible();
   await expect(card.getByRole('button', { name: 'See results' })).toHaveCount(0);
 });
+
+test('the poll of the signed-in account is not voted in, only looked at and refreshed', async ({ page }) => {
+  const card = await open(page, { marker: null, posts: [], poll: { own: true } });
+
+  await expect(card.locator('li', { hasText: 'Tea' })).toContainText('50%');
+  await expect(card.getByRole('button', { name: 'Vote' })).toHaveCount(0);
+  await expect(card.getByRole('button', { name: 'See results' })).toHaveCount(0);
+  await expect(card.getByRole('button', { name: 'Refresh' })).toBeVisible();
+});

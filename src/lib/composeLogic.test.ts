@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { canSend, countChars, insertMention, mentionQueryAt, defaultLanguage, defaultVisibility, hasMention, mentionPrefix, missingAltText, parseDefaultPrivacy, pickImages, remaining } from './composeLogic';
+import { canSend, countChars, newPoll, pollDurations, pollOptions, pollValid, removePollOption, setPollOption, insertMention, mentionQueryAt, defaultLanguage, defaultVisibility, hasMention, mentionPrefix, missingAltText, parseDefaultPrivacy, pickImages, remaining } from './composeLogic';
+import type { PollLimits } from './api/statuses';
 import type { Status } from './api/types';
+
+const limits: PollLimits = { maxOptions: 4, maxChars: 50, minExpiration: 300, maxExpiration: 2_629_746 };
 
 const reply = (over: Partial<Status> = {}) =>
   ({ account: { acct: 'maija@mas.to' }, mentions: [], visibility: 'unlisted', ...over }) as Status;
@@ -176,5 +179,60 @@ describe('insertMention', () => {
 
   it('keeps the text after the cursor and does not double the space', () => {
     expect(insertMention('@ma there', { query: 'ma', start: 0, end: 3 }, 'maija')).toEqual({ text: '@maija there', cursor: 7 });
+  });
+});
+
+describe('pollDurations', () => {
+  it('offers Mastodon\'s durations that the server allows', () => {
+    expect(pollDurations(limits)).toEqual([300, 1800, 3600, 21_600, 43_200, 86_400, 259_200, 604_800]);
+    expect(pollDurations({ ...limits, minExpiration: 3600, maxExpiration: 86_400 })).toEqual([3600, 21_600, 43_200, 86_400]);
+  });
+  it('a server that allows none of them gets its nearest limit', () => {
+    expect(pollDurations({ ...limits, minExpiration: 1_000_000, maxExpiration: 2_000_000 })).toEqual([1_000_000]);
+  });
+});
+
+describe('newPoll', () => {
+  it('starts with two empty options, one day and a single choice', () => {
+    expect(newPoll(limits)).toEqual({ options: ['', ''], expiresIn: 86_400, multiple: false });
+  });
+  it('starts with the longest duration when the server does not allow a day', () => {
+    expect(newPoll({ ...limits, maxExpiration: 43_200 }).expiresIn).toBe(43_200);
+  });
+});
+
+describe('setPollOption / removePollOption', () => {
+  it('a new empty option is added when the last one is filled, up to the limit', () => {
+    let options = setPollOption(['', ''], 0, 'Tea', 4);
+    expect(options).toEqual(['Tea', '']);
+    options = setPollOption(options, 1, 'Coffee', 4);
+    expect(options).toEqual(['Tea', 'Coffee', '']);
+    options = setPollOption(setPollOption(options, 2, 'Water', 4), 3, 'Milk', 4);
+    expect(options).toEqual(['Tea', 'Coffee', 'Water', 'Milk']); // no fifth
+  });
+  it('an option that is only spaces does not make room for another', () => {
+    expect(setPollOption(['', ''], 1, '  ', 4)).toEqual(['', '  ']);
+  });
+  it('an option is removed, never below two, and room is made again when the limit had been reached', () => {
+    expect(removePollOption(['Tea', 'Coffee'], 0, 4)).toEqual(['Tea', 'Coffee']);
+    expect(removePollOption(['Tea', 'Coffee', 'Water', 'Milk'], 1, 4)).toEqual(['Tea', 'Water', 'Milk', '']);
+  });
+});
+
+describe('pollValid / pollOptions', () => {
+  const poll = (options: string[]) => ({ options, expiresIn: 86_400, multiple: false });
+  it('sends the filled options without the spaces around them', () => {
+    expect(pollOptions(poll([' Tea ', '', 'Coffee', '  ']))).toEqual(['Tea', 'Coffee']);
+  });
+  it('needs two options that differ', () => {
+    expect(pollValid(poll(['Tea', '']))).toBe(false);
+    expect(pollValid(poll(['Tea', ' Tea']))).toBe(false);
+    expect(pollValid(poll(['Tea', 'Coffee', '']))).toBe(true);
+  });
+  it('a poll that is not valid keeps the post from being sent', () => {
+    const draft = { text: 'Which?', cwOn: false, cw: '', maxChars: 500 };
+    expect(canSend(draft, '', 0, poll(['Tea', '']))).toBe(false);
+    expect(canSend(draft, '', 0, poll(['Tea', 'Coffee']))).toBe(true);
+    expect(canSend(draft, '', 0, null)).toBe(true);
   });
 });

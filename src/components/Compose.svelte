@@ -1,5 +1,6 @@
 <script lang="ts">
   import AtSign from '@lucide/svelte/icons/at-sign';
+  import ChartColumn from '@lucide/svelte/icons/chart-column';
   import ChevronDown from '@lucide/svelte/icons/chevron-down';
   import Globe from '@lucide/svelte/icons/globe';
   import ImagePlus from '@lucide/svelte/icons/image-plus';
@@ -14,14 +15,14 @@
   import { updateMedia, uploadMedia, waitForProcessing } from '../lib/api/media';
   import { startLogin } from '../lib/api/oauth';
   import { getDefaultPrivacy, searchAccounts } from '../lib/api/accounts';
-  import { getCustomEmojis, getLimits, postStatus } from '../lib/api/statuses';
+  import { DEFAULT_POLL_LIMITS, getCustomEmojis, getLimits, postStatus, type PollLimits } from '../lib/api/statuses';
   import type { Account, CustomEmoji, Visibility } from '../lib/api/types';
   import { loadUnicodeGroups, readUse, saveUse } from '../lib/emojiData';
   import { countUse, customGroups, filterGroups, frequentGroup, insertEmoji, type EmojiGroup, type EmojiUse, type PickerEmoji } from '../lib/emojiLogic';
-  import { canSend, defaultLanguage, defaultVisibility, hasMention, insertMention, LANGUAGES, mentionPrefix, mentionQueryAt, missingAltText, pickImages, remaining } from '../lib/composeLogic';
-  import type { MentionQuery } from '../lib/composeLogic';
+  import { canSend, defaultLanguage, defaultVisibility, hasMention, insertMention, LANGUAGES, mentionPrefix, mentionQueryAt, MIN_POLL_OPTIONS, missingAltText, newPoll, pickImages, pollDurations, pollOptions, remaining, removePollOption, setPollOption } from '../lib/composeLogic';
+  import type { MentionQuery, PollDraft } from '../lib/composeLogic';
   import { htmlToText } from '../lib/html';
-  import { languageName, type MessageKey } from '../lib/i18n';
+  import { formatAge, languageName, type MessageKey } from '../lib/i18n';
   import { accountStore } from '../lib/stores/accounts.svelte';
   import { composer } from '../lib/stores/composer.svelte';
   import { i18n, t } from '../lib/stores/i18n.svelte';
@@ -69,6 +70,9 @@
   let maxChars = $state(500);
   let maxMedia = $state(4);
   let altChars = $state(1500);
+  let pollLimits = $state<PollLimits>(DEFAULT_POLL_LIMITS);
+  /** The poll being written (null: the post has none) */
+  let poll = $state<PollDraft | null>(null);
   let attachments = $state<Attachment[]>([]);
   let editing = $state<Attachment | null>(null);
   let altReminder = $state(false);
@@ -99,7 +103,7 @@
 
   const draft = $derived({ text, cwOn, cw, maxChars });
   const left = $derived(remaining(draft));
-  const sendable = $derived(canSend(draft, prefix, attachments.length) && !busy && attachments.every((a) => a.state === 'ready'));
+  const sendable = $derived(canSend(draft, prefix, attachments.length, poll) && !busy && attachments.every((a) => a.state === 'ready'));
   const target = $derived(composer.replyTo ?? composer.quoting);
   const targetText = $derived(target ? htmlToText(target.content) : '');
   /** The post being answered is shortened to this many characters (a decision: the form stays mostly editor); Show more opens it */
@@ -135,6 +139,7 @@
     emojiSearch = '';
     for (const a of attachments) URL.revokeObjectURL(a.preview);
     attachments = [];
+    poll = null;
     editing = null;
     altReminder = false;
     needsReauth = false;
@@ -147,6 +152,7 @@
         maxChars = l.maxChars;
         maxMedia = l.maxMedia;
         altChars = l.altChars;
+        pollLimits = l.poll;
       });
     }
   }
@@ -250,12 +256,19 @@
     }
   });
 
-  const dirty = () => text.trim() !== prefix.trim() || cw.trim() !== '' || attachments.length > 0;
+  const dirty = () => text.trim() !== prefix.trim() || cw.trim() !== '' || attachments.length > 0 || (poll !== null && pollOptions(poll).length > 0);
 
   function requestClose() {
     if (busy) return;
     if (dirty() && !confirm(t('compose.discard'))) return;
     composer.close();
+  }
+
+  /** Enter in an option moves to the next one; it must not send the post */
+  function onOptionKey(e: KeyboardEvent) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).closest('li')?.nextElementSibling?.querySelector('input')?.focus();
   }
 
   async function submit(e?: Event, skipAltReminder = false) {
@@ -289,6 +302,7 @@
           ...(cwOn ? { spoiler_text: cw.trim() } : {}),
           ...(language ? { language } : {}),
           ...(attachments.length ? { media_ids: attachments.map((a) => a.id) } : {}),
+          ...(poll ? { poll: { options: pollOptions(poll), expires_in: poll.expiresIn, multiple: poll.multiple } } : {}),
         },
         idempotencyKey,
       );
@@ -582,6 +596,53 @@
       </div>
     {/if}
 
+    {#if poll}
+      <div class="pollform">
+        <ul class="options">
+          {#each poll.options as option, i}
+            <li>
+              <input
+                type="text"
+                class="option"
+                value={option}
+                maxlength={pollLimits.maxChars}
+                placeholder={t('compose.poll.option', { number: i + 1 })}
+                aria-label={t('compose.poll.option', { number: i + 1 })}
+                oninput={(e) => poll && (poll.options = setPollOption(poll.options, i, e.currentTarget.value, pollLimits.maxOptions))}
+                onkeydown={onOptionKey}
+              />
+              {#if poll.options.length > MIN_POLL_OPTIONS}
+                <button
+                  type="button"
+                  class="dropoption"
+                  aria-label={t('compose.poll.removeOption')}
+                  title={t('compose.poll.removeOption')}
+                  onclick={() => poll && (poll.options = removePollOption(poll.options, i, pollLimits.maxOptions))}
+                ><X size={18} aria-hidden="true" /></button>
+              {/if}
+            </li>
+          {/each}
+        </ul>
+        <div class="pollsettings">
+          <label>
+            <span>{t('compose.poll.duration')}</span>
+            <select bind:value={poll.expiresIn}>
+              {#each pollDurations(pollLimits) as d (d)}
+                <option value={d}>{formatAge(d * 1000, i18n.locale)}</option>
+              {/each}
+            </select>
+          </label>
+          <label>
+            <span>{t('compose.poll.type')}</span>
+            <select bind:value={poll.multiple}>
+              <option value={false}>{t('compose.poll.single')}</option>
+              <option value={true}>{t('compose.poll.multiple')}</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    {/if}
+
     {#if attachments.length}
       <ul class="media">
         {#each attachments as a (a.key)}
@@ -636,6 +697,17 @@
         title={t('compose.emoji')}
         onclick={toggleEmojis}
       ><Smile size={20} aria-hidden="true" /></button>
+      <!-- Mastodon's own form offers no poll in a quote post either -->
+      <button
+        type="button"
+        class="tool"
+        class:on={poll !== null}
+        aria-pressed={poll !== null}
+        aria-label={poll ? t('compose.poll.remove') : t('compose.poll.add')}
+        title={poll ? t('compose.poll.remove') : t('compose.poll.add')}
+        disabled={!!composer.quoting}
+        onclick={() => (poll = poll ? null : newPoll(pollLimits))}
+      ><ChartColumn size={20} aria-hidden="true" /></button>
       <!-- Icon-only controls: the native <select> sits invisibly on top, so it keeps its accessible name and its picker -->
       <label class="tool">
         {#if visibility === 'public'}<Globe size={20} aria-hidden="true" />
@@ -739,7 +811,7 @@
   .initial { display: inline-flex; align-items: center; justify-content: center; background: var(--accent); color: var(--on-accent); font-weight: 700; }
   .fields { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.6rem; }
   textarea, input.cw, select {
-    font: inherit; border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    font: inherit; border: 1px solid var(--border); background-color: var(--surface); color: var(--text);
   }
   input.cw { min-height: 2.75rem; padding: 0 0.9rem; border-radius: 0.7rem; border: 1px dashed var(--marker); }
   textarea { flex: 1; width: 100%; box-sizing: border-box; min-height: 6rem; padding: 0.2rem 0; border: 0; background: none; font-size: 1.15rem; line-height: 1.5; resize: none; outline: none; }
@@ -771,6 +843,15 @@
   .hint { margin: 0; color: var(--muted); font-size: 0.9rem; }
   .relogin { min-height: 2.75rem; padding: 0 0.9rem; border: 1px solid var(--border); border-radius: 0.75rem; background: var(--surface); color: var(--text); font: inherit; }
   .tool:disabled { opacity: 0.4; cursor: default; }
+  .pollform { flex: none; display: flex; flex-direction: column; gap: 0.6rem; padding: 0.6rem; border: 1px solid var(--border); border-radius: 0.7rem; background: var(--surface); }
+  .options { display: flex; flex-direction: column; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+  .options li { display: flex; align-items: center; gap: 0.25rem; }
+  .option { flex: 1; min-width: 0; min-height: 2.75rem; padding: 0 0.8rem; box-sizing: border-box; border: 1px solid var(--border); border-radius: 0.6rem; background: var(--bg); color: var(--text); font: inherit; }
+  .dropoption { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--muted); }
+  .dropoption:hover { color: var(--text); }
+  .pollsettings { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; }
+  .pollsettings label { display: flex; flex-direction: column; gap: 0.2rem; color: var(--muted); font-size: 0.85rem; }
+  .pollsettings select { min-height: 2.5rem; padding-left: 0.6rem; border-radius: 0.5rem; background-color: var(--bg); font-size: 1rem; }
   .media { display: flex; gap: 0.5rem; margin: 0; padding: 0; list-style: none; overflow-x: auto; }
   .media li { position: relative; flex: none; width: 7rem; height: 7rem; }
   .media img { width: 100%; height: 100%; object-fit: cover; border-radius: 0.7rem; border: 1px solid var(--border); }

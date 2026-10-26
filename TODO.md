@@ -100,7 +100,8 @@ For a reader this matters more than most features, because it decides what is in
 - [ ] **Delete a post** (`DELETE /api/v1/statuses/:id`, `write:statuses`). A post cannot be removed from Ronsu
   at all; offer "Delete and redraft" too (the response carries the source text)
 - [ ] **Edit a post** (`PUT /api/v1/statuses/:id`, `GET /api/v1/statuses/:id/source`)
-- [ ] **Create a poll** in the composer (`poll[options][]`, `expires_in`, `multiple`, `hide_totals`)
+- [x] **Create a poll** in the composer (`poll[options][]`, `expires_in`, `multiple`), within the limits of `configuration.polls`
+  of the instance information. Left: `hide_totals` (Mastodon's own form does not offer it either)
 - [ ] **Scheduled posts** (`scheduled_at`, `GET /api/v1/scheduled_statuses`, `read:statuses`)
 - [ ] **Drafts**: kept locally; Mastodon has no draft endpoint
 - [ ] **Quote policy per post** (`quote_approval_policy`, Mastodon 4.5): who may quote the new post
