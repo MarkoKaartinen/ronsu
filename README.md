@@ -86,10 +86,11 @@ npm run dev          # development server
 npm run check        # type check (svelte-check)
 npm test             # unit tests (Vitest)
 npm run build        # production build into public/
-npm run test:e2e     # Playwright (serves the built public/ folder, mocked API, needs Chrome)
+npm run test:e2e     # Playwright (serves the built public/ folder, mocked API, needs Playwright's Chromium)
 ```
 
 `npm run test:e2e` serves the `public/` folder, so run `npm run build` first.
+Install the browser once with `npx playwright install chromium` (on a server without a desktop, `npx playwright install-deps chromium` installs the system libraries it needs).
 
 **Stack:** Svelte 5, Vite, vite-plugin-pwa (service worker), TypeScript. No backend.
 
@@ -193,7 +194,7 @@ curl -sI https://ronsu.example.org/ | grep -iE 'content-security-policy|x-frame-
 
 `src/lib/headers.test.ts` fails if the policy above and the one in `index.html` drift apart: update both.
 
-Tests before publishing: `npm run check`, `npm test`, `npm run test:e2e` (the last one needs the build and Chrome).
+Tests before publishing: `npm run check`, `npm test`, `npm run test:e2e` (the last one needs the build and Chromium).
 
 ## License
 

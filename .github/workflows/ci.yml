@@ -32,5 +32,6 @@ jobs:
       - run: npm run check
       - run: npm test
       - run: npm run build
-      # The browser tests use the Google Chrome that is installed on the runner (playwright.config.ts: channel 'chrome')
+      # The browser tests use Playwright's own Chromium (the same on every platform, also ARM64)
+      - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
