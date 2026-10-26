@@ -277,6 +277,10 @@ export const en = {
   'menu.mute': 'Mute @{name}', // mastodon: account.mute
   'menu.unmute': 'Unmute @{name}', // mastodon: account.unmute
   'menu.block': 'Block @{name}', // mastodon: account.block
+  'menu.delete': 'Delete', // mastodon: status.delete
+  'delete.title': 'Delete post?', // mastodon: confirmations.delete.title
+  'delete.text': 'Are you sure you want to delete this post?', // mastodon: confirmations.delete.message
+  'delete.confirm': 'Delete', // mastodon: confirmations.delete.confirm
   'menu.unblock': 'Unblock @{name}', // mastodon: account.unblock
   'profile.muted': 'Muted', // mastodon: account.muted
   'profile.blocked': 'Blocked', // mastodon: account.blocked

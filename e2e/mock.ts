@@ -40,6 +40,7 @@ let filter: Server['filter'];
 let withCards = false;
 /** Every post has a poll (set from Server.poll) */
 let withPoll: Server['poll'];
+let ownPosts = false;
 /** Polls of each upload (the file is ready on the second one) */
 const polls: Record<string, number> = {};
 
@@ -50,7 +51,7 @@ function status(i: number, withQuote = true) {
     uri: `${HOST}/s/${i}`,
     url: `${HOST}/s/${i}`,
     created_at: new Date(Date.UTC(2026, 9, 4, 5, 0, 0) + i * 60_000).toISOString(), // every post a minute after the previous
-    account: { id: withPoll?.own ? '1' : '2', username: 'u', acct: 'u', display_name: 'U', avatar: '', url: '', emojis: [] },
+    account: { id: ownPosts ? '1' : '2', username: 'u', acct: 'u', display_name: 'U', avatar: '', url: '', emojis: [] },
     content: `<p>Post ${i}. ${i % 7 === 1 ? '<a class="u-url mention" href="https://mock.test/@maija" rel="nofollow" target="_blank">@<span>maija</span></a> ' : ''}${'Lorem ipsum dolor sit amet. '.repeat(6 + (i % 5))}</p>${formatted && i % 5 === 3 ? '<blockquote><p>A quoted line of text that is long enough to wrap onto a second line when the column is narrow.</p></blockquote><pre><code>const x = 1;</code></pre><p>Inline <code>code</code>.</p><ul><li>one</li><li>two</li></ul>' : ''}`,
     spoiler_text: withCw && i % 4 === 2 ? (longCw ? 'food talk: a long warning that does not fit on one line next to the button, so it has to wrap onto several lines of text' : 'food talk') : '',
     sensitive: sensitiveMedia,
@@ -142,6 +143,9 @@ export interface Server {
   noMediaScope?: boolean; // 403: a token without the write:media scope
   processing?: boolean; // uploads answer 202 and the file is ready on the second poll
   actions?: string[]; // POST /statuses/:id/<action>
+  own?: boolean; // the posts are written by the signed-in account
+  deleted?: string[]; // ids of DELETE /statuses/:id
+  failDelete?: boolean;
   failActions?: boolean;
   privacy?: string; // the account's default posting privacy (source.privacy); 'public' when not set
   credentialsFail?: boolean; // verify_credentials answers 500
@@ -171,6 +175,7 @@ export async function mockMastodon(page: Page, server: Server) {
   filter = server.filter;
   withCards = !!server.cards;
   withPoll = server.poll;
+  ownPosts = !!server.own || !!server.poll?.own;
   await page.route(`${HOST}/**`, async (route) => {
     const req = route.request();
     const cors = {
@@ -383,6 +388,14 @@ export async function mockMastodon(page: Page, server: Server) {
           ...own,
         ],
       });
+    }
+    const del = url.pathname.match(/^\/api\/v1\/statuses\/(\d+)$/);
+    if (del && req.method() === 'DELETE') {
+      if (server.failDelete) {
+        return route.fulfill({ status: 500, headers: { ...cors, 'content-type': 'application/json' }, body: '{"error":"Ei onnistu"}' });
+      }
+      (server.deleted ??= []).push(del[1]);
+      return json({ ...status(Number(BigInt(del[1]) - BASE_ID)), text: 'Post' });
     }
     const act = url.pathname.match(/^\/api\/v1\/statuses\/(\d+)\/(favourite|unfavourite|reblog|unreblog|bookmark|unbookmark)$/);
     if (act && req.method() === 'POST') {
