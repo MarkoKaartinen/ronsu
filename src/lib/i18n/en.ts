@@ -193,6 +193,14 @@ export const en = {
   'compose.visibilityUnknown': 'Your default visibility could not be fetched, so this post is for followers only. Change it above if you want.',
   'compose.directNeedsMention': 'A private mention goes only to the people mentioned in it. Mention someone with @.',
   'compose.published': 'Post published.', // mastodon: compose.published.body
+  'compose.poll.add': 'Add a poll', // mastodon: poll_button.add_poll
+  'compose.poll.remove': 'Remove poll', // mastodon: poll_button.remove_poll
+  'compose.poll.option': 'Option {number}', // mastodon: compose_form.poll.option_placeholder
+  'compose.poll.removeOption': 'Remove option',
+  'compose.poll.duration': 'Poll duration', // mastodon: compose_form.poll.duration
+  'compose.poll.type': 'Style', // mastodon: compose_form.poll.type
+  'compose.poll.single': 'Single choice', // mastodon: compose_form.poll.single
+  'compose.poll.multiple': 'Multiple choice', // mastodon: compose_form.poll.multiple
   'compose.media.add': 'Add images, a video or an audio file', // mastodon: upload_button.label
   'compose.media.edit': 'Edit', // mastodon: upload_form.edit
   'compose.media.remove': 'Remove', // mastodon: collections.remove_account

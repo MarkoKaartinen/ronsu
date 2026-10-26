@@ -111,6 +111,7 @@ export interface Server {
   cards?: boolean; // some posts (i % 8 === 5) have a link preview
   poll?: { multiple?: boolean; expired?: boolean; voted?: boolean; hideTotals?: boolean; own?: boolean }; // every post has a poll (hideTotals: no counts until it has ended)
   votes?: number[][]; // the choices of the votes on a poll
+  pollLimits?: { max_options: number; max_characters_per_option: number; min_expiration: number; max_expiration: number } | null; // configuration.polls of the instance (Mastodon's defaults when not set; none when null)
   pollRefreshes?: number; // GET /polls/:id calls; the answer has more votes than the post had
   filter?: { title: string; action: string; context?: string[] }; // a server-side filter matches some posts
   branched?: boolean; // the thread has a deep chain of replies and a second reply to the selected post and a late reply
@@ -306,7 +307,8 @@ export async function mockMastodon(page: Page, server: Server) {
     }
     if (url.pathname === '/api/v2/instance') {
       const vapid = server.vapid === false ? {} : { vapid: { public_key: server.vapid ?? VAPID_KEY } };
-      return json({ configuration: { statuses: { max_characters: 500 }, ...vapid } });
+      const polls = server.pollLimits === null ? {} : { polls: server.pollLimits ?? { max_options: 4, max_characters_per_option: 50, min_expiration: 300, max_expiration: 2_629_746 } };
+      return json({ configuration: { statuses: { max_characters: 500 }, ...polls, ...vapid } });
     }
     if (url.pathname === '/api/v1/notifications' && !url.searchParams.get('max_id')) {
       const newest = server.notifications;

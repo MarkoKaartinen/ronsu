@@ -35,6 +35,7 @@ Source code and issues: <https://github.com/MarkoKaartinen/ronsu>
 - Several accounts, threads, profiles, replying and posting (content warnings, visibility, language, account suggestions after `@`, an emoji picker with the frequently used, the server's custom and the Unicode emoji)
 - Favorite, boost and bookmark; follow and unfollow; a menu on every post (open the original page, copy the link, mute the conversation) and mute (for a time of your choice), block and block a server from it or from a profile (they need the
   `write:mutes` and `write:blocks` OAuth scopes, so older logins are asked to log in again)
+- Polls: vote (one option or several), look at the results without voting, refresh them, and write a poll with options, a duration and a style within the limits your server sets (a poll of your own shows only the results, as the server does not take a vote in it)
 - An in-app image viewer: swipe or use the arrow keys between a post's pictures, tap to zoom, Esc or back to close
 - Light and dark themes that follow the system or your own choice: Nord (dark/light) and Dracula (dark) / Alucard (light)
 - English and Finnish, switchable in the settings
