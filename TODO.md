@@ -19,7 +19,7 @@ Scopes noted per item are the extra OAuth scopes the item needs. Adding one mean
   creator attribution) if wanted
 - [x] **Emoji picker** in the compose box: frequently used, the server's custom emoji (`GET /api/v1/custom_emojis`) and
   Unicode emoji from `emojibase-data`. Left: skin tones, autocomplete while typing `:name:`
-- [ ] **Edited posts are not marked.** `edited_at` is not shown, and history is not viewable
+- [x] **Edited posts** are marked with the time of the edit (`edited_at`), and the version history opens from the mark
   (`GET /api/v1/statuses/:id/history`)
 - [ ] **No translation.** `POST /api/v1/statuses/:id/translate` (`read:statuses`) when the server supports it
   (`translation.enabled` in `/api/v2/instance`); the `language` of a post tells when to offer it
@@ -75,8 +75,8 @@ the reading position (markers) only exists for `home` and `notifications`, so th
 
 ## Moderating what you see
 
-Ronsu asks for none of the mute and block scopes, so a user has to open the web UI of their server for any of this.
-For a reader this matters more than most features, because it decides what is in the timeline.
+Muting and blocking are done from the menus (`write:mutes` and `write:blocks`); what is left is below. For a reader this
+matters more than most features, because it decides what is in the timeline.
 
 - [x] **Mute and unmute an account** (`write:mutes`), from the menu on a profile and on a post, with a duration and the "hide notifications" choice
 - [x] **Block and unblock an account** (`write:blocks`), from the menu on a profile and on a post
@@ -97,9 +97,10 @@ For a reader this matters more than most features, because it decides what is in
 
 ## Writing
 
-- [ ] **Delete a post** (`DELETE /api/v1/statuses/:id`, `write:statuses`). A post cannot be removed from Ronsu
-  at all; offer "Delete and redraft" too (the response carries the source text)
-- [ ] **Edit a post** (`PUT /api/v1/statuses/:id`, `GET /api/v1/statuses/:id/source`)
+- [x] **Delete a post** (`DELETE /api/v1/statuses/:id`, `write:statuses`) from the post menu, after a confirmation.
+  Left: "Delete and redraft" (the response carries the source text)
+- [x] **Edit a post** (`PUT /api/v1/statuses/:id`, `GET /api/v1/statuses/:id/source`) in the composer: text, content
+  warning, pictures with their alt texts and the poll. The visibility cannot be changed, as on Mastodon
 - [x] **Create a poll** in the composer (`poll[options][]`, `expires_in`, `multiple`), within the limits of `configuration.polls`
   of the instance information. Left: `hide_totals` (Mastodon's own form does not offer it either)
 - [ ] **Scheduled posts** (`scheduled_at`, `GET /api/v1/scheduled_statuses`, `read:statuses`)
@@ -148,8 +149,8 @@ For a reader this matters more than most features, because it decides what is in
 - [ ] **Text size setting** independent of the browser zoom
 - [ ] **Share target** in the PWA manifest (`share_target`) so a link or text from another app opens the composer
 - [ ] **Protocol handler** for `web+mastodon://` links, and opening `https://<server>/@user/<id>` links in Ronsu
-- [ ] **Text to speech**, **copy link**, **share a post** with the Web Share API, **open in the web UI** and
-  **view the original** on the author's server (the last is partly there as "View on {domain}" for profiles)
+- [ ] **Text to speech** and **share a post** with the Web Share API. Copy link and open the original page are in the
+  post menu (and "View on {domain}" on profiles)
 
 ## Accounts and data
 
@@ -179,7 +180,8 @@ For a reader this matters more than most features, because it decides what is in
   without personal data
 - [ ] **E2E coverage** for the items above as they land; the mock server in `e2e/mock.ts` needs the endpoints
 - [ ] **Bundle size and performance** audit (Lighthouse, Core Web Vitals) before the first public release
-- [ ] **Release process**: version number in the UI, a changelog, and a deployment script (deploys are by hand)
+- [x] **Release process**: the version number is in the UI, `CHANGELOG.md` has the changes and a release is a tag with
+  a GitHub release (see `AGENTS.md`). Left: a deployment script (deploys are by hand)
 
 ## Not planned
 
