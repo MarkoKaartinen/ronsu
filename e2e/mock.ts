@@ -146,6 +146,10 @@ export interface Server {
   own?: boolean; // the posts are written by the signed-in account
   deleted?: string[]; // ids of DELETE /statuses/:id
   failDelete?: boolean;
+  sourceCw?: string; // the content warning in GET /statuses/:id/source
+  failSource?: boolean;
+  edits?: { id: string; body: Record<string, any> }[]; // PUT /statuses/:id
+  failEdit?: boolean;
   failActions?: boolean;
   privacy?: string; // the account's default posting privacy (source.privacy); 'public' when not set
   credentialsFail?: boolean; // verify_credentials answers 500
@@ -388,6 +392,18 @@ export async function mockMastodon(page: Page, server: Server) {
           ...own,
         ],
       });
+    }
+    const source = url.pathname.match(/^\/api\/v1\/statuses\/(\d+)\/source$/);
+    if (source && req.method() === 'GET') {
+      if (server.failSource) return route.fulfill({ status: 500, headers: { ...cors, 'content-type': 'application/json' }, body: '{"error":"Ei onnistu"}' });
+      return json({ id: source[1], text: 'The text as written', spoiler_text: server.sourceCw ?? '' });
+    }
+    const put = url.pathname.match(/^\/api\/v1\/statuses\/(\d+)$/);
+    if (put && req.method() === 'PUT') {
+      if (server.failEdit) return route.fulfill({ status: 422, headers: { ...cors, 'content-type': 'application/json' }, body: '{"error":"Validation failed"}' });
+      const body = JSON.parse(req.postData() ?? '{}');
+      (server.edits ??= []).push({ id: put[1], body });
+      return json({ ...status(Number(BigInt(put[1]) - BASE_ID)), content: `<p>${body.status}</p>`, spoiler_text: body.spoiler_text, edited_at: new Date().toISOString() });
     }
     const del = url.pathname.match(/^\/api\/v1\/statuses\/(\d+)$/);
     if (del && req.method() === 'DELETE') {

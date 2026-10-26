@@ -194,6 +194,7 @@
         {/if}
         {#if isSelf}
           <li role="separator"></li>
+          <li role="none"><button role="menuitem" onclick={() => { menuOpen = false; composer.showEdit(status); }}>{t('menu.edit')}</button></li>
           <li role="none"><button role="menuitem" class="danger" onclick={() => askFirst({ kind: 'delete' })}>{t('menu.delete')}</button></li>
         {:else}
           <!-- The rows are there from the start (disabled until the relationship is known) so the menu does not grow after it opens -->

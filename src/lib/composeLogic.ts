@@ -1,5 +1,5 @@
 import type { PollLimits } from './api/statuses';
-import type { Status, Visibility } from './api/types';
+import type { Poll, Status, Visibility } from './api/types';
 
 /** Mastodon counts every link as 23 characters and an @user@server mention as just the username. */
 export const URL_LENGTH = 23;
@@ -105,6 +105,20 @@ export function newPoll(limits: PollLimits): PollDraft {
     options: Array<string>(MIN_POLL_OPTIONS).fill(''),
     expiresIn: durations.includes(DEFAULT_POLL_DURATION) ? DEFAULT_POLL_DURATION : durations[durations.length - 1],
     multiple: false,
+  };
+}
+
+/**
+ * The form of a poll being edited. The server wants a duration, not an end: the shortest one of the form's
+ * choices that reaches the end (the longest when it is further away), as Mastodon's own form does.
+ */
+export function pollFromStatus(poll: Poll, limits: PollLimits, now = Date.now()): PollDraft {
+  const durations = pollDurations(limits);
+  const left = poll.expires_at ? (new Date(poll.expires_at).getTime() - now) / 1000 : 0;
+  return {
+    options: withRoomForNext(poll.options.map((o) => o.title), limits.maxOptions),
+    expiresIn: durations.find((d) => d >= left) ?? durations[durations.length - 1],
+    multiple: poll.multiple,
   };
 }
 

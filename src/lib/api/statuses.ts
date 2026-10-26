@@ -22,6 +22,31 @@ export interface NewStatus {
   poll?: { options: string[]; expires_in: number; multiple: boolean };
 }
 
+/** What an edit sends: the whole post, as Mastodon's own form does (an absent poll is kept, `null` removes it) */
+export interface EditedStatus {
+  status: string;
+  visibility: Visibility;
+  spoiler_text: string;
+  sensitive: boolean;
+  language?: string;
+  media_ids: string[];
+  /** The new alt text of pictures that were already in the post (the media endpoint refuses a picture that is attached) */
+  media_attributes?: { id: string; description: string }[];
+  poll: { options: string[]; expires_in: number; multiple: boolean } | null;
+}
+
+/** The text of a post as it was written (the post itself only has the HTML) */
+export interface StatusSource {
+  id: string;
+  text: string;
+  spoiler_text: string;
+}
+
+export const getStatusSource = (client: MastodonClient, id: string) => client.get<StatusSource>(`/api/v1/statuses/${id}/source`);
+
+/** Edits a post of your own (`write:statuses`); the answer is the post with its `edited_at` */
+export const editStatus = (client: MastodonClient, id: string, body: EditedStatus) => client.put<Status>(`/api/v1/statuses/${id}`, body);
+
 /**
  * Posts a status. Idempotency-Key: reusing the key on a retry does not create a duplicate, even if
  * the first request got through and only the response was lost.

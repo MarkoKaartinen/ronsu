@@ -15,11 +15,11 @@
   import { updateMedia, uploadMedia, waitForProcessing } from '../lib/api/media';
   import { startLogin } from '../lib/api/oauth';
   import { getDefaultPrivacy, searchAccounts } from '../lib/api/accounts';
-  import { DEFAULT_POLL_LIMITS, getCustomEmojis, getLimits, postStatus, type PollLimits } from '../lib/api/statuses';
-  import type { Account, CustomEmoji, Visibility } from '../lib/api/types';
+  import { DEFAULT_POLL_LIMITS, editStatus, getCustomEmojis, getLimits, getStatusSource, postStatus, type InstanceLimits, type PollLimits } from '../lib/api/statuses';
+  import type { Account, CustomEmoji, Status, Visibility } from '../lib/api/types';
   import { loadUnicodeGroups, readUse, saveUse } from '../lib/emojiData';
   import { countUse, customGroups, filterGroups, frequentGroup, insertEmoji, type EmojiGroup, type EmojiUse, type PickerEmoji } from '../lib/emojiLogic';
-  import { canSend, defaultLanguage, defaultVisibility, hasMention, insertMention, LANGUAGES, mentionPrefix, mentionQueryAt, MIN_POLL_OPTIONS, missingAltText, newPoll, pickImages, pollDurations, pollOptions, remaining, removePollOption, setPollOption } from '../lib/composeLogic';
+  import { canSend, defaultLanguage, defaultVisibility, hasMention, insertMention, LANGUAGES, mentionPrefix, mentionQueryAt, MIN_POLL_OPTIONS, missingAltText, newPoll, pickImages, pollDurations, pollFromStatus, pollOptions, remaining, removePollOption, setPollOption } from '../lib/composeLogic';
   import type { MentionQuery, PollDraft } from '../lib/composeLogic';
   import { htmlToText } from '../lib/html';
   import { formatAge, languageName, type MessageKey } from '../lib/i18n';
@@ -39,8 +39,9 @@
 
   interface Attachment {
     key: string;
-    file: File;
-    /** Local preview (object URL), so nothing waits for the server */
+    /** The file being uploaded; null for a picture that is already in the post being edited */
+    file: File | null;
+    /** Local preview (object URL), so nothing waits for the server; the server's own preview for a picture already in the post */
     preview: string;
     state: 'uploading' | 'processing' | 'ready';
     /** The server's id for the file, set when the upload is accepted */
@@ -80,6 +81,10 @@
   let needsReauth = $state(false);
   let dragging = $state(false);
   let busy = $state(false);
+  /** The text of the post being edited is on its way from the server */
+  let loadingSource = $state(false);
+  /** What the form held when it was filled in for an edit: the post is only sent when it differs */
+  let initial = '';
   let error = $state('');
   /** The mention being typed (null when the cursor is not in one) and the accounts offered for it */
   let mention = $state<MentionQuery | null>(null);
@@ -103,7 +108,9 @@
 
   const draft = $derived({ text, cwOn, cw, maxChars });
   const left = $derived(remaining(draft));
-  const sendable = $derived(canSend(draft, prefix, attachments.length, poll) && !busy && attachments.every((a) => a.state === 'ready'));
+  const sendable = $derived(
+    canSend(draft, prefix, attachments.length, poll) && !busy && !loadingSource && attachments.every((a) => a.state === 'ready') && (!composer.editing || snapshot() !== initial),
+  );
   const target = $derived(composer.replyTo ?? composer.quoting);
   const targetText = $derived(target ? htmlToText(target.content) : '');
   /** The post being answered is shortened to this many characters (a decision: the form stays mostly editor); Show more opens it */
@@ -120,40 +127,75 @@
     }
   }
 
+  /** Everything the reader can change in the form, to tell whether an edit changed anything */
+  function snapshot() {
+    return JSON.stringify({ text, cwOn, cw, language, attachments: attachments.map((a) => [a.id, a.description]), poll });
+  }
+
   function reset() {
     const replyTo = composer.replyTo;
-    prefix = mentionPrefix(replyTo, accountStore.active?.acct ?? '');
+    const edit = composer.editing;
+    prefix = edit ? '' : mentionPrefix(replyTo, accountStore.active?.acct ?? '');
     text = prefix;
     cwOn = false;
     cw = '';
     quoteOpen = false;
     const account = accountStore.active;
-    visibility = defaultVisibility(composer.replyTo ?? composer.quoting, account?.defaultPrivacy ?? null);
+    visibility = edit ? edit.visibility : defaultVisibility(composer.replyTo ?? composer.quoting, account?.defaultPrivacy ?? null);
     visibilityTouched = false;
-    visibilityUnknown = !account?.defaultPrivacy;
-    language = defaultLanguage(readSavedLanguage(), navigator.language);
+    visibilityUnknown = !edit && !account?.defaultPrivacy;
+    // An edit keeps the language the post has (the server keeps it too when none is sent)
+    language = edit ? (edit.language ?? '') : defaultLanguage(readSavedLanguage(), navigator.language);
     error = '';
     busy = false;
     closeMentions();
     emojiOpen = false;
     emojiSearch = '';
-    for (const a of attachments) URL.revokeObjectURL(a.preview);
+    for (const a of attachments) if (a.file) URL.revokeObjectURL(a.preview);
     attachments = [];
     poll = null;
+    initial = '';
     editing = null;
     altReminder = false;
     needsReauth = false;
     dragging = false;
     idempotencyKey = crypto.randomUUID();
     const client = accountStore.client();
+    loadingSource = !!edit;
     if (client && account) {
-      refreshDefaultPrivacy(client, account.key, idempotencyKey);
-      getLimits(client).then((l) => {
+      if (!edit) refreshDefaultPrivacy(client, account.key, idempotencyKey);
+      const limits = getLimits(client).then((l) => {
         maxChars = l.maxChars;
         maxMedia = l.maxMedia;
         altChars = l.altChars;
         pollLimits = l.poll;
+        return l;
       });
+      if (edit) fillFromPost(client, edit, limits, idempotencyKey);
+    }
+  }
+
+  /** Fills the form with the post being edited: its text as it was written (the server keeps it apart from the HTML), its pictures and its poll */
+  async function fillFromPost(client: NonNullable<ReturnType<typeof accountStore.client>>, edit: Status, limits: Promise<InstanceLimits>, form: string) {
+    try {
+      const source = await getStatusSource(client, edit.id);
+      if (form !== idempotencyKey) return; // the form was reset meanwhile
+      text = source.text;
+      cw = source.spoiler_text;
+      cwOn = source.spoiler_text !== '';
+      attachments = edit.media_attachments.map((m) => ({
+        key: crypto.randomUUID(), file: null, preview: safeHttpUrl(m.preview_url) ?? '', state: 'ready', id: m.id,
+        description: m.description ?? '', savedDescription: m.description ?? '',
+      }));
+      if (edit.poll) poll = pollFromStatus(edit.poll, (await limits).poll);
+      if (form !== idempotencyKey) return;
+      initial = snapshot();
+      loadingSource = false;
+      await tick();
+      textarea?.focus();
+      textarea?.setSelectionRange(text.length, text.length);
+    } catch (e) {
+      if (form === idempotencyKey) error = t('action.failed', { message: errorText(e) });
     }
   }
 
@@ -188,7 +230,7 @@
 
   async function upload(client: NonNullable<ReturnType<typeof accountStore.client>>, item: Attachment) {
     try {
-      let media = await uploadMedia(client, item.file);
+      let media = await uploadMedia(client, item.file!);
       item.id = media.id;
       if (!media.url) {
         item.state = 'processing';
@@ -204,7 +246,7 @@
   }
 
   function removeAttachment(item: Attachment) {
-    URL.revokeObjectURL(item.preview);
+    if (item.file) URL.revokeObjectURL(item.preview);
     attachments = attachments.filter((a) => a !== item);
   }
 
@@ -256,7 +298,10 @@
     }
   });
 
-  const dirty = () => text.trim() !== prefix.trim() || cw.trim() !== '' || attachments.length > 0 || (poll !== null && pollOptions(poll).length > 0);
+  const dirty = () =>
+    composer.editing
+      ? snapshot() !== initial
+      : text.trim() !== prefix.trim() || cw.trim() !== '' || attachments.length > 0 || (poll !== null && pollOptions(poll).length > 0);
 
   function requestClose() {
     if (busy) return;
@@ -287,10 +332,31 @@
     busy = true;
     error = '';
     try {
-      for (const a of attachments) {
-        if (a.description === a.savedDescription) continue;
+      // A picture that is already in the post gets its new alt text with the post; the media endpoint refuses it
+      const changed = attachments.filter((a) => a.description !== a.savedDescription);
+      for (const a of changed.filter((a) => a.file)) {
         await updateMedia(client, a.id, a.description);
         a.savedDescription = a.description;
+      }
+      const edit = composer.editing;
+      if (edit) {
+        const edited = await editStatus(client, edit.id, {
+          status: text.trim(),
+          visibility: edit.visibility,
+          spoiler_text: cwOn ? cw.trim() : '',
+          // A content warning makes the post sensitive; without one the post keeps its own mark for the pictures
+          sensitive: cwOn || (edit.sensitive && edit.spoiler_text === ''),
+          ...(language ? { language } : {}),
+          media_ids: attachments.map((a) => a.id),
+          media_attributes: changed.filter((a) => !a.file).map((a) => ({ id: a.id, description: a.description })),
+          poll: poll ? { options: pollOptions(poll), expires_in: poll.expiresIn, multiple: poll.multiple } : null,
+        });
+        // Every card that shows this post holds the same object
+        Object.assign(edit, edited);
+        composer.posted();
+        toast.show(t('compose.saved'), 'info');
+        composer.close();
+        return;
       }
       const posted = await postStatus(
         client,
@@ -481,8 +547,8 @@
   <form onsubmit={submit}>
     <header>
       <button type="button" class="cancel" onclick={requestClose}>{t('common.cancel')}</button>
-      <h2 id="compose-title">{composer.replyTo ? t('compose.titleReply') : composer.quoting ? t('compose.titleQuote') : t('compose.titleNew')}</h2>
-      <button type="submit" class="send" disabled={!sendable}>{busy ? t('compose.publishing') : t('compose.publish')}</button>
+      <h2 id="compose-title">{composer.editing ? t('compose.titleEdit') : composer.replyTo ? t('compose.titleReply') : composer.quoting ? t('compose.titleQuote') : t('compose.titleNew')}</h2>
+      <button type="submit" class="send" disabled={!sendable}>{composer.editing ? (busy ? t('compose.saving') : t('compose.save')) : busy ? t('compose.publishing') : t('compose.publish')}</button>
     </header>
 
     {#if target}
@@ -531,6 +597,7 @@
           rows="6"
           aria-label={t('compose.placeholder')}
           placeholder={t('compose.placeholder')}
+          readonly={loadingSource}
         ></textarea>
       </div>
     </div>
@@ -715,7 +782,7 @@
         {:else if visibility === 'private'}<Lock size={20} aria-hidden="true" />
         {:else}<AtSign size={20} aria-hidden="true" />{/if}
         <ChevronDown size={14} aria-hidden="true" />
-        <select bind:value={visibility} onchange={() => (visibilityTouched = true)} aria-label={t('compose.visibility')} title={t('compose.visibility')}>
+        <select bind:value={visibility} disabled={!!composer.editing} onchange={() => (visibilityTouched = true)} aria-label={t('compose.visibility')} title={t('compose.visibility')}>
           {#each VISIBILITIES as v (v.value)}
             <option value={v.value}>{t(v.label)}</option>
           {/each}
