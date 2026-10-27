@@ -19,12 +19,15 @@ Scopes noted per item are the extra OAuth scopes the item needs. Adding one mean
   creator attribution) if wanted
 - [x] **Emoji picker** in the compose box: frequently used, the server's custom emoji (`GET /api/v1/custom_emojis`) and
   Unicode emoji from `emojibase-data`. Left: skin tones, autocomplete while typing `:name:`
+- [x] **Quote posts** (Mastodon 4.5): the quoted post is shown in a frame under the post, when its author has accepted
+  the quote, and the server's "RE: link" line is hidden. The quote count is shown. Left: `quote_approval_policy`
+  and revoking (see Writing)
 - [x] **Edited posts** are marked with the time of the edit (`edited_at`), and the version history opens from the mark
   (`GET /api/v1/statuses/:id/history`)
 - [ ] **No translation.** `POST /api/v1/statuses/:id/translate` (`read:statuses`) when the server supports it
   (`translation.enabled` in `/api/v2/instance`); the `language` of a post tells when to offer it
-- [ ] **Boosts grouped** in the timeline (Phanpy): consecutive boosts shown as one row
-- [ ] **Hide a boost** you have already seen, and collapse repeated boosts of the same post
+- [ ] **Boosts grouped** in the timeline (Phanpy): consecutive boosts shown as one row, and repeated boosts of the
+  same post collapsed into one
 
 ## Reading: other timelines and ways to find things
 
@@ -63,8 +66,7 @@ the reading position (markers) only exists for `home` and `notifications`, so th
   (`exclude_replies`, `only_media`, `pinned` parameters of `/accounts/:id/statuses`), and show **pinned posts**
   (`pinned=true`)
 - [ ] **Edit own profile** (`PATCH /api/v1/accounts/update_credentials`, `write:accounts`): name, bio, fields,
-  avatar, header, locked, bot. Also `GET /api/v1/preferences` (`read:accounts`) for the default language and
-  sensitive-media setting, which are only partly used now
+  avatar, header, locked, bot
 - [ ] **Account notes** and **private note** on a profile (`POST /api/v1/accounts/:id/note`, `write:accounts`)
 - [ ] **Featured hashtags** on profiles (`GET /api/v1/accounts/:id/featured_tags`) and managing own
   (`/api/v1/featured_tags`, `read:accounts`, `write:accounts`)
@@ -97,16 +99,19 @@ matters more than most features, because it decides what is in the timeline.
 
 ## Writing
 
-- [x] **Delete a post** (`DELETE /api/v1/statuses/:id`, `write:statuses`) from the post menu, after a confirmation.
-  Left: "Delete and redraft" (the response carries the source text)
+- [x] **Delete a post** (`DELETE /api/v1/statuses/:id`, `write:statuses`) from the post menu, after a confirmation
 - [x] **Edit a post** (`PUT /api/v1/statuses/:id`, `GET /api/v1/statuses/:id/source`) in the composer: text, content
   warning, pictures with their alt texts and the poll. The visibility cannot be changed, as on Mastodon
 - [x] **Create a poll** in the composer (`poll[options][]`, `expires_in`, `multiple`), within the limits of `configuration.polls`
   of the instance information. Left: `hide_totals` (Mastodon's own form does not offer it either)
+- [ ] **Delete and redraft**: delete a post and open its source text (`GET /api/v1/statuses/:id/source`, already used
+  for editing) in the composer
 - [ ] **Scheduled posts** (`scheduled_at`, `GET /api/v1/scheduled_statuses`, `read:statuses`)
 - [ ] **Drafts**: kept locally; Mastodon has no draft endpoint
 - [ ] **Quote policy per post** (`quote_approval_policy`, Mastodon 4.5): who may quote the new post
 - [ ] **Pin and unpin own posts** (`POST /api/v1/statuses/:id/pin`, `write:accounts`)
+- [x] **Quote a post**: the quote action and the quote form (`quoted_status_id`), offered only when the server supports
+  quotes and the author has not denied them. A quote that needs approval says so after it is published
 - [x] **Mentions autocomplete** while typing `@` (`GET /api/v1/accounts/search`, `read:accounts`)
 - [ ] **Hashtag autocomplete** while typing `#` (`GET /api/v2/search?type=hashtags`)
 - [ ] **Sensitive media toggle and media focal point** for uploads (`focus` in `PUT /api/v1/media/:id`)
@@ -124,6 +129,8 @@ matters more than most features, because it decides what is in the timeline.
   `api_versions`)
 - [ ] **Notification policy and requests** (`/api/v2/notifications/policy`, `/api/v1/notifications/requests`,
   Mastodon 4.3+): filtered notifications from people you do not follow, which are hidden today with no way to look
+- [ ] **Filter notifications by type**: only all and mentions can be chosen today (`types[]`). Boosts, favorites,
+  follows and so on would need no new scope
 - [ ] **Dismiss and clear notifications** (`POST /api/v1/notifications/:id/dismiss`, `/clear`, `write:notifications`)
 - [ ] **More notification types** to show and push: `admin.sign_up`, `admin.report`, `severed_relationships`,
   `moderation_warning` (these use the `push` scope for web push; showing them needs `read:notifications`)
@@ -149,8 +156,9 @@ matters more than most features, because it decides what is in the timeline.
 - [ ] **Text size setting** independent of the browser zoom
 - [ ] **Share target** in the PWA manifest (`share_target`) so a link or text from another app opens the composer
 - [ ] **Protocol handler** for `web+mastodon://` links, and opening `https://<server>/@user/<id>` links in Ronsu
-- [ ] **Text to speech** and **share a post** with the Web Share API. Copy link and open the original page are in the
-  post menu (and "View on {domain}" on profiles)
+- [ ] **Share a post** with the Web Share API. Copy link and open the original page are in the post menu (and
+  "View on {domain}" on profiles)
+- [ ] **Text to speech** for a post
 
 ## Accounts and data
 
