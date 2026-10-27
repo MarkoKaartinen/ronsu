@@ -2,11 +2,12 @@
   import type { FilterContext, Status } from '../lib/api/types';
   import { linkPreview } from '../lib/card';
   import { filterVerdict } from '../lib/filters';
+  import { splitTrailingTags, tagNamed } from '../lib/hashtag';
   import { mediaAspect } from '../lib/media';
   import Mail from '@lucide/svelte/icons/mail';
   import Repeat2 from '@lucide/svelte/icons/repeat-2';
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
-  import { profileHref, router } from '../lib/router.svelte';
+  import { profileHref, router, tagHref } from '../lib/router.svelte';
   import ActionBar from './ActionBar.svelte';
   import EditHistory from './EditHistory.svelte';
   import Poll from './Poll.svelte';
@@ -85,6 +86,8 @@
   const hideMedia = $derived((s.sensitive || verdict?.action === 'blur') && !mediaOpen);
   // Not in the light rows (thread replies, the post a reply answers) or the framed quote; the boosted post keeps it
   const preview = $derived(compact || context || (quoted && !actions) ? null : linkPreview(s));
+  // A last paragraph of only hashtags is a row of links under the post, as on Mastodon's own web interface
+  const text = $derived(splitTrailingTags(s.content, s.tags));
   const single = $derived(s.media_attachments.length === 1);
   // The quoted post is shown one level deep; the "RE: link" line that servers put in the text is then redundant
   const quotedStatus = $derived((!quoted || actions) && s.quote?.state === 'accepted' ? s.quote.quoted_status : null);
@@ -137,11 +140,21 @@
 
   /**
    * Tapping the card opens the thread, but not on interactive elements (links, buttons, media)
-   * or while selecting text. An @mention opens the profile inside the app.
+   * or while selecting text. An @mention opens the profile and a hashtag its view inside the app.
    */
   function onCardClick(e: MouseEvent) {
     if (quoted) e.stopPropagation(); // the card around it would open its own thread otherwise
     const target = e.target as HTMLElement;
+    // A hashtag link has the class mention too, so it is looked at first
+    const hashtag = target.closest<HTMLAnchorElement>('a.hashtag');
+    if (hashtag) {
+      const tag = tagNamed(s.tags, hashtag.textContent ?? '');
+      if (tag) {
+        e.preventDefault();
+        router.openTag(tag.name);
+      }
+      return;
+    }
     const link = target.closest<HTMLAnchorElement>('a.mention');
     if (link) {
       const mention = s.mentions?.find((m) => m.url === link.href);
@@ -238,7 +251,7 @@
       {/if}
 
       {#if showBody}
-        <div class="content" class:hasquote={!!quotedStatus} class:clamp={clampable} class:faded={clampable && overflowing} bind:this={contentEl}>{@html sanitizeContent(s.content, s.emojis)}</div>
+        <div class="content" class:hasquote={!!quotedStatus} class:clamp={clampable} class:faded={clampable && overflowing} bind:this={contentEl}>{@html sanitizeContent(text.html, s.emojis)}</div>
         {#if clampable && overflowing}
           <button class="more" onclick={() => (expanded = true)}>{t('status.readMore')}</button>
         {/if}
@@ -298,6 +311,14 @@
 
         {#if quotedStatus}
           <StatusCard status={quotedStatus} quoted {filterContext} />
+        {/if}
+
+        {#if text.bar.length}
+          <p class="tags">
+            {#each text.bar as tag (tag.name)}
+              <a href={tagHref(tag.name)} onclick={(e) => { e.preventDefault(); router.openTag(tag.name); }}>#{tag.name}</a>
+            {/each}
+          </p>
         {/if}
       {/if}
 
@@ -359,6 +380,12 @@
   .content { margin-top: 0.15rem; font-size: 1.06rem; line-height: 1.55; overflow-wrap: anywhere; }
   .content.clamp { max-height: calc(15 * 1.55em); overflow: hidden; }
   .content.faded { mask-image: linear-gradient(#000 calc(100% - 4.5rem), transparent); }
+  /* --chip: the colour of the pills, which is not the colour of what is behind them (the selected post and a quote are on the surface colour) */
+  .tags { --chip: var(--surface); display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.6rem 0 0; }
+  .quoted .tags, .focused .tags { --chip: var(--bg); }
+  .focused :global(.quoted .tags) { --chip: var(--surface); }
+  .tags a { padding: 0.25rem 0.75rem; border-radius: 999px; background: var(--chip); border: 1px solid var(--border); color: var(--accent); font-size: 0.95rem; font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
+  .tags a:hover { background: color-mix(in srgb, var(--accent) 14%, var(--chip)); }
   .more { margin-top: 0.3rem; padding: 0.35rem 0; border: 0; background: none; color: var(--accent); font-weight: 600; }
   .more:hover { text-decoration: underline; }
   .content :global(p) { margin: 0 0 0.6rem; }

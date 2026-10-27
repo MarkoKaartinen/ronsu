@@ -61,6 +61,11 @@ export const en = {
   'thread.title': 'Thread', // mastodon: status.replyAll ("Reply to thread")
   'thread.replyTo': 'Replying to {name}…', // mastodon: status.replying_to
   'profile.title': 'Profile',
+  'tag.title': 'Hashtag',
+  'tag.follow': 'Follow hashtag', // mastodon: hashtag.follow
+  'tag.unfollow': 'Unfollow hashtag', // mastodon: hashtag.unfollow
+  'tag.empty': 'There is nothing in this hashtag yet.', // mastodon: empty_column.hashtag
+  'tag.followFailed': 'Following the hashtag failed: {message}',
   'profile.linkVerified': 'Ownership of this link was checked on {date}', // mastodon: account.link_verified_on
   'profile.viewOn': 'View on {domain}', // mastodon: account.menu.open_original_page
 

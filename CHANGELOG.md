@@ -1,3 +1,9 @@
+### Unreleased
+
+* A hashtag in a post opens its own view with the posts that have it
+* Follow and unfollow a hashtag from its view
+* The hashtags that end a post are shown as a row of links under the post, after its pictures and link preview, as on Mastodon's own web interface
+
 ### 0.3.0: 2026-10-26
 
 * Add a menu to a post to open the original page, copy its link, mute its conversation, mute or block its author and block the author's server

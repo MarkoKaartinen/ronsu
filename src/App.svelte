@@ -13,6 +13,7 @@
   import Feed from './components/Feed.svelte';
   import Messages from './components/Messages.svelte';
   import Notifications from './components/Notifications.svelte';
+  import Hashtag from './components/Hashtag.svelte';
   import Profile from './components/Profile.svelte';
   import Thread from './components/Thread.svelte';
   import SavedPosts from './components/SavedPosts.svelte';
@@ -39,6 +40,7 @@
   const threadId = $derived(router.route.name === 'thread' ? router.route.id : null);
   const onSettings = $derived(router.route.name === 'settings');
   const savedKind = $derived(router.route.name === 'bookmarks' || router.route.name === 'favourites' ? router.route.name : null);
+  const tagName = $derived(router.route.name === 'tag' ? router.route.tag : null);
   const profileHandle = $derived(router.route.name === 'profile' ? router.route.handle : null);
   /**
    * On a wide screen there is a sidebar with the navigation, and the notifications are a second column beside the feed
@@ -168,7 +170,7 @@
     {#if !tab}
       <header class="top sticky">
         <button class="icon" onclick={() => router.back()} aria-label={t('common.back')}><ArrowLeft size={22} /></button>
-        <strong>{threadId ? t('thread.title') : t('profile.title')}</strong>
+        <strong>{threadId ? t('thread.title') : tagName ? t('tag.title') : t('profile.title')}</strong>
       </header>
     {:else if !wide}
       {@render brandBar()}
@@ -207,6 +209,10 @@
       {#if threadId}
         {#key threadId}
           <Thread client={accountStore.client()!} id={threadId} />
+        {/key}
+      {:else if tagName}
+        {#key tagName}
+          <Hashtag client={accountStore.client()!} tag={tagName} />
         {/key}
       {:else if profileHandle}
         {#key profileHandle}

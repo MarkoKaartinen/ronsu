@@ -59,6 +59,11 @@ export const fi: Record<keyof typeof en, string> = {
   'thread.title': 'Ketju',
   'thread.replyTo': 'Vastaa käyttäjälle {name}…',
   'profile.title': 'Profiili',
+  'tag.title': 'Aihetunniste',
+  'tag.follow': 'Seuraa aihetunnistetta',
+  'tag.unfollow': 'Lopeta aihetunnisteen seuraaminen',
+  'tag.empty': 'Tässä aihetunnisteessa ei ole vielä mitään.',
+  'tag.followFailed': 'Aihetunnisteen seuraaminen epäonnistui: {message}',
   'profile.linkVerified': 'Linkin omistus tarkistettiin {date}',
   'profile.viewOn': 'Näytä palvelimella {domain}',
 
