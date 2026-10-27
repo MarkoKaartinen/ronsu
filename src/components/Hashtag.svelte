@@ -14,7 +14,7 @@
   // svelte-ignore state_referenced_locally
   setContext('mastodon-client', client);
 
-  /** The hashtag as the server knows it; without it there is no follow button, but the posts still show */
+  /** The hashtag as the server knows it (for following it; its name is not shown, as a server may write it without accents); without it there is no follow button, but the posts still show */
   let info = $state<Tag | null>(null);
   let statuses = $state<Status[]>([]);
   let error = $state('');
@@ -82,7 +82,7 @@
 </script>
 
 <section class="head">
-  <h2>#{info?.name ?? tag}</h2>
+  <h2>#{tag}</h2>
   {#if info}
     <button class="follow" class:secondary={info.following} disabled={busy} onclick={onFollow}>
       {info.following ? t('tag.unfollow') : t('tag.follow')}

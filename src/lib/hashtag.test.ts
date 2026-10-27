@@ -17,6 +17,16 @@ describe('tagNamed', () => {
     expect(tagNamed(tags, '#ÄÄNET')?.name).toBe('äänet');
   });
 
+  it('ignores the accents, as the server writes the name of the hashtag without them', () => {
+    const folded = [{ name: 'pyoraily', url: 'https://mastodon.example/tags/pyoraily' }, { name: 'aanet', url: 'https://mastodon.example/tags/aanet' }];
+    expect(tagNamed(folded, '#pyöräily')?.name).toBe('pyoraily');
+    expect(tagNamed(folded, '#Pyöräily')?.name).toBe('pyoraily');
+    expect(tagNamed(folded, '#ÄÄNET')?.name).toBe('aanet');
+    expect(tagNamed(folded, '#pyoraily')?.name).toBe('pyoraily');
+    // The other way round: the text without accents, the name of the tag with them
+    expect(tagNamed([{ name: 'pyöräily', url: 'https://mastodon.example/tags/pyoraily' }], '#pyoraily')?.name).toBe('pyöräily');
+  });
+
   it('ignores a name that is not one of the hashtags of the post', () => {
     expect(tagNamed(tags, '#other')).toBeUndefined();
     expect(tagNamed(tags, '#')).toBeUndefined();
@@ -102,9 +112,24 @@ describe('splitTrailingTags', () => {
     expect(splitTrailingTags(`<p>Hello ${link('ronsu')}</p>`, both).bar.map((tag) => tag.name)).toEqual(['mastodon']);
   });
 
+  it('shows a moved hashtag as the author wrote it and one that is only in the tags by its name', () => {
+    const out = splitTrailingTags(`<p>Hello</p><p>${link('RonSu')}</p>`, [tags[0], { name: 'mastodon', url: 'https://mastodon.example/tags/mastodon' }]);
+    expect(out.bar.map((tag) => tag.label)).toEqual(['RonSu', 'mastodon']);
+  });
+
   it('does not show a hashtag twice, whatever its case', () => {
     const out = splitTrailingTags(`<p>Hello</p><p>${link('RONSU')}</p>`, [tags[0], { name: 'Ronsu', url: 'https://mastodon.example/tags/Ronsu' }]);
     expect(out.bar).toHaveLength(1);
+  });
+
+  it('does not show a hashtag again that the text writes with accents', () => {
+    const folded = [{ name: 'pyoraily', url: 'https://mastodon.example/tags/pyoraily' }];
+    const out = splitTrailingTags(`<p>Hello</p><p>${link('pyöräily')}</p>`, folded);
+    expect(out.html).toBe('<p>Hello</p>');
+    expect(out.bar.map((tag) => tag.name)).toEqual(['pyoraily']);
+    expect(out.bar.map((tag) => tag.label)).toEqual(['pyöräily']); // as the author wrote it
+    const inText = `<p>Hello ${link('pyöräily')} there</p>`;
+    expect(splitTrailingTags(inText, folded)).toEqual({ html: inText, bar: [] });
   });
 
   it('does nothing for a post without hashtags', () => {

@@ -340,7 +340,7 @@ export async function mockMastodon(page: Page, server: Server) {
         (server.tagFollows ??= []).push(action);
         server.tagFollowing = action === 'follow';
       }
-      return json({ name: decodeURIComponent(tagPath[1]), url: `${HOST}/tags/${tagPath[1]}`, history: [], following: !!server.tagFollowing });
+      return json({ name: decodeURIComponent(tagPath[1]).normalize('NFD').replace(/\p{M}/gu, '').toLowerCase(), url: `${HOST}/tags/${tagPath[1]}`, history: [], following: !!server.tagFollowing });
     }
     if (url.pathname === '/api/v1/accounts/2/statuses') {
       const query = Object.fromEntries(url.searchParams);
