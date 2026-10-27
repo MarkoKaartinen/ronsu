@@ -54,6 +54,7 @@ Source code and issues: <https://github.com/MarkoKaartinen/ronsu>
 - Edit your own posts from the post menu, in the same form as a new post (the visibility cannot be changed, as on Mastodon)
 - Delete your own posts from the post menu (it asks first)
 - Your own profile from the sidebar on a wide screen and the menu drawer on a phone
+- Hashtags: a hashtag in a post opens a view with its posts, where it can be followed and unfollowed (followed hashtags come to the home timeline). The hashtags that end a post (also when a link follows them) are shown as a row of links under the post, as on Mastodon's own web interface; a single hashtag after text and the ones in the middle of a sentence stay in the text
 - A mark on an edited post, with the time of the edit; it opens the version history
 - Installable as a PWA, works offline for the app shell
 

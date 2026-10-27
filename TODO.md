@@ -36,9 +36,15 @@ the reading position (markers) only exists for `home` and `notifications`, so th
 "read through" in the same way unless they are kept simple.
 
 - [ ] **Lists** (`GET /api/v1/lists`, `/api/v1/timelines/list/:id`, `read:lists`). A smaller timeline that can be read through
-- [ ] **Hashtags**: open a hashtag from a post (`GET /api/v1/timelines/tag/:tag`), follow and unfollow a tag
-  (`POST /api/v1/tags/:id/follow`, `write:follows`; followed tags appear in the home timeline already), and make
-  hashtags in post content link to the hashtag view instead of the remote server
+- [x] **Hashtags**: a hashtag in a post opens its view (`GET /api/v1/timelines/tag/:tag`, no extra scope) with a button
+  to follow and unfollow the tag (`POST /api/v1/tags/:tag/follow`, `write:follows`; followed tags appear in the home
+  timeline already). Left: the options of the view (see below)
+- [x] **Hashtag bar**: the hashtags that end a post are shown as a row of links under it, as in the official web UI
+  (which moves only a last line of nothing but hashtags). Left: its "+N" collapse for a long row
+- [ ] **Options of the hashtag view**: only posts with media (`only_media`), only local posts (`local`) and
+  other tags together with it (`any[]`, `all[]`, `none[]`). Low priority
+- [ ] **Hashtag links outside posts** (profile notes and fields) open the hashtag view
+  too; only the links in the text of a post do today
 - [ ] **Local and federated timelines** (`/api/v1/timelines/public`, `local=true`). Optional: the home timeline stays the main view
 - [ ] **Search** (`GET /api/v2/search`, `read:search`): accounts, hashtags, posts. Includes resolving a
   pasted `@user@server` or post URL (`resolve=true`)

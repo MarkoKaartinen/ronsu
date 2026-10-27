@@ -70,6 +70,13 @@ export interface Mention {
   url: string;
 }
 
+/** A hashtag of a post (`Status.tags`), or the hashtag itself (GET /tags/:name, where `following` is set for a signed-in account) */
+export interface Tag {
+  name: string;
+  url: string;
+  following?: boolean;
+}
+
 export type Visibility = 'public' | 'unlisted' | 'private' | 'direct';
 
 export interface Poll {
@@ -137,6 +144,7 @@ export interface Status {
   media_attachments: MediaAttachment[];
   emojis: CustomEmoji[];
   mentions?: Mention[];
+  tags?: Tag[];
   poll?: Poll | null;
   replies_count: number;
   reblogs_count: number;

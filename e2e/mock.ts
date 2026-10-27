@@ -41,9 +41,21 @@ let withCards = false;
 /** Every post has a poll (set from Server.poll) */
 let withPoll: Server['poll'];
 let ownPosts = false;
+/** Some posts (i % 5 === 2) have a hashtag (set from Server.hashtags) */
+let withTags = false;
+/** With hashtags: they are a paragraph of their own at the end of the post, not in the text (set from Server.hashtagLine) */
+let tagLine = false;
+/** With hashtags: #ronsu and #mastodon end the text, in its own paragraph (set from Server.hashtagEnd) */
+let tagEnd = false;
 let edited = false;
 /** Polls of each upload (the file is ready on the second one) */
 const polls: Record<string, number> = {};
+
+/** As in the content of a post from another server: its own address for the hashtag and the name as its author wrote it, while `tags` has the name in lower case and the address of the signed-in account's server */
+const tagLink = (name: string) => {
+  const written = name[0].toUpperCase() + name.slice(1);
+  return `<a href="https://remote.example/tags/${written}" class="mention hashtag" rel="tag">#<span>${written}</span></a>`;
+};
 
 function status(i: number, withQuote = true) {
   return {
@@ -54,7 +66,7 @@ function status(i: number, withQuote = true) {
     edited_at: edited ? new Date(Date.UTC(2026, 9, 4, 6, 0, 0) + i * 60_000).toISOString() : null,
     created_at: new Date(Date.UTC(2026, 9, 4, 5, 0, 0) + i * 60_000).toISOString(), // every post a minute after the previous
     account: { id: ownPosts ? '1' : '2', username: 'u', acct: 'u', display_name: 'U', avatar: '', url: '', emojis: [] },
-    content: `<p>Post ${i}. ${i % 7 === 1 ? '<a class="u-url mention" href="https://mock.test/@maija" rel="nofollow" target="_blank">@<span>maija</span></a> ' : ''}${'Lorem ipsum dolor sit amet. '.repeat(6 + (i % 5))}</p>${formatted && i % 5 === 3 ? '<blockquote><p>A quoted line of text that is long enough to wrap onto a second line when the column is narrow.</p></blockquote><pre><code>const x = 1;</code></pre><p>Inline <code>code</code>.</p><ul><li>one</li><li>two</li></ul>' : ''}`,
+    content: `<p>Post ${i}. ${i % 7 === 1 ? '<a class="u-url mention" href="https://mock.test/@maija" rel="nofollow" target="_blank">@<span>maija</span></a> ' : ''}${'Lorem ipsum dolor sit amet. '.repeat(6 + (i % 5))}${withTags && !tagLine && i % 5 === 2 ? (tagEnd ? `${tagLink('ronsu')} ${tagLink('mastodon')}` : tagLink('ronsu')) : ''}</p>${withTags && tagLine && i % 5 === 2 ? `<p>${tagLink('ronsu')} ${tagLink('mastodon')}</p>` : ''}${formatted && i % 5 === 3 ? '<blockquote><p>A quoted line of text that is long enough to wrap onto a second line when the column is narrow.</p></blockquote><pre><code>const x = 1;</code></pre><p>Inline <code>code</code>.</p><ul><li>one</li><li>two</li></ul>' : ''}`,
     spoiler_text: withCw && i % 4 === 2 ? (longCw ? 'food talk: a long warning that does not fit on one line next to the button, so it has to wrap onto several lines of text' : 'food talk') : '',
     sensitive: sensitiveMedia,
     visibility: 'public',
@@ -70,6 +82,7 @@ function status(i: number, withQuote = true) {
           }))
         : [],
     emojis: [],
+    tags: withTags && i % 5 === 2 ? (tagLine || tagEnd ? ['ronsu', 'mastodon'] : ['ronsu']).map((name) => ({ name, url: `${HOST}/tags/${name}` })) : [],
     mentions: i % 7 === 1 ? [{ id: '2', username: 'maija', acct: 'maija', url: 'https://mock.test/@maija' }] : [],
     replies_count: 0,
     reblogs_count: 0,
@@ -147,6 +160,13 @@ export interface Server {
   actions?: string[]; // POST /statuses/:id/<action>
   edited?: boolean; // every post has been edited
   own?: boolean; // the posts are written by the signed-in account
+  hashtags?: boolean; // some posts have the hashtag #ronsu
+  hashtagEnd?: boolean; // with `hashtags`: the text of the posts ends with #ronsu and #mastodon, in the same paragraph
+  hashtagLine?: boolean; // with `hashtags`: the posts end with a paragraph of #ronsu and #mastodon
+  tagFollowing?: boolean; // the signed-in account follows #ronsu
+  tagFollows?: string[]; // follow and unfollow of a hashtag
+  tagTimelines?: { tag: string; maxId: string | null }[]; // GET /timelines/tag/:tag
+  failTagFollow?: boolean;
   deleted?: string[]; // ids of DELETE /statuses/:id
   failDelete?: boolean;
   sourceCw?: string; // the content warning in GET /statuses/:id/source
@@ -185,6 +205,9 @@ export async function mockMastodon(page: Page, server: Server) {
   withPoll = server.poll;
   edited = !!server.edited;
   ownPosts = !!server.own || !!server.poll?.own;
+  withTags = !!server.hashtags;
+  tagLine = !!server.hashtagLine;
+  tagEnd = !!server.hashtagEnd;
   await page.route(`${HOST}/**`, async (route) => {
     const req = route.request();
     const cors = {
@@ -300,6 +323,22 @@ export async function mockMastodon(page: Page, server: Server) {
       (server.conversationMutes ??= []).push(threadMute[2]);
       threadMuted = threadMute[2] === 'mute';
       return json({ ...status(0), id: threadMute[1], muted: threadMuted });
+    }
+    const tagTimeline = url.pathname.match(/^\/api\/v1\/timelines\/tag\/([^/]+)$/);
+    if (tagTimeline) {
+      const maxId = url.searchParams.get('max_id');
+      (server.tagTimelines ??= []).push({ tag: decodeURIComponent(tagTimeline[1]), maxId });
+      return json(maxId ? [] : Array.from({ length: 20 }, (_, k) => 29 - k).map(status)); // a full page, the oldest is post 10
+    }
+    const tagPath = url.pathname.match(/^\/api\/v1\/tags\/([^/]+)(?:\/(follow|unfollow))?$/);
+    if (tagPath) {
+      const action = tagPath[2];
+      if (action && server.failTagFollow) return route.fulfill({ status: 422, headers: { ...cors, 'content-type': 'application/json' }, body: '{"error":"Ei onnistu"}' });
+      if (action) {
+        (server.tagFollows ??= []).push(action);
+        server.tagFollowing = action === 'follow';
+      }
+      return json({ name: decodeURIComponent(tagPath[1]), url: `${HOST}/tags/${tagPath[1]}`, history: [], following: !!server.tagFollowing });
     }
     if (url.pathname === '/api/v1/accounts/2/statuses') {
       if (url.searchParams.get('max_id')) return json([]);
