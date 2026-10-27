@@ -1,5 +1,7 @@
 ### Unreleased
 
+* A profile has tabs for the posts, the posts and replies and the media
+* The pinned posts of a profile are first on its posts tab
 * A hashtag in a post opens its own view with the posts that have it
 * Follow and unfollow a hashtag from its view
 * The hashtags that end a post are shown as a row of links under the post, after its pictures and link preview, as on Mastodon's own web interface

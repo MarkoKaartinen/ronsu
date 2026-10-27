@@ -160,6 +160,8 @@ export interface Server {
   actions?: string[]; // POST /statuses/:id/<action>
   edited?: boolean; // every post has been edited
   own?: boolean; // the posts are written by the signed-in account
+  profileRequests?: Record<string, string>[]; // the queries of GET /accounts/2/statuses
+  pinnedPost?: boolean; // the profile has post 12 pinned
   hashtags?: boolean; // some posts have the hashtag #ronsu
   hashtagEnd?: boolean; // with `hashtags`: the text of the posts ends with #ronsu and #mastodon, in the same paragraph
   hashtagLine?: boolean; // with `hashtags`: the posts end with a paragraph of #ronsu and #mastodon
@@ -341,8 +343,15 @@ export async function mockMastodon(page: Page, server: Server) {
       return json({ name: decodeURIComponent(tagPath[1]), url: `${HOST}/tags/${tagPath[1]}`, history: [], following: !!server.tagFollowing });
     }
     if (url.pathname === '/api/v1/accounts/2/statuses') {
-      if (url.searchParams.get('max_id')) return json([]);
-      return json([14, 13, 12, 11, 10].map(status));
+      const query = Object.fromEntries(url.searchParams);
+      (server.profileRequests ??= []).push(query);
+      if (query.pinned) return json(server.pinnedPost ? [12].map(status) : []); // post 12 is in the list too, as on a real server
+      if (query.max_id) return json([]);
+      // The tabs: posts (replies to others left out), media, and posts with replies, which answers late so a quick change of tab can be tested
+      if (query.only_media) return json([12, 9, 6].map(status));
+      if (query.exclude_replies) return json([14, 13, 12, 11, 10].map(status));
+      await new Promise((r) => setTimeout(r, 400));
+      return json([24, 23, 22, 21, 20].map(status));
     }
     if (url.pathname === '/api/v1/accounts/2' || url.pathname === '/api/v1/accounts/lookup') {
       return json({

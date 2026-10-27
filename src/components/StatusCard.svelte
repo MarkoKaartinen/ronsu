@@ -5,6 +5,7 @@
   import { splitTrailingTags, tagNamed } from '../lib/hashtag';
   import { mediaAspect } from '../lib/media';
   import Mail from '@lucide/svelte/icons/mail';
+  import Pin from '@lucide/svelte/icons/pin';
   import Repeat2 from '@lucide/svelte/icons/repeat-2';
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
   import { profileHref, router, tagHref } from '../lib/router.svelte';
@@ -32,6 +33,7 @@
    * card keeps its buttons (the original post inside a boost). filterContext: the view the card is in, which
    * decides which of the user's server-side filters apply (none without it; the selected post is never filtered).
    * markPrivate: a post that is a private mention says so (off in the view that only lists private mentions).
+   * pinned: the post is pinned to the profile it is shown in, and says so.
    */
   let {
     status,
@@ -48,6 +50,7 @@
     actions = false,
     filterContext,
     markPrivate = true,
+    pinned = false,
   }: {
     status: Status;
     focused?: boolean;
@@ -63,6 +66,7 @@
     actions?: boolean;
     filterContext?: FilterContext;
     markPrivate?: boolean;
+    pinned?: boolean;
   } = $props();
 
   // A boost shows the original; the wrapper's id is still the reading-position key (data-id)
@@ -225,6 +229,10 @@
           </svelte:element>
           {#if s.edited_at}<button type="button" class="edited" title="{editedTitle} · {t('status.showVersions')}" aria-label="{editedTitle} · {t('status.showVersions')}" onclick={() => (historyOpen = true)}>*</button>{/if}
         </header>
+      {/if}
+
+      {#if pinned}
+        <p class="pinned"><Pin size={14} aria-hidden="true" />{t('status.pinned')}</p>
       {/if}
 
       {#if markPrivate && s.visibility === 'direct'}
@@ -457,6 +465,7 @@
   .context { padding-top: 1rem; }
   .context::before { display: none; }
   .joined { padding-top: 0.25rem; }
+  .pinned { display: flex; align-items: center; gap: 0.35rem; margin: 0.1rem 0 0; color: var(--muted); font-size: 0.9rem; font-weight: 600; }
   .private { display: flex; align-items: center; gap: 0.35rem; margin: 0.1rem 0 0; color: var(--accent); font-size: 0.9rem; font-weight: 600; }
   .replyto { margin: 0.1rem 0 0; color: var(--muted); font-size: 0.9rem; }
   .replyto span { color: var(--accent); }

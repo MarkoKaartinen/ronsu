@@ -3,7 +3,7 @@
   import Ellipsis from '@lucide/svelte/icons/ellipsis';
   import ExternalLink from '@lucide/svelte/icons/external-link';
   import { onMount, setContext, untrack } from 'svelte';
-  import { getAccount, getRelationship, lookupAccount, blockDomain, moderationEndpoint, muteAccount, type Moderation } from '../lib/api/accounts';
+  import { getAccount, getAccountStatuses, getPinnedStatuses, getRelationship, lookupAccount, blockDomain, moderationEndpoint, muteAccount, type Moderation, type ProfileTab } from '../lib/api/accounts';
   import { ApiError, type MastodonClient } from '../lib/api/client';
   import { startLogin } from '../lib/api/oauth';
   import type { AccountFull, Relationship, Status } from '../lib/api/types';
@@ -25,12 +25,28 @@
   // svelte-ignore state_referenced_locally
   setContext('mastodon-client', client);
 
-  const PAGE = 20;
+  const TABS: { tab: ProfileTab; label: 'profile.posts' | 'profile.postsAndReplies' | 'profile.media' }[] = [
+    { tab: 'posts', label: 'profile.posts' },
+    { tab: 'replies', label: 'profile.postsAndReplies' },
+    { tab: 'media', label: 'profile.media' },
+  ];
   const number = { format: (n: number) => formatNumber(n, i18n.locale) };
 
   let account = $state<AccountFull | null>(null);
   let rel = $state<Relationship | null>(null);
   let statuses = $state<Status[]>([]);
+  let tab = $state<ProfileTab>('posts');
+  /**
+   * The height of the posts while another tab is loading. The list is empty meanwhile, and a page that suddenly
+   * is shorter would throw a reader who has scrolled to the tabs back to the top.
+   */
+  let holdHeight = $state(0);
+  let results: HTMLElement | undefined = $state();
+  /** The pinned posts, shown first on the posts tab only */
+  let pinned = $state<Status[]>([]);
+  let pinnedLoaded = false;
+  /** Counts the tab changes: an answer that comes after another tab was chosen belongs to the old one and is dropped */
+  let generation = 0;
   let error = $state('');
   let loadingMore = $state(false);
   let end = $state(false);
@@ -43,6 +59,10 @@
   /** The question being asked before a mute, a block or a domain block */
   let ask = $state<Ask | null>(null);
   let sentinel: HTMLElement | undefined = $state();
+
+  /** The list of the tab; the pinned posts are above it, so they are not in it again */
+  const shown = $derived(tab === 'posts' ? statuses.filter((s) => !pinned.some((p) => p.id === s.id)) : statuses);
+  const pinnedShown = $derived(tab === 'posts' ? pinned : []);
 
   const domain = $derived(account ? remoteDomain(account.acct) : null);
   const isSelf = $derived(account?.id === accountStore.active?.accountId);
@@ -57,31 +77,54 @@
     try {
       account = handle.startsWith('@') ? await lookupAccount(client, handle.slice(1)) : await getAccount(client, handle);
       if (account.id !== accountStore.active?.accountId) rel = await getRelationship(client, account.id);
+      // The list waits for them, so they are not pushed in above it after it shows; without them the posts still show
+      getPinnedStatuses(client, account.id)
+        .then(
+          (list) => (pinned = list),
+          () => {},
+        )
+        .finally(() => {
+          pinnedLoaded = true;
+          void loadMore();
+        });
     } catch (e) {
       error = e instanceof ApiError && e.status === 404 ? t('profile.notFound') : errorText(e);
     }
   }
 
   async function loadMore() {
-    if (!account || loadingMore || end || error) return;
+    if (!account || !pinnedLoaded || loadingMore || end || error) return;
     loadingMore = true;
+    const mine = generation;
     try {
       const last = statuses[statuses.length - 1];
-      const page = await client.getPage<Status>(`/api/v1/accounts/${account.id}/statuses`, {
-        limit: PAGE,
-        exclude_replies: 'true',
-        max_id: last?.id,
-      });
+      const page = await getAccountStatuses(client, account.id, tab, last?.id);
+      if (mine !== generation) return;
       // Never list the same post twice (a duplicate key would crash the keyed list)
       const known = new Set(statuses.map((s) => s.id));
       const fresh = page.items.filter((s) => !known.has(s.id));
       if (fresh.length === 0) end = true;
       else statuses.push(...fresh);
     } catch (e) {
-      error = errorText(e);
+      if (mine === generation) error = errorText(e);
     } finally {
-      loadingMore = false;
+      if (mine === generation) {
+        loadingMore = false;
+        holdHeight = 0;
+      }
     }
+  }
+
+  function selectTab(next: ProfileTab) {
+    if (next === tab) return;
+    holdHeight = results?.offsetHeight ?? 0;
+    tab = next;
+    generation++;
+    statuses = [];
+    end = false;
+    error = '';
+    loadingMore = false;
+    void loadMore();
   }
 
   async function onFollow() {
@@ -266,20 +309,27 @@
     </dl>
   </section>
 
-  {#if statuses.length}
-    <h3 class="section">{t('profile.posts')}</h3>
-  {/if}
-  <div class="list">
-    {#each statuses as status (status.id)}
-      <StatusCard {status} filterContext="account" />
+  <div class="tabs">
+    {#each TABS as { tab: id, label } (id)}
+      <button class:active={tab === id} aria-pressed={tab === id} onclick={() => selectTab(id)}>{t(label)}</button>
     {/each}
   </div>
+  <div class="results" style:min-height={holdHeight ? `${holdHeight}px` : undefined} bind:this={results}>
+    <div class="list">
+      {#each pinnedShown as status (status.id)}
+        <StatusCard {status} filterContext="account" pinned />
+      {/each}
+      {#each shown as status (status.id)}
+        <StatusCard {status} filterContext="account" />
+      {/each}
+    </div>
 
-  {#if loadingMore}
-    <p class="msg">Ladataan…</p>
-  {:else if end}
-    <p class="msg">{statuses.length ? t('profile.noMore') : t('profile.noPosts')}</p>
-  {/if}
+    {#if loadingMore}
+      <p class="msg">{t('common.loading')}</p>
+    {:else if end}
+      <p class="msg">{shown.length || pinnedShown.length ? t('profile.noMore') : t('profile.noPosts')}</p>
+    {/if}
+  </div>
   <div bind:this={sentinel} class="sentinel" aria-hidden="true"></div>
 {/if}
 
@@ -329,6 +379,8 @@
   .counts div + div { border-left: 1px solid var(--border); }
   .counts dt { color: var(--muted); font-size: 0.8rem; order: 2; }
   .counts dd { margin: 0; font-weight: 700; font-size: 1.15rem; }
-  .section { margin: 0; padding: 1rem 1rem 0.6rem; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); }
+  .tabs { display: flex; border-bottom: 1px solid var(--border); }
+  .tabs button { flex: 1; min-height: 3rem; padding: 0 0.5rem; border: 0; border-bottom: 3px solid transparent; background: none; color: var(--muted); font: inherit; font-weight: 600; }
+  .tabs button.active { color: var(--text); border-bottom-color: var(--accent); }
   .sentinel { height: 1px; }
 </style>
