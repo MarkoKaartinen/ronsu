@@ -8,6 +8,27 @@ export const getAccount = (client: MastodonClient, id: string) => client.get<Acc
 export const lookupAccount = (client: MastodonClient, acct: string) =>
   client.get<AccountFull>('/api/v1/accounts/lookup', { acct });
 
+/** The parts of a profile: the posts (replies to others left out), the posts and replies, and the posts with media */
+export type ProfileTab = 'posts' | 'replies' | 'media';
+
+/** What each tab asks of `/accounts/:id/statuses`: `exclude_replies` leaves out only replies to other accounts, so a thread of the account's own stays */
+const TAB_FILTERS: Record<ProfileTab, Record<string, string>> = {
+  posts: { exclude_replies: 'true' },
+  replies: {},
+  media: { only_media: 'true' },
+};
+
+/** Mastodon's own default page size for the posts of an account (the maximum is 40) */
+export const PROFILE_PAGE = 20;
+
+/** A page of the posts of an account for a tab, newest first; pages go by post id (`max_id`) */
+export const getAccountStatuses = (client: MastodonClient, id: string, tab: ProfileTab, maxId?: string) =>
+  client.getPage<Status>(`/api/v1/accounts/${id}/statuses`, { limit: PROFILE_PAGE, ...TAB_FILTERS[tab], max_id: maxId });
+
+/** The posts the account has pinned to its profile. The ordinary list has them too, in their place by time. */
+export const getPinnedStatuses = (client: MastodonClient, id: string) =>
+  client.get<Status[]>(`/api/v1/accounts/${id}/statuses`, { pinned: 'true' });
+
 export async function getRelationship(client: MastodonClient, id: string): Promise<Relationship | null> {
   const list = await client.get<Relationship[]>(`/api/v1/accounts/relationships?id[]=${encodeURIComponent(id)}`);
   return list[0] ?? null;

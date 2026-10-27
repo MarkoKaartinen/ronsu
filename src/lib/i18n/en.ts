@@ -99,6 +99,7 @@ export const en = {
   'feed.error.markerSave': 'Could not save your reading position to Mastodon: {message}',
 
   'status.boost': 'Boost',
+  'status.pinned': 'Pinned post', // mastodon: status.pinned
   'status.boostedBy': '{name} boosted', // mastodon: status.reblogged_by
   'status.replyingTo': 'Replying to',
   'poll.votes.one': '{count} vote',
@@ -280,6 +281,8 @@ export const en = {
   'profile.locked': 'Locked', // mastodon: compose_form.lock_disclaimer.lock
   'profile.bot': 'Automated', // mastodon: account.badges.bot
   'profile.posts': 'Posts', // mastodon: account.posts
+  'profile.postsAndReplies': 'Posts and replies', // mastodon: account.posts_with_replies
+  'profile.media': 'Media', // mastodon: account.media
   'profile.following': 'Following', // mastodon: account.following
   'profile.followers': 'Followers', // mastodon: account.followers
   'profile.notFound': 'Profile unavailable', // mastodon: empty_column.account_unavailable

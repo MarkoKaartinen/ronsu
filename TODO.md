@@ -68,9 +68,9 @@ the reading position (markers) only exists for `home` and `notifications`, so th
 
 - [ ] **Followers and following lists** of a profile (counts are shown, the lists are not):
   `GET /api/v1/accounts/:id/followers` and `/following`
-- [ ] **Profile tabs**: posts only today. Add "Posts and replies" and "Media"
-  (`exclude_replies`, `only_media`, `pinned` parameters of `/accounts/:id/statuses`), and show **pinned posts**
-  (`pinned=true`)
+- [x] **Profile tabs**: posts, posts and replies and media (`exclude_replies`, `only_media` of
+  `/accounts/:id/statuses`), and the **pinned posts** (`pinned=true`) first on the posts tab. Left: hiding boosts
+  (`exclude_reblogs`), the posts of one hashtag (`tagged`, with the featured hashtags below)
 - [ ] **Edit own profile** (`PATCH /api/v1/accounts/update_credentials`, `write:accounts`): name, bio, fields,
   avatar, header, locked, bot
 - [ ] **Account notes** and **private note** on a profile (`POST /api/v1/accounts/:id/note`, `write:accounts`)

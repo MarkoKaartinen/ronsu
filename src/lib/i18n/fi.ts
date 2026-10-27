@@ -97,6 +97,7 @@ export const fi: Record<keyof typeof en, string> = {
   'feed.error.markerSave': 'Lukukohdan tallennus Mastodoniin epäonnistui: {message}',
 
   'status.boost': 'Tehostus',
+  'status.pinned': 'Kiinnitetty julkaisu',
   'status.boostedBy': '{name} tehosti',
   'status.replyingTo': 'Vastauksena käyttäjälle',
   'poll.votes.one': '{count} ääni',
@@ -278,6 +279,8 @@ export const fi: Record<keyof typeof en, string> = {
   'profile.locked': 'Lukittu',
   'profile.bot': 'Botti',
   'profile.posts': 'Julkaisut',
+  'profile.postsAndReplies': 'Julkaisut ja vastaukset',
+  'profile.media': 'Media',
   'profile.following': 'Seurattavat',
   'profile.followers': 'Seuraajat',
   'profile.notFound': 'Profiili ei saatavilla',
