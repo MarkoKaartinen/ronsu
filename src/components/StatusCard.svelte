@@ -152,10 +152,11 @@
     // A hashtag link has the class mention too, so it is looked at first
     const hashtag = target.closest<HTMLAnchorElement>('a.hashtag');
     if (hashtag) {
-      const tag = tagNamed(s.tags, hashtag.textContent ?? '');
-      if (tag) {
+      // The name as written (the server finds the hashtag by it however it is spelled): the view then says it right from the start
+      const written = (hashtag.textContent ?? '').trim().replace(/^#/, '');
+      if (tagNamed(s.tags, written)) {
         e.preventDefault();
-        router.openTag(tag.name);
+        router.openTag(written);
       }
       return;
     }
@@ -324,7 +325,7 @@
         {#if text.bar.length}
           <p class="tags">
             {#each text.bar as tag (tag.name)}
-              <a href={tagHref(tag.name)} onclick={(e) => { e.preventDefault(); router.openTag(tag.name); }}>#{tag.name}</a>
+              <a href={tagHref(tag.label)} onclick={(e) => { e.preventDefault(); router.openTag(tag.label); }}>#{tag.label}</a>
             {/each}
           </p>
         {/if}
