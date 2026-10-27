@@ -1,4 +1,4 @@
-### Unreleased
+### 0.3.1: 2026-10-27
 
 * A profile has tabs for the posts, the posts and replies and the media
 * The pinned posts of a profile are first on its posts tab
