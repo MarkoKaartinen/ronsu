@@ -1,5 +1,6 @@
 ### Unreleased
 
+* The hover of the action buttons is visible in a boost and on every theme
 * Fix a hashtag with accents, such as `#pyöräily`, showing twice under a post; the hashtags under a post and the view of a hashtag are written as the author wrote them
 
 ### 0.3.1: 2026-10-27
