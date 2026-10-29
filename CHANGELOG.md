@@ -1,3 +1,7 @@
+### Unreleased
+
+* More space between the hashtags under a post and the action buttons, so the hover of a button does not touch them
+
 ### 0.3.2: 2026-10-29
 
 * The hashtags under a post show one row when they take more, and a chevron opens the rest and closes them again

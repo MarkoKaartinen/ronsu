@@ -418,7 +418,7 @@
   .content.clamp { max-height: calc(15 * 1.55em); overflow: hidden; }
   .content.faded { mask-image: linear-gradient(#000 calc(100% - 4.5rem), transparent); }
   /* --chip: the colour of the pills, which is not the colour of what is behind them (the selected post and a quote are on the surface colour) */
-  .tagbar { --chip: var(--surface); --tag-row: calc(0.95rem * 1.3 + 0.5rem + 2px); display: flex; gap: 0.4rem; align-items: flex-start; margin-top: 0.6rem; }
+  .tagbar { --chip: var(--surface); --tag-row: calc(0.95rem * 1.3 + 0.5rem + 2px); display: flex; gap: 0.4rem; align-items: flex-start; margin: 0.6rem 0 0.4rem; }
   .tags { display: flex; flex-wrap: wrap; flex: 1; min-width: 0; gap: 0.4rem; margin: 0; }
   /* One row of pills (the row height is the pill's own) */
   .tags.collapsed { max-height: var(--tag-row); overflow: hidden; }
