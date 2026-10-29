@@ -113,6 +113,8 @@ export const en = {
   'poll.reveal': 'See results', // mastodon: poll.reveal
   'poll.back': 'Back to voting',
   'status.readMore': 'Read more',
+  'status.showMore': 'Show more',
+  'status.showLess': 'Show less',
   'status.cwShow': 'Show',
   'status.cwHide': 'Hide',
   'status.showPost': 'Show post', // mastodon: content_warning.show_post

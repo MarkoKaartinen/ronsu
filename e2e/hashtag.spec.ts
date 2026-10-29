@@ -78,6 +78,33 @@ test('a last paragraph of hashtags is a row of links under the post, and a link 
   await expect(page).not.toHaveURL(/#\/tag/);
 });
 
+test('a hashtag row of more than one line is cut to one, and a chevron opens and closes it', async ({ page }) => {
+  const names = Array.from({ length: 14 }, (_, i) => `Longhashtagnumber${i}`);
+  await page.setViewportSize({ width: 390, height: 800 });
+  await open(page, { marker: null, posts: [], hashtags: true, hashtagLine: true, hashtagNames: names });
+  const post = page.locator('article[data-id]', { has: page.locator('.tags') }).first();
+  const tags = post.locator('.tags');
+  const rows = () => tags.evaluate((el) => new Set(Array.from(el.children, (c) => (c as HTMLElement).offsetTop)).size);
+  const visibleHeight = () => tags.evaluate((el) => el.clientHeight);
+
+  await expect(tags).toHaveClass(/collapsed/);
+  const cut = await visibleHeight();
+  await post.getByRole('button', { name: 'Show more' }).click();
+  await expect(tags).not.toHaveClass(/collapsed/);
+  expect(await visibleHeight()).toBeGreaterThan(cut);
+  expect(await rows()).toBeGreaterThan(1);
+
+  await post.getByRole('button', { name: 'Show less' }).click();
+  await expect(tags).toHaveClass(/collapsed/);
+  expect(await visibleHeight()).toBe(cut);
+});
+
+test('a hashtag row of one line has no chevron', async ({ page }) => {
+  await open(page, { marker: null, posts: [], hashtags: true, hashtagLine: true });
+  await expect(page.locator('.tags a').first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Show more' })).toHaveCount(0);
+});
+
 test('a hashtag inside the text stays in the text', async ({ page }) => {
   await open(page, { marker: null, posts: [], hashtags: true });
   await expect(page.locator('.tags')).toHaveCount(0);
@@ -96,7 +123,7 @@ test('hashtags that end the text of a post are moved under it too', async ({ pag
 test('the hashtags are the last thing under a post, after the pictures and the link preview', async ({ page }) => {
   await open(page, { marker: null, posts: [], hashtags: true, hashtagLine: true, cards: true });
   const post = page.locator('article[data-id]', { has: page.locator('.preview') }).filter({ has: page.locator('.tags') }).first();
-  await expect(post.locator('.preview ~ .tags')).toHaveCount(1);
+  await expect(post.locator('.preview ~ .tagbar .tags')).toHaveCount(1);
 });
 
 test('the view names the hashtag as it was opened, not as the server writes it', async ({ page }) => {
