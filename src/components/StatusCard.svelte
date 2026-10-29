@@ -5,6 +5,8 @@
   import { splitTrailingTags, tagNamed } from '../lib/hashtag';
   import { mediaAspect } from '../lib/media';
   import Mail from '@lucide/svelte/icons/mail';
+  import ChevronDown from '@lucide/svelte/icons/chevron-down';
+  import ChevronUp from '@lucide/svelte/icons/chevron-up';
   import Pin from '@lucide/svelte/icons/pin';
   import Repeat2 from '@lucide/svelte/icons/repeat-2';
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
@@ -117,6 +119,25 @@
     return () => ro.disconnect();
   });
 
+
+  /** The hashtag row under the post shows one row of pills, the rest opens with a chevron (measured like the text above) */
+  let tagsEl: HTMLElement | undefined = $state();
+  let tagsOpen = $state(false);
+  let tagsOverflow = $state(false);
+
+  $effect(() => {
+    const el = tagsEl;
+    if (!el) return;
+    const measure = () => {
+      // Open, the row is not cut, so it is the number of rows that tells (the chevron must stay to close it)
+      const rows = new Set(Array.from(el.children, (c) => (c as HTMLElement).offsetTop)).size;
+      tagsOverflow = rows > 1;
+    };
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    measure();
+    return () => ro.disconnect();
+  });
 
   function openBooster(e: Event) {
     e.preventDefault();
@@ -323,11 +344,18 @@
         {/if}
 
         {#if text.bar.length}
-          <p class="tags">
-            {#each text.bar as tag (tag.name)}
-              <a href={tagHref(tag.label)} onclick={(e) => { e.preventDefault(); router.openTag(tag.label); }}>#{tag.label}</a>
-            {/each}
-          </p>
+          <div class="tagbar">
+            <p class="tags" class:collapsed={tagsOverflow && !tagsOpen} bind:this={tagsEl}>
+              {#each text.bar as tag (tag.name)}
+                <a href={tagHref(tag.label)} onclick={(e) => { e.preventDefault(); router.openTag(tag.label); }}>#{tag.label}</a>
+              {/each}
+            </p>
+            {#if tagsOverflow}
+              <button class="tagtoggle" onclick={() => (tagsOpen = !tagsOpen)} aria-expanded={tagsOpen} title={tagsOpen ? t('status.showLess') : t('status.showMore')} aria-label={tagsOpen ? t('status.showLess') : t('status.showMore')}>
+                {#if tagsOpen}<ChevronUp size={16} aria-hidden="true" />{:else}<ChevronDown size={16} aria-hidden="true" />{/if}
+              </button>
+            {/if}
+          </div>
         {/if}
       {/if}
 
@@ -390,10 +418,16 @@
   .content.clamp { max-height: calc(15 * 1.55em); overflow: hidden; }
   .content.faded { mask-image: linear-gradient(#000 calc(100% - 4.5rem), transparent); }
   /* --chip: the colour of the pills, which is not the colour of what is behind them (the selected post and a quote are on the surface colour) */
-  .tags { --chip: var(--surface); display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.6rem 0 0; }
-  .quoted .tags, .focused .tags { --chip: var(--bg); }
-  .focused :global(.quoted .tags) { --chip: var(--surface); }
-  .tags a { padding: 0.25rem 0.75rem; border-radius: 999px; background: var(--chip); border: 1px solid var(--border); color: var(--accent); font-size: 0.95rem; font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
+  .tagbar { --chip: var(--surface); --tag-row: calc(0.95rem * 1.3 + 0.5rem + 2px); display: flex; gap: 0.4rem; align-items: flex-start; margin-top: 0.6rem; }
+  .tags { display: flex; flex-wrap: wrap; flex: 1; min-width: 0; gap: 0.4rem; margin: 0; }
+  /* One row of pills (the row height is the pill's own) */
+  .tags.collapsed { max-height: var(--tag-row); overflow: hidden; }
+  /* A round button as tall as the hashtags, with their border and colours */
+  .tagtoggle { flex: none; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; width: var(--tag-row); height: var(--tag-row); padding: 0; border: 1px solid var(--border); border-radius: 999px; background: var(--chip); color: var(--accent); }
+  .tagtoggle:hover { background: color-mix(in srgb, var(--accent) 14%, var(--chip)); }
+  .quoted .tagbar, .focused .tagbar { --chip: var(--bg); }
+  .focused :global(.quoted .tagbar) { --chip: var(--surface); }
+  .tags a { padding: 0.25rem 0.75rem; line-height: 1.3; border-radius: 999px; background: var(--chip); border: 1px solid var(--border); color: var(--accent); font-size: 0.95rem; font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
   .tags a:hover { background: color-mix(in srgb, var(--accent) 14%, var(--chip)); }
   .more { margin-top: 0.3rem; padding: 0.35rem 0; border: 0; background: none; color: var(--accent); font-weight: 600; }
   .more:hover { text-decoration: underline; }

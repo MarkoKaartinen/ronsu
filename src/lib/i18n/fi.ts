@@ -111,6 +111,8 @@ export const fi: Record<keyof typeof en, string> = {
   'poll.reveal': 'Näytä tulokset',
   'poll.back': 'Takaisin äänestämään',
   'status.readMore': 'Lue lisää',
+  'status.showMore': 'Näytä lisää',
+  'status.showLess': 'Näytä vähemmän',
   'status.cwShow': 'Näytä',
   'status.cwHide': 'Piilota',
   'status.showPost': 'Näytä julkaisu',

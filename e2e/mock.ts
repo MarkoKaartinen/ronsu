@@ -47,6 +47,8 @@ let withTags = false;
 let tagLine = false;
 /** With hashtags: #ronsu and #mastodon end the text, in its own paragraph (set from Server.hashtagEnd) */
 let tagEnd = false;
+/** With the hashtag line: the names in it (set from Server.hashtagNames) */
+let lineTags = ['ronsu', 'mastodon'];
 let edited = false;
 /** Polls of each upload (the file is ready on the second one) */
 const polls: Record<string, number> = {};
@@ -66,7 +68,7 @@ function status(i: number, withQuote = true) {
     edited_at: edited ? new Date(Date.UTC(2026, 9, 4, 6, 0, 0) + i * 60_000).toISOString() : null,
     created_at: new Date(Date.UTC(2026, 9, 4, 5, 0, 0) + i * 60_000).toISOString(), // every post a minute after the previous
     account: { id: ownPosts ? '1' : '2', username: 'u', acct: 'u', display_name: 'U', avatar: '', url: '', emojis: [] },
-    content: `<p>Post ${i}. ${i % 7 === 1 ? '<a class="u-url mention" href="https://mock.test/@maija" rel="nofollow" target="_blank">@<span>maija</span></a> ' : ''}${'Lorem ipsum dolor sit amet. '.repeat(6 + (i % 5))}${withTags && !tagLine && i % 5 === 2 ? (tagEnd ? `${tagLink('ronsu')} ${tagLink('mastodon')}` : tagLink('ronsu')) : ''}</p>${withTags && tagLine && i % 5 === 2 ? `<p>${tagLink('ronsu')} ${tagLink('mastodon')}</p>` : ''}${formatted && i % 5 === 3 ? '<blockquote><p>A quoted line of text that is long enough to wrap onto a second line when the column is narrow.</p></blockquote><pre><code>const x = 1;</code></pre><p>Inline <code>code</code>.</p><ul><li>one</li><li>two</li></ul>' : ''}`,
+    content: `<p>Post ${i}. ${i % 7 === 1 ? '<a class="u-url mention" href="https://mock.test/@maija" rel="nofollow" target="_blank">@<span>maija</span></a> ' : ''}${'Lorem ipsum dolor sit amet. '.repeat(6 + (i % 5))}${withTags && !tagLine && i % 5 === 2 ? (tagEnd ? `${tagLink('ronsu')} ${tagLink('mastodon')}` : tagLink('ronsu')) : ''}</p>${withTags && tagLine && i % 5 === 2 ? `<p>${lineTags.map(tagLink).join(' ')}</p>` : ''}${formatted && i % 5 === 3 ? '<blockquote><p>A quoted line of text that is long enough to wrap onto a second line when the column is narrow.</p></blockquote><pre><code>const x = 1;</code></pre><p>Inline <code>code</code>.</p><ul><li>one</li><li>two</li></ul>' : ''}`,
     spoiler_text: withCw && i % 4 === 2 ? (longCw ? 'food talk: a long warning that does not fit on one line next to the button, so it has to wrap onto several lines of text' : 'food talk') : '',
     sensitive: sensitiveMedia,
     visibility: 'public',
@@ -82,7 +84,7 @@ function status(i: number, withQuote = true) {
           }))
         : [],
     emojis: [],
-    tags: withTags && i % 5 === 2 ? (tagLine || tagEnd ? ['ronsu', 'mastodon'] : ['ronsu']).map((name) => ({ name, url: `${HOST}/tags/${name}` })) : [],
+    tags: withTags && i % 5 === 2 ? (tagLine ? lineTags : tagEnd ? ['ronsu', 'mastodon'] : ['ronsu']).map((name) => ({ name, url: `${HOST}/tags/${name}` })) : [],
     mentions: i % 7 === 1 ? [{ id: '2', username: 'maija', acct: 'maija', url: 'https://mock.test/@maija' }] : [],
     replies_count: 0,
     reblogs_count: 0,
@@ -165,6 +167,7 @@ export interface Server {
   hashtags?: boolean; // some posts have the hashtag #ronsu
   hashtagEnd?: boolean; // with `hashtags`: the text of the posts ends with #ronsu and #mastodon, in the same paragraph
   hashtagLine?: boolean; // with `hashtags`: the posts end with a paragraph of #ronsu and #mastodon
+  hashtagNames?: string[]; // with `hashtagLine`: the hashtags of that paragraph (#ronsu and #mastodon when not set)
   tagFollowing?: boolean; // the signed-in account follows #ronsu
   tagFollows?: string[]; // follow and unfollow of a hashtag
   tagTimelines?: { tag: string; maxId: string | null }[]; // GET /timelines/tag/:tag
@@ -210,6 +213,7 @@ export async function mockMastodon(page: Page, server: Server) {
   withTags = !!server.hashtags;
   tagLine = !!server.hashtagLine;
   tagEnd = !!server.hashtagEnd;
+  lineTags = server.hashtagNames ?? ['ronsu', 'mastodon'];
   await page.route(`${HOST}/**`, async (route) => {
     const req = route.request();
     const cors = {

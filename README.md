@@ -55,7 +55,7 @@ Source code and issues: <https://github.com/MarkoKaartinen/ronsu>
 - Delete your own posts from the post menu (it asks first)
 - Profiles with tabs for the posts, the posts and replies and the media, and the pinned posts first
 - Your own profile from the sidebar on a wide screen and the menu drawer on a phone
-- Hashtags: a hashtag in a post opens a view with its posts, where it can be followed and unfollowed (followed hashtags come to the home timeline). The hashtags that end a post (also when a link follows them) are shown as a row of links under the post, as on Mastodon's own web interface; a single hashtag after text and the ones in the middle of a sentence stay in the text
+- Hashtags: a hashtag in a post opens a view with its posts, where it can be followed and unfollowed (followed hashtags come to the home timeline). The hashtags that end a post (also when a link follows them) are shown as a row of links under the post, as on Mastodon's own web interface (one row when they take more, a chevron opens the rest); a single hashtag after text and the ones in the middle of a sentence stay in the text
 - A mark on an edited post, with the time of the edit; it opens the version history
 - Installable as a PWA, works offline for the app shell
 

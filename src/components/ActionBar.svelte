@@ -229,8 +229,8 @@
     background: none; color: inherit;
   }
   .large button { min-height: 3rem; min-width: 3.5rem; }
-  button:hover:not(:disabled) { background: var(--surface); }
-  :global(.focused) button:hover:not(:disabled) { background: var(--bg); }
+  /* A tint of the text colour shows on every background (the page, the selected post and a boost's frame are all different) */
+  button:hover:not(:disabled) { background: color-mix(in srgb, var(--text) 10%, transparent); }
   button.reblog.on { color: var(--boost); }
   button.fav.on { color: var(--like); }
   button.mark.on { color: var(--accent); }
