@@ -1,4 +1,4 @@
-### Unreleased
+### 0.3.2: 2026-10-29
 
 * The hashtags under a post show one row when they take more, and a chevron opens the rest and closes them again
 * The hover of the action buttons is visible in a boost and on every theme
