@@ -196,9 +196,9 @@
   }
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
+<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions, a11y_no_noninteractive_tabindex -->
 {#if verdict?.action !== 'hide' && !deletedIds.has(status.id) && !deletedIds.has(s.id)}
-<article data-id={context || quoted ? undefined : status.id} class:tappable={!focused} class:focused class:reply class:chained={chain} class:compact={compact || context || quoted} class:quoted class:framed={quoted && actions} class:railed={rail || context} class:context class:joined onclick={onCardClick}>
+<article data-id={context || quoted ? undefined : status.id} tabindex={context || quoted ? undefined : -1} class:tappable={!focused} class:focused class:reply class:chained={chain} class:compact={compact || context || quoted} class:quoted class:framed={quoted && actions} class:railed={rail || context} class:context class:joined onclick={onCardClick}>
   {#if boostFrame && booster}
     <!-- A boost, like a quote: who boosted on top, the original post in a frame below it (with its own buttons) -->
     <div class="layout">
@@ -232,7 +232,7 @@
 
     <div class="body">
       {#if focused}
-        <a class="fhead" href={profileHref(s.account.acct)} onclick={openProfile}>
+        <a class="fhead" data-action="profile" href={profileHref(s.account.acct)} onclick={openProfile}>
           <img class="avatar" src={s.account.avatar} alt="" width="52" height="52" />
           <span class="who">
             <strong>{@html sanitizeText(s.account.display_name || s.account.username, s.account.emojis)}</strong>
@@ -241,7 +241,7 @@
         </a>
       {:else}
         <header>
-          <a class="profile" href={profileHref(s.account.acct)} onclick={openProfile}>
+          <a class="profile" data-action="profile" href={profileHref(s.account.acct)} onclick={openProfile}>
             <strong>{@html sanitizeText(s.account.display_name || s.account.username, s.account.emojis)}</strong>
             <small>@{s.account.acct}</small>
           </a>
@@ -268,7 +268,7 @@
       {#if verdict?.action === 'warn'}
         <div class="cw">
           <span class="cw-text">{t('status.filterMatches', { title: filterTitles })}</span>
-          <button onclick={() => (filterOpen = !filterOpen)} aria-expanded={filterOpen}><TriangleAlert size={16} aria-hidden="true" />{filterOpen ? t('status.cwHide') : t('status.cwShow')}</button>
+          <button data-action="toggle-warning" onclick={() => (filterOpen = !filterOpen)} aria-expanded={filterOpen}><TriangleAlert size={16} aria-hidden="true" />{filterOpen ? t('status.cwHide') : t('status.cwShow')}</button>
         </div>
       {/if}
 
@@ -276,7 +276,7 @@
         <div class="cw">
           <span class="cw-text">{@html sanitizeText(s.spoiler_text, s.emojis)}</span>
           <!-- The label is short (the box is narrow); the full phrase is the accessible name -->
-          <button onclick={() => (cwOpen = !cwOpen)} aria-expanded={cwOpen} aria-label={cwOpen ? t('status.hidePost') : t('status.showPost')}><TriangleAlert size={16} aria-hidden="true" />{cwOpen ? t('status.cwHide') : t('status.cwShow')}</button>
+          <button data-action="toggle-warning" onclick={() => (cwOpen = !cwOpen)} aria-expanded={cwOpen} aria-label={cwOpen ? t('status.hidePost') : t('status.showPost')}><TriangleAlert size={16} aria-hidden="true" />{cwOpen ? t('status.cwHide') : t('status.cwShow')}</button>
         </div>
       {/if}
 
@@ -306,7 +306,7 @@
                 {#if !url}
                   <!-- nothing safe to show -->
                 {:else if m.type === 'image'}
-                  <a inert={hideMedia} href={url} target="_blank" rel="noopener noreferrer" onclick={(e) => openImage(e, m.id)} >
+                  <a inert={hideMedia} data-action="open-media" href={url} target="_blank" rel="noopener noreferrer" onclick={(e) => openImage(e, m.id)} >
                     <img src={preview} alt={m.description ?? ''} loading="lazy" decoding="async" />
                   </a>
                 {:else if m.type === 'video'}
@@ -322,7 +322,7 @@
                 {/if}
             {/each}
             {#if hideMedia}
-              <button class="reveal" onclick={() => (mediaOpen = true)} title={t('status.showMedia')}><TriangleAlert size={16} aria-hidden="true" />{verdict?.action === 'blur' ? t('status.filterMatches', { title: filterTitles }) : t('status.sensitive')}</button>
+              <button class="reveal" data-action="reveal-media" onclick={() => (mediaOpen = true)} title={t('status.showMedia')}><TriangleAlert size={16} aria-hidden="true" />{verdict?.action === 'blur' ? t('status.filterMatches', { title: filterTitles }) : t('status.sensitive')}</button>
             {/if}
           </div>
         {/if}
@@ -406,6 +406,9 @@
   .edited { font-size: 0.82rem; margin-left: -0.5rem; min-width: 1.5rem; min-height: 1.5rem; }
   .edited:hover, .editedtext:hover { color: var(--text); text-decoration: underline; }
   article.tappable { cursor: pointer; }
+  /* The post the keyboard shortcuts act on */
+  article:focus { outline: none; }
+  article:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   /* A content warning stands out in the warning colour (the same as the CW field when writing), and is tinted
      with it instead of a plain surface colour, so it is also visible on the selected post's band */
   .cw { display: flex; flex-wrap: wrap; gap: 0.5rem 0.6rem; align-items: center; border: 1px solid color-mix(in srgb, var(--marker) 55%, transparent); background: color-mix(in srgb, var(--marker) 13%, transparent); border-radius: 0.6rem; padding: 0.5rem 0.6rem 0.5rem 0.7rem; margin: 0.3rem 0 0.5rem; }

@@ -56,7 +56,7 @@ test('the bookmarks open from the menu, load older ones by the list\'s own curso
   await expect(page.getByRole('button', { name: 'Load older' })).toHaveCount(0);
 
   // A place like the others: the top and the bottom bar are there, and Home is one touch away
-  await expect(page.getByRole('button', { name: 'Back' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0);
   await expect(page.locator('header.top')).toBeVisible();
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Home' }).click();
   await expect(page.locator('article[data-id]').first()).toBeVisible();
@@ -147,14 +147,14 @@ test('wide: the settings open in the middle column, beside the sidebar and the n
   const settings = page.getByRole('region', { name: 'Account and settings' });
   await expect(settings).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Load new' })).toBeHidden(); // nothing else is needed beside the settings
+  await expect(page.getByRole('button', { name: 'Load new', exact: true })).toBeHidden(); // nothing else is needed beside the settings
   expect(Math.abs((await settings.locator('.bar').first().evaluate((el) => el.getBoundingClientRect().height)) - feed)).toBeLessThan(1);
   await page.screenshot({ path: 'test-results/settings-wide.png' });
 
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Bookmarks' }).click();
   await expect(settings).toHaveCount(0);
   await expect(page.getByText('Saved 1')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Load new' })).toBeVisible(); // the notifications are back
+  await expect(page.getByRole('button', { name: 'Load new', exact: true })).toBeVisible(); // the notifications are back
 });
 
 test('phone: the settings have the top and the bottom bar and the same title bar, without an arrow', async ({ page }) => {
@@ -163,7 +163,7 @@ test('phone: the settings have the top and the bottom bar and the same title bar
   await page.getByRole('button', { name: /^Account: / }).click();
   const settings = page.getByRole('region', { name: 'Account and settings' });
   await expect(settings).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Back' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0);
   await expect(page.locator('header.top')).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible();
   expect(Math.abs((await settings.locator('.bar').first().evaluate((el) => el.getBoundingClientRect().height)) - feed)).toBeLessThan(1);

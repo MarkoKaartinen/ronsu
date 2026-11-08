@@ -258,7 +258,7 @@
 
 {#if feed.order === 'newest-first' && feed.items.length}
   <div class="older">
-    <button onclick={loadNewer} disabled={feed.newerLoading}>
+    <button data-action="load-new" onclick={loadNewer} disabled={feed.newerLoading}>
       {feed.newerLoading ? t('common.loading') : t('feed.loadNew')}
     </button>
     {#if feed.newerNone}<span class="none" role="status">{t('feed.noNew')}</span>{/if}
@@ -267,7 +267,7 @@
 
 {#if feed.order === 'oldest-first' && feed.items.length && !feed.olderEnd}
   <div class="older">
-    <button onclick={loadOlder} disabled={feed.olderLoading}>
+    <button data-action="load-older" onclick={loadOlder} disabled={feed.olderLoading}>
       {feed.olderLoading ? t('common.loading') : t('feed.loadOlder')}
     </button>
   </div>
@@ -306,13 +306,13 @@
   <p class="msg">{t('common.loading')}</p>
 {:else if feed.items.length && !feed.endReached && !feed.error}
   <div class="older">
-    <button onclick={() => feed.loadMore()}>{t('feed.more')}</button>
+    <button data-action={feed.order === 'oldest-first' ? 'load-new' : 'load-older'} onclick={() => feed.loadMore()}>{t('feed.more')}</button>
   </div>
 {:else if feed.endReached}
   <p class="msg">
     {feed.items.length ? t('feed.caughtUp') : t('feed.empty')}
     {#if feed.order === 'oldest-first'}
-      <button onclick={() => keepPlace(() => feed.checkForNew())}>{t('feed.loadNew')}</button>
+      <button data-action="load-new" onclick={() => keepPlace(() => feed.checkForNew())}>{t('feed.loadNew')}</button>
     {/if}
   </p>
 {/if}

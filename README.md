@@ -56,6 +56,13 @@ Source code and issues: <https://github.com/MarkoKaartinen/ronsu>
 - Profiles with tabs for the posts, the posts and replies and the media, and the pinned posts first
 - Your own profile from the sidebar on a wide screen and the menu drawer on a phone
 - Hashtags: a hashtag in a post opens a view with its posts, where it can be followed and unfollowed (followed hashtags come to the home timeline). The hashtags that end a post (also when a link follows them) are shown as a row of links under the post, as on Mastodon's own web interface (one row when they take more, a chevron opens the rest); a single hashtag after text and the ones in the middle of a sentence stay in the text
+- Keyboard shortcuts on a computer, with Mastodon's keys as the starting point: `j` and `k` down and up to the next and the previous
+  post on the screen (the same whether the oldest or the newest post is first: newest first, down is an older post), `r` reply, `b` boost, `f`
+  favorite, `d` bookmark, `q` quote, `o` open the post, `p` the author's profile, `e` the pictures, `x` and `h` show a
+  content warning and sensitive media, `n` a new post, `Backspace` back, `g` and then `h`, `n`, `m`, `f`, `b` or `s`
+  to go to a view, and `?` for the list. Nothing loads by itself, so `u` loads the new posts and `l` the older ones
+  (it presses the right button for the order you read in, at the top or the bottom of the list). Every key can be changed or switched off in the settings (kept per device); the shortcuts
+  keep quiet while typing and while a dialog is open
 - A mark on an edited post, with the time of the edit; it opens the version history
 - Installable as a PWA, works offline for the app shell
 

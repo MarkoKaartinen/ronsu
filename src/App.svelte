@@ -8,6 +8,7 @@
   import Drawer from './components/Drawer.svelte';
   import Compose from './components/Compose.svelte';
   import Lightbox from './components/Lightbox.svelte';
+  import Shortcuts from './components/Shortcuts.svelte';
   import BottomBar from './components/BottomBar.svelte';
   import Sidebar from './components/Sidebar.svelte';
   import Feed from './components/Feed.svelte';
@@ -247,6 +248,7 @@
 
   <Compose />
   <Lightbox />
+  <Shortcuts />
 {/if}
 
 {#if toast.message}

@@ -153,8 +153,9 @@ matters more than most features, because it decides what is in the timeline.
 
 ## Accessibility and interface
 
-- [ ] **Keyboard shortcuts** for reading (next and previous post, favorite, boost, reply, open thread) like
-  Phanpy and the official web UI have
+- [x] **Keyboard shortcuts** for reading (next and previous post, favorite, boost, reply, open thread, load new and older) with
+  Mastodon's keys as defaults, changeable in the settings. Left: a shortcut for the post menu, and for the compact
+  thread rows, which have no buttons
 - [ ] **Reduced motion**: check animations against `prefers-reduced-motion`
 - [ ] **Screen reader audit** of the post card, the lightbox and the composer, with real VoiceOver and TalkBack runs
 - [ ] **Per-account display options**: show or hide boosts and replies in the home timeline (a client-side filter
