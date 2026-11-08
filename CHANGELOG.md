@@ -1,3 +1,7 @@
+### Unreleased
+
+* Fix a browser test of the keyboard shortcuts that sometimes failed on a slow machine; the boost, favorite and bookmark buttons say `aria-busy` while their request is on its way
+
 ### 0.3.3: 2026-11-08
 
 * Keyboard shortcuts for reading on a computer, with Mastodon's keys as the starting point: next and previous post, reply, boost, favorite, bookmark, quote, open the post, its author and its pictures, a new post, back, going to a view and loading more

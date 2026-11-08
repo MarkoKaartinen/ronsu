@@ -76,6 +76,8 @@ test('r, f, b and d press the buttons of the post that has the focus', async ({ 
   await expect(card.getByRole('button', { name: 'Boost' })).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.press('d');
   await expect(card.getByRole('button', { name: 'Bookmark' })).toHaveAttribute('aria-pressed', 'true');
+  // A press while the request of the same button is still on its way is ignored (as a second tap would be): wait for it
+  await expect(card.getByRole('button', { name: 'Favorite' })).not.toHaveAttribute('aria-busy', 'true');
   await page.keyboard.press('f');
   await expect(card.getByRole('button', { name: 'Favorite' })).toHaveAttribute('aria-pressed', 'false');
   await page.keyboard.press('r');
