@@ -124,13 +124,14 @@
 <svelte:window onkeydown={(e) => e.key === 'Escape' && (menuOpen = false)} onclick={(e) => menuOpen && !(e.target as Element).closest('.menu') && (menuOpen = false)} />
 
 <div class="actions" class:large>
-  <button aria-label={t('action.reply')} title={t('action.reply')} onclick={() => composer.show(status)}>
+  <button data-action="reply" aria-label={t('action.reply')} title={t('action.reply')} onclick={() => composer.show(status)}>
     <MessageCircle size={large ? 22 : 20} aria-hidden="true" />
     {#if !large}<span>{status.replies_count}</span>{/if}
   </button>
 
   <button
     class="reblog"
+    data-action="reblog"
     class:on={isOn(status, 'reblog')}
     aria-pressed={isOn(status, 'reblog')}
     disabled={!canReblog(status) && !isOn(status, 'reblog')}
@@ -145,6 +146,7 @@
   {#if quoteSupported(status)}
     <button
       class="quote"
+      data-action="quote"
       disabled={!canQuote(status)}
       aria-label={t('action.quote')}
       title={canQuote(status) ? t('action.quote') : t('action.cannotQuote')}
@@ -157,6 +159,7 @@
 
   <button
     class="fav"
+    data-action="favourite"
     class:on={isOn(status, 'favourite')}
     aria-pressed={isOn(status, 'favourite')}
     aria-label={t('action.favorite')}
@@ -169,6 +172,7 @@
 
   <button
     class="mark"
+    data-action="bookmark"
     class:on={isOn(status, 'bookmark')}
     aria-pressed={isOn(status, 'bookmark')}
     aria-label={t('action.bookmark')}

@@ -68,7 +68,7 @@
     <p class="msg">{t(kind === 'bookmarks' ? 'saved.emptyBookmarks' : 'saved.emptyFavourites')}</p>
   {:else if items.length && !end}
     <div class="older">
-      <button onclick={() => load(true)} disabled={loading}>{loading ? t('common.loading') : t('feed.loadOlder')}</button>
+      <button data-action="load-older" onclick={() => load(true)} disabled={loading}>{loading ? t('common.loading') : t('feed.loadOlder')}</button>
     </div>
   {/if}
 </div>

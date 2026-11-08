@@ -260,7 +260,7 @@
     <button class:on={filter === 'mentions'} aria-pressed={filter === 'mentions'} onclick={() => setFilter('mentions')}>{t('notif.mentions')}</button>
   </div>
   <div class="reloading">
-    <button class="reload" onclick={() => reload()} disabled={loading} aria-busy={refreshing}>
+    <button class="reload" data-action="load-new" onclick={() => reload()} disabled={loading} aria-busy={refreshing}>
       {#if refreshing}<LoaderCircle class="spin" size={16} aria-hidden="true" />{t('common.loading')}{:else}{t('feed.loadNew')}{/if}
     </button>
   </div>
@@ -329,7 +329,7 @@
   <p class="msg">{t('notif.empty')}</p>
 {:else if items.length && !end}
   <div class="older">
-    <button onclick={loadMore} disabled={loading}>{loading && !refreshing ? t('common.loading') : t('feed.loadOlder')}</button>
+    <button data-action="load-older" onclick={loadMore} disabled={loading}>{loading && !refreshing ? t('common.loading') : t('feed.loadOlder')}</button>
   </div>
 {/if}
 </div>

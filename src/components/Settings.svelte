@@ -8,6 +8,7 @@
   import LanguageSettings from './LanguageSettings.svelte';
   import TitleBar from './TitleBar.svelte';
   import PushSettings from './PushSettings.svelte';
+  import ShortcutSettings from './ShortcutSettings.svelte';
   import ThemeSettings from './ThemeSettings.svelte';
 
   let { onAdd }: { onAdd: () => void } = $props();
@@ -35,6 +36,7 @@
     <ThemeSettings />
     <FontSettings />
     <LanguageSettings />
+    <ShortcutSettings />
 
     <div class="foot">
       {#if accountStore.active}

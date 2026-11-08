@@ -110,7 +110,7 @@
     <p class="msg">{t('messages.empty')}</p>
   {:else if items.length && !end}
     <div class="older">
-      <button onclick={loadMore} disabled={loading}>{loading ? t('common.loading') : t('feed.loadOlder')}</button>
+      <button data-action="load-older" onclick={loadMore} disabled={loading}>{loading ? t('common.loading') : t('feed.loadOlder')}</button>
     </div>
   {/if}
 </div>

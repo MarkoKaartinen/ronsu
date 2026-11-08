@@ -1,5 +1,8 @@
 ### Unreleased
 
+* Keyboard shortcuts for reading on a computer, with Mastodon's keys as the starting point: next and previous post, reply, boost, favorite, bookmark, quote, open the post, its author and its pictures, a new post, back, going to a view and loading more
+* Load the new posts and the older posts by key, whichever order the posts are in; `?` lists the shortcuts
+* Change or switch off every shortcut in the settings
 * More space between the hashtags under a post and the action buttons, so the hover of a button does not touch them
 
 ### 0.3.2: 2026-10-29
