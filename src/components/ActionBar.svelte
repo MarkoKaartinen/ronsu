@@ -132,6 +132,7 @@
   <button
     class="reblog"
     data-action="reblog"
+    aria-busy={busy.reblog}
     class:on={isOn(status, 'reblog')}
     aria-pressed={isOn(status, 'reblog')}
     disabled={!canReblog(status) && !isOn(status, 'reblog')}
@@ -160,6 +161,7 @@
   <button
     class="fav"
     data-action="favourite"
+    aria-busy={busy.favourite}
     class:on={isOn(status, 'favourite')}
     aria-pressed={isOn(status, 'favourite')}
     aria-label={t('action.favorite')}
@@ -173,6 +175,7 @@
   <button
     class="mark"
     data-action="bookmark"
+    aria-busy={busy.bookmark}
     class:on={isOn(status, 'bookmark')}
     aria-pressed={isOn(status, 'bookmark')}
     aria-label={t('action.bookmark')}
