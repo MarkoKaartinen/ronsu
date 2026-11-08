@@ -1,4 +1,4 @@
-### Unreleased
+### 0.3.3: 2026-11-08
 
 * Keyboard shortcuts for reading on a computer, with Mastodon's keys as the starting point: next and previous post, reply, boost, favorite, bookmark, quote, open the post, its author and its pictures, a new post, back, going to a view and loading more
 * Load the new posts and the older posts by key, whichever order the posts are in; `?` lists the shortcuts
