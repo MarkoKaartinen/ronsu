@@ -1,5 +1,7 @@
 ### Unreleased
 
+* Catppuccin themes: Latte as a light theme and Frappé, Macchiato and Mocha as dark themes
+
 * Fix a browser test of the keyboard shortcuts that sometimes failed on a slow machine; the boost, favorite and bookmark buttons say `aria-busy` while their request is on its way
 
 ### 0.3.3: 2026-11-08

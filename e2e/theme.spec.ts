@@ -52,3 +52,24 @@ test('Dracula and Alucard can be chosen as the dark and the light theme, and are
   await page.reload();
   expect(await theme(page)).toBe('dracula-light');
 });
+
+test('the Catppuccin themes can be chosen and are remembered', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await mockMastodon(page, { marker: null, posts: [] });
+  await seedAccount(page);
+  await page.reload();
+  await page.waitForSelector('article[data-id]');
+
+  await page.getByRole('button', { name: /^Account: @/ }).click();
+  await page.getByRole('group', { name: 'Dark theme' }).getByRole('button', { name: 'Catppuccin Mocha' }).click();
+  await expect.poll(() => theme(page)).toBe('catppuccin-mocha');
+  expect(await bg(page)).toBe('rgb(30, 30, 46)');
+
+  await page.getByRole('group', { name: 'Light theme' }).getByRole('button', { name: 'Catppuccin Latte' }).click();
+  await page.getByRole('button', { name: 'Light', exact: true }).click();
+  await expect.poll(() => theme(page)).toBe('catppuccin-latte');
+  expect(await bg(page)).toBe('rgb(239, 241, 245)');
+
+  await page.reload();
+  expect(await theme(page)).toBe('catppuccin-latte');
+});

@@ -9,6 +9,10 @@
  * Dracula (https://draculatheme.com/spec): "Dracula Classic" as the dark theme and its light variant
  * "Alucard Classic" as the light theme. The colours are the spec's; only the muted text and the red
  * error colours are adjusted for WCAG AA contrast (the spec's comment colour #6272a4 is too dim for text).
+ *
+ * Catppuccin (https://catppuccin.com/palette, style guide: base is the background, mantle and crust the
+ * darker panels, surface0/1 the surfaces and borders, mauve the accent). Latte is the light theme, Frappé,
+ * Macchiato and Mocha are dark. Only a few light colours are darkened for WCAG AA contrast.
  */
 
 export type Scheme = 'light' | 'dark';
@@ -132,6 +136,94 @@ export const THEMES: Theme[] = [
       danger: '#c0352a', // red, darkened
       dangerBg: '#cb3a2a', // red
       onDangerBg: '#fffbeb',
+    },
+  },
+  {
+    id: 'catppuccin-latte',
+    name: 'Catppuccin Latte',
+    scheme: 'light',
+    colors: {
+      bg: '#eff1f5', // base
+      page: '#dce0e8', // crust
+      surface: '#e6e9ef', // mantle
+      header: '#ccd0da', // surface0
+      border: '#bcc0cc', // surface1
+      text: '#4c4f69', // text
+      muted: '#5c5f77', // subtext1
+      accent: '#7c2fdb', // mauve, darkened
+      onAccent: '#eff1f5', // base
+      like: '#d20f39', // red
+      boost: '#2a7019', // green, darkened
+      marker: '#855410', // yellow, darkened
+      danger: '#c40d34', // red, darkened
+      dangerBg: '#d20f39', // red
+      onDangerBg: '#eff1f5', // base
+    },
+  },
+  {
+    id: 'catppuccin-frappe',
+    name: 'Catppuccin Frappé',
+    scheme: 'dark',
+    colors: {
+      bg: '#303446', // base
+      page: '#232634', // crust
+      surface: '#414559', // surface0
+      header: '#292c3c', // mantle
+      border: '#51576d', // surface1
+      text: '#c6d0f5', // text
+      muted: '#b5bfe2', // subtext1
+      accent: '#d4aeed', // mauve, lightened
+      onAccent: '#232634', // crust
+      like: '#f4b8e4', // pink
+      boost: '#a6d189', // green
+      marker: '#e5c890', // yellow
+      danger: '#f0a0a2', // red, lightened
+      dangerBg: '#e78284', // red
+      onDangerBg: '#232634', // crust
+    },
+  },
+  {
+    id: 'catppuccin-macchiato',
+    name: 'Catppuccin Macchiato',
+    scheme: 'dark',
+    colors: {
+      bg: '#24273a', // base
+      page: '#181926', // crust
+      surface: '#363a4f', // surface0
+      header: '#1e2030', // mantle
+      border: '#494d64', // surface1
+      text: '#cad3f5', // text
+      muted: '#a5adcb', // subtext0
+      accent: '#c6a0f6', // mauve
+      onAccent: '#181926', // crust
+      like: '#f5bde6', // pink
+      boost: '#a6da95', // green
+      marker: '#eed49f', // yellow
+      danger: '#ed8796', // red
+      dangerBg: '#ed8796', // red
+      onDangerBg: '#181926', // crust
+    },
+  },
+  {
+    id: 'catppuccin-mocha',
+    name: 'Catppuccin Mocha',
+    scheme: 'dark',
+    colors: {
+      bg: '#1e1e2e', // base
+      page: '#11111b', // crust
+      surface: '#313244', // surface0
+      header: '#181825', // mantle
+      border: '#45475a', // surface1
+      text: '#cdd6f4', // text
+      muted: '#a6adc8', // subtext0
+      accent: '#cba6f7', // mauve
+      onAccent: '#11111b', // crust
+      like: '#f5c2e7', // pink
+      boost: '#a6e3a1', // green
+      marker: '#f9e2af', // yellow
+      danger: '#f38ba8', // red
+      dangerBg: '#f38ba8', // red
+      onDangerBg: '#11111b', // crust
     },
   },
 ];

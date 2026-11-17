@@ -37,7 +37,7 @@ Source code and issues: <https://github.com/MarkoKaartinen/ronsu>
   `write:mutes` and `write:blocks` OAuth scopes, so older logins are asked to log in again)
 - Polls: vote (one option or several), look at the results without voting, refresh them, and write a poll with options, a duration and a style within the limits your server sets (a poll of your own shows only the results, as the server does not take a vote in it)
 - An in-app image viewer: swipe or use the arrow keys between a post's pictures, tap to zoom, Esc or back to close
-- Light and dark themes that follow the system or your own choice: Nord (dark/light) and Dracula (dark) / Alucard (light)
+- Light and dark themes that follow the system or your own choice: Nord (dark/light), Dracula (dark) / Alucard (light) and Catppuccin (Latte, Frappé, Macchiato, Mocha)
 - English and Finnish, switchable in the settings
 - A choice of fonts: Figtree, Inter, Open Sans, JetBrains Mono or the system font (all SIL OFL, self-hosted)
 - Push notifications, also when Ronsu is closed: a switch per notification type, a sound switch per type, and
@@ -111,7 +111,7 @@ Install the browser once with `npx playwright install chromium` (on a server wit
 ## Structure
 
 - `src/` the app (`components/`, `lib/` logic and API client, `lib/stores/` state)
-- `src/lib/themes.ts` and `src/lib/fonts.ts` the themes and fonts as data (Nord, Dracula/Alucard; Figtree, Inter, ...); their CSS and `theme-init.js` are generated at build time
+- `src/lib/themes.ts` and `src/lib/fonts.ts` the themes and fonts as data (Nord, Dracula/Alucard, Catppuccin; Figtree, Inter, ...); their CSS and `theme-init.js` are generated at build time
 - `src/lib/i18n/` the translations (`en.ts`, `fi.ts`) and the helpers for formatting
 - `static/` files copied as is into `public/` (icons, `push-sw.js`: the push part of the service worker, plain JavaScript)
 - `branding/` the logo sources (SVG)
