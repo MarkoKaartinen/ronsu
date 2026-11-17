@@ -1,6 +1,7 @@
 ### Unreleased
 
 * Catppuccin themes: Latte as a light theme and Frappé, Macchiato and Mocha as dark themes
+* Update the dependencies (Lucide, Playwright, Vite, DOMPurify and the TypeScript config) and the browser test image of the CI to Playwright 1.65.1
 
 * Fix a browser test of the keyboard shortcuts that sometimes failed on a slow machine; the boost, favorite and bookmark buttons say `aria-busy` while their request is on its way
 
