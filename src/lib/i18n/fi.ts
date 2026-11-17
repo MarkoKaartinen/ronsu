@@ -271,6 +271,10 @@ export const fi: Record<keyof typeof en, string> = {
   'theme.nord-light': 'Nord vaalea',
   'theme.dracula-dark': 'Dracula',
   'theme.dracula-light': 'Alucard',
+  'theme.catppuccin-latte': 'Catppuccin Latte',
+  'theme.catppuccin-frappe': 'Catppuccin Frappé',
+  'theme.catppuccin-macchiato': 'Catppuccin Macchiato',
+  'theme.catppuccin-mocha': 'Catppuccin Mocha',
 
   'profile.follow': 'Seuraa',
   'profile.followRequest': 'Pyydä lupaa seurata',

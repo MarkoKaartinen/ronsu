@@ -273,6 +273,10 @@ export const en = {
   'theme.nord-light': 'Nord Light',
   'theme.dracula-dark': 'Dracula',
   'theme.dracula-light': 'Alucard',
+  'theme.catppuccin-latte': 'Catppuccin Latte',
+  'theme.catppuccin-frappe': 'Catppuccin Frappé',
+  'theme.catppuccin-macchiato': 'Catppuccin Macchiato',
+  'theme.catppuccin-mocha': 'Catppuccin Mocha',
 
   'profile.follow': 'Follow', // mastodon: account.follow
   'profile.followRequest': 'Request to follow', // mastodon: account.follow_request
